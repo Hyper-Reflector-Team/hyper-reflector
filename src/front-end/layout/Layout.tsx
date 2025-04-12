@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Flex, Stack, Tabs, Box, Text } from '@chakra-ui/react'
+import { Stack, Tabs, Box, Text, Button } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import theme from '../utils/theme'
+import { Settings } from 'lucide-react'
 
 export default function Layout({ children }) {
     const [isLoading, setIsLoading] = useState(false)
@@ -50,82 +51,95 @@ export default function Layout({ children }) {
                 px="4"
                 flexShrink={0}
             >
-                <Tabs.Root variant="enclosed" value={layoutTab}>
-                    <Tabs.List bg={theme.colors.main.secondary} rounded="l3" p="1">
-                        {!isLoggedIn && (
-                            <Tabs.Trigger
-                                _selected={{ bg: theme.colors.main.action }}
-                                color={theme.colors.main.text}
-                                value="login"
-                                onClick={() => {
-                                    navigate({ to: '/' })
-                                    setLayoutTab('login')
-                                }}
-                            >
-                                Sign In
-                            </Tabs.Trigger>
-                        )}
-                        <Tabs.Trigger
-                            _selected={{ bgColor: theme.colors.main.action }}
-                            color={theme.colors.main.text}
-                            value="news"
-                            onClick={() => {
-                                navigate({ to: '/news' })
-                                setLayoutTab('news')
-                            }}
-                        >
-                            News
-                        </Tabs.Trigger>
-                        {isLoggedIn && (
-                            <>
-                                {/* --tabs-indicator-bg */}
+                <Tabs.Root variant="enclosed" value={layoutTab} width="100%">
+                    <Tabs.List bg={theme.colors.main.secondary} rounded="l3" minW="100%">
+                        <Box display={'flex'} width="100%">
+                            {!isLoggedIn && (
                                 <Tabs.Trigger
-                                    _selected={{ bgColor: theme.colors.main.action }}
-                                    color={theme.colors.main.text}
-                                    value="chat"
-                                    onClick={() => {
-                                        navigate({ to: '/chat' })
-                                        setLayoutTab('chat')
-                                    }}
-                                >
-                                    Chat
-                                </Tabs.Trigger>
-                                <Tabs.Trigger
+                                    width={'100px'}
                                     _selected={{ bg: theme.colors.main.action }}
                                     color={theme.colors.main.text}
-                                    value="profile"
+                                    value="login"
                                     onClick={() => {
-                                        navigate({ to: `/profile/${user.uid}` })
-                                        setLayoutTab('profile')
+                                        navigate({ to: '/' })
+                                        setLayoutTab('login')
                                     }}
                                 >
-                                    Profile
+                                    Sign In
                                 </Tabs.Trigger>
-                            </>
-                        )}
-                        <Tabs.Trigger
-                            _selected={{ bg: theme.colors.main.action }}
-                            color={theme.colors.main.text}
-                            value="offline"
-                            onClick={() => {
-                                navigate({ to: '/offline' })
-                                setLayoutTab('offline')
-                            }}
-                        >
-                            Play Offline
-                        </Tabs.Trigger>
-                        <Tabs.Trigger
-                            _selected={{ bg: theme.colors.main.action }}
-                            color={theme.colors.main.text}
-                            value="settings"
-                            onClick={() => {
-                                navigate({ to: '/settings' })
-                                setLayoutTab('settings')
-                            }}
-                        >
-                            Settings
-                        </Tabs.Trigger>
-                        <Tabs.Indicator rounded="l2" bgColor={theme.colors.main.action} />
+                            )}
+
+                            <Tabs.Trigger
+                                width={'100px'}
+                                _selected={{ bgColor: theme.colors.main.action }}
+                                color={theme.colors.main.text}
+                                value="news"
+                                onClick={() => {
+                                    navigate({ to: '/news' })
+                                    setLayoutTab('news')
+                                }}
+                            >
+                                News
+                            </Tabs.Trigger>
+                            {isLoggedIn && (
+                                <>
+                                    <Tabs.Trigger
+                                        width={'100px'}
+                                        _selected={{ bgColor: theme.colors.main.action }}
+                                        color={theme.colors.main.text}
+                                        value="chat"
+                                        onClick={() => {
+                                            navigate({ to: '/chat' })
+                                            setLayoutTab('chat')
+                                        }}
+                                    >
+                                        Chat
+                                    </Tabs.Trigger>
+                                    <Tabs.Trigger
+                                        width={'100px'}
+                                        _selected={{ bg: theme.colors.main.action }}
+                                        color={theme.colors.main.text}
+                                        value="profile"
+                                        onClick={() => {
+                                            navigate({ to: `/profile/${user.uid}` })
+                                            setLayoutTab('profile')
+                                        }}
+                                    >
+                                        Profile
+                                    </Tabs.Trigger>
+                                </>
+                            )}
+                            <Tabs.Trigger
+                                width={'100px'}
+                                _selected={{ bg: theme.colors.main.action }}
+                                color={theme.colors.main.text}
+                                value="offline"
+                                onClick={() => {
+                                    navigate({ to: '/offline' })
+                                    setLayoutTab('offline')
+                                }}
+                            >
+                                Offline
+                            </Tabs.Trigger>
+                            <Tabs.Indicator rounded="l2" bgColor={theme.colors.main.action} />
+                            <Box width="100%">
+                                <Tabs.Trigger
+                                    justifySelf="end"
+                                    width="40px"
+                                    value="settings"
+                                    _selected={{ bg: theme.colors.main.action }}
+                                    color={theme.colors.main.text}
+                                    onClick={() => {
+                                        navigate({ to: '/settings' })
+                                        setLayoutTab('settings')
+                                    }}
+                                >
+                                    <Box width={'80px'}>
+                                        <Settings />
+                                    </Box>
+                                </Tabs.Trigger>
+                            </Box>
+                        </Box>
                     </Tabs.List>
                 </Tabs.Root>
             </Box>
