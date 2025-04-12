@@ -65,7 +65,7 @@ export default function Layout({ children }) {
                             </Tabs.Trigger>
                         )}
                         <Tabs.Trigger
-                            _selected={{ bg: 'red.500' }}
+                            _selected={{ bgColor: 'red.500' }}
                             color="gray.100"
                             value="news"
                             onClick={() => {
@@ -77,8 +77,9 @@ export default function Layout({ children }) {
                         </Tabs.Trigger>
                         {isLoggedIn && (
                             <>
+                                {/* --tabs-indicator-bg */}
                                 <Tabs.Trigger
-                                    _selected={{ bg: 'red.500' }}
+                                    _selected={{ bgColor: 'red.500' }}
                                     color="gray.100"
                                     value="chat"
                                     onClick={() => {
@@ -123,7 +124,7 @@ export default function Layout({ children }) {
                         >
                             Settings
                         </Tabs.Trigger>
-                        <Tabs.Indicator rounded="l2" />
+                        <Tabs.Indicator rounded="l2" bgColor={'red.500'} />
                     </Tabs.List>
                 </Tabs.Root>
             </Box>

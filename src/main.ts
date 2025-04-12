@@ -5,8 +5,7 @@ import { sendCommand, readCommand, readStatFile, clearStatFile } from './sendHyp
 import { startPlayingOnline, startSoloMode } from './loadFbNeo'
 import { getConfig, type Config } from './config'
 // updating automatically
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app'
-updateElectronApp()
+import { updateElectronApp } from 'update-electron-app'
 import keys from './private/keys'
 // external api
 import api from './external-api/requests'
@@ -49,8 +48,6 @@ let filePathBase = process.resourcesPath
 const tokenFilePath = path.join(app.getPath('userData'), 'auth_token.json')
 
 const getLoginObject = (user: any) => {
-    // TODO make a
-    console.log(user)
     return {
         name: user.userName,
         email: user.userEmail,
@@ -79,7 +76,18 @@ const sendLog = (text: string) => {
     mainWindow.webContents.send('send-log', text)
 }
 
+async function autoUpdate() {
+    console.log('initializing automatcic updates')
+    try {
+        await updateElectronApp()
+        console.log('starting update')
+    } catch (error) {
+        console.log('auto update failed with: ', err)
+    }
+}
+
 const createWindow = () => {
+    autoUpdate()
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 1100,
