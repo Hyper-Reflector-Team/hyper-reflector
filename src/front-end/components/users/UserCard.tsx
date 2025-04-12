@@ -90,13 +90,13 @@ export default function UserCard({ user }) {
                 <Box
                     minH="60px"
                     maxH="60px"
-                    background={'cyan.800'}
-                    borderRadius="8px"
+                    background={theme.colors.main.card}
+                    borderRadius="4px"
                     padding="8px"
                     height="100%"
                     borderWidth="2px"
-                    borderColor={'cyan.900'}
-                    _hover={{ bg: 'cyan.700', cursor: 'pointer' }}
+                    borderColor={theme.colors.main.cardDark}
+                    _hover={{ bg: theme.colors.main.cardLight, cursor: 'pointer' }}
                 >
                     <Flex gap="12px">
                         <Box>
@@ -104,10 +104,10 @@ export default function UserCard({ user }) {
                                 <Avatar.Fallback name={user.name} />
                                 <Float placement="bottom-end" offsetX="1" offsetY="1">
                                     <Circle
-                                        bg="green.500"
+                                        bg="green.500" // offline online stuff
                                         size="8px"
                                         outline="0.2em solid"
-                                        outlineColor="cyan.900"
+                                        outlineColor={theme.colors.main.cardDark}
                                     />
                                 </Float>
                             </Avatar.Root>
