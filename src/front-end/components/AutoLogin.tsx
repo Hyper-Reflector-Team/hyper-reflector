@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useLoginStore, useMessageStore } from '../state/store'
 import { Stack, Box, Center, Spinner, Text } from '@chakra-ui/react'
+import theme from '../utils/theme'
 
 export default function Autologin() {
     const [isLoading, setIsLoading] = useState(true)
@@ -64,15 +65,15 @@ export default function Autologin() {
     return (
         <>
             {isLoading && (
-                <Box pos="absolute" inset="0" bg="gray.800" opacity="50%">
+                <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
                     <Center h="full">
-                        <Spinner color="red.500" />
+                        <Spinner color={theme.colors.main.action} />
                     </Center>
                 </Box>
             )}
             <Stack justifySelf="center">
                 <Box>
-                    <Text textStyle="4xl" color="red.600">
+                    <Text textStyle="4xl" color={theme.colors.main.action}>
                         Logging you in!
                     </Text>
                 </Box>

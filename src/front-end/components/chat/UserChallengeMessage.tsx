@@ -1,9 +1,9 @@
 import { useRef, useEffect, useState } from 'react'
 import { Flex, Stack, Tabs, Box, Text, Button } from '@chakra-ui/react'
 import { useMessageStore, useLoginStore } from '../../state/store'
+import theme from '../../utils/theme'
 
 export default function UserChallengeMessage({ message }) {
-    // console.log('message', message)
     const [isDeclined, setIsDeclined] = useState(false)
     const [isAccepted, setIsAccepted] = useState(false)
     const callData = useMessageStore((state) => state.callData)
@@ -24,7 +24,7 @@ export default function UserChallengeMessage({ message }) {
             p="2"
             borderRadius="md"
             mb="1"
-            bg="gray.700"
+            bg={theme.colors.main.tertiary}
         >
             {message.accepted && <div>Match Accepted</div>}
             {message.declined && <div>Match Declined</div>}
@@ -32,17 +32,17 @@ export default function UserChallengeMessage({ message }) {
                 <Stack>
                     {message.type && message.type !== 'challenge' && (
                         <Stack>
-                            <Text fontWeight="bold" color="blue.400">
+                            <Text fontWeight="bold" color={theme.colors.main.actionSecondaryLight}>
                                 {message.sender}
                             </Text>
-                            <Text color="gray.50"> {message.message}</Text>
+                            <Text color={theme.colors.main.text}> {message.message}</Text>
                         </Stack>
                     )}
 
                     {message.type && message.type === 'challenge' && caller && (
                         <Flex>
-                            <Text color="gray.50">Received challenge from: </Text>
-                            <Text fontWeight="bold" color="blue.400">
+                            <Text color={theme.colors.main.text}>Received challenge from: </Text>
+                            <Text fontWeight="bold" color={theme.colors.main.actionSecondaryLight}>
                                 {userList.find((user) => user.uid === caller.callerId).name}
                             </Text>
                         </Flex>

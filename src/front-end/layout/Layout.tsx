@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Flex, Stack, Tabs, Box, Text } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import theme from '../utils/theme'
 
 export default function Layout({ children }) {
     const [isLoading, setIsLoading] = useState(false)
@@ -45,16 +46,16 @@ export default function Layout({ children }) {
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
-                bg="gray.700"
+                bg={theme.colors.main.secondary}
                 px="4"
                 flexShrink={0}
             >
                 <Tabs.Root variant="enclosed" value={layoutTab}>
-                    <Tabs.List bg="gray.700" rounded="l3" p="1">
+                    <Tabs.List bg={theme.colors.main.secondary} rounded="l3" p="1">
                         {!isLoggedIn && (
                             <Tabs.Trigger
-                                _selected={{ bg: 'red.500' }}
-                                color="gray.100"
+                                _selected={{ bg: theme.colors.main.action }}
+                                color={theme.colors.main.text}
                                 value="login"
                                 onClick={() => {
                                     navigate({ to: '/' })
@@ -65,8 +66,8 @@ export default function Layout({ children }) {
                             </Tabs.Trigger>
                         )}
                         <Tabs.Trigger
-                            _selected={{ bgColor: 'red.500' }}
-                            color="gray.100"
+                            _selected={{ bgColor: theme.colors.main.action }}
+                            color={theme.colors.main.text}
                             value="news"
                             onClick={() => {
                                 navigate({ to: '/news' })
@@ -79,8 +80,8 @@ export default function Layout({ children }) {
                             <>
                                 {/* --tabs-indicator-bg */}
                                 <Tabs.Trigger
-                                    _selected={{ bgColor: 'red.500' }}
-                                    color="gray.100"
+                                    _selected={{ bgColor: theme.colors.main.action }}
+                                    color={theme.colors.main.text}
                                     value="chat"
                                     onClick={() => {
                                         navigate({ to: '/chat' })
@@ -90,8 +91,8 @@ export default function Layout({ children }) {
                                     Chat
                                 </Tabs.Trigger>
                                 <Tabs.Trigger
-                                    _selected={{ bg: 'red.500' }}
-                                    color="gray.100"
+                                    _selected={{ bg: theme.colors.main.action }}
+                                    color={theme.colors.main.text}
                                     value="profile"
                                     onClick={() => {
                                         navigate({ to: `/profile/${user.uid}` })
@@ -103,8 +104,8 @@ export default function Layout({ children }) {
                             </>
                         )}
                         <Tabs.Trigger
-                            _selected={{ bg: 'red.500' }}
-                            color="gray.100"
+                            _selected={{ bg: theme.colors.main.action }}
+                            color={theme.colors.main.text}
                             value="offline"
                             onClick={() => {
                                 navigate({ to: '/offline' })
@@ -114,8 +115,8 @@ export default function Layout({ children }) {
                             Play Offline
                         </Tabs.Trigger>
                         <Tabs.Trigger
-                            _selected={{ bg: 'red.500' }}
-                            color="gray.100"
+                            _selected={{ bg: theme.colors.main.action }}
+                            color={theme.colors.main.text}
                             value="settings"
                             onClick={() => {
                                 navigate({ to: '/settings' })
@@ -124,7 +125,7 @@ export default function Layout({ children }) {
                         >
                             Settings
                         </Tabs.Trigger>
-                        <Tabs.Indicator rounded="l2" bgColor={'red.500'} />
+                        <Tabs.Indicator rounded="l2" bgColor={theme.colors.main.action} />
                     </Tabs.List>
                 </Tabs.Root>
             </Box>
@@ -138,15 +139,15 @@ export default function Layout({ children }) {
                 display="flex"
                 justifyContent="space-between"
                 alignItems="center"
-                bg="gray.700"
+                bg={theme.colors.main.secondary}
                 px="4"
                 flexShrink={0}
             >
-                <Text textStyle="xs" color="red.400">
+                <Text textStyle="xs" color={theme.colors.main.action}>
                     https://discord.gg/T77dSXG7Re
                 </Text>
-                <Text textStyle="xs" color="red.400">
-                    Hyper Reflector version 0.2.2a 2025
+                <Text textStyle="xs" color={theme.colors.main.action}>
+                    Hyper Reflector version 0.2.3a 2025
                 </Text>
             </Box>
         </Stack>

@@ -9,6 +9,7 @@ import {
     SelectValueText,
 } from '../components/chakra/ui/select'
 import { Field } from '../components/chakra/ui/field'
+import theme from '../utils/theme'
 
 export default function OfflinePage() {
     const [player, setPlayer] = useState('')
@@ -26,21 +27,24 @@ export default function OfflinePage() {
     return (
         <Stack gap={8}>
             <Stack>
-                <Heading size="md" color="gray.200">
+                <Heading size="md" color={theme.colors.main.textSubdued}>
                     Play Offline
                 </Heading>
-                <Button bg="blue.500" onClick={() => window.api.startSoloTraining()}>
+                <Button
+                    bg={theme.colors.main.actionSecondary}
+                    onClick={() => window.api.startSoloTraining()}
+                >
                     Training Mode
                 </Button>
             </Stack>
             <Stack>
-                <Heading size="sm" color="gray.200">
+                <Heading size="sm" color={theme.colors.main.textSubdued}>
                     Manual Connection
                 </Heading>
-                <Text textStyle="xs" color="gray.300">
+                <Text textStyle="xs" color={theme.colors.main.textMedium}>
                     Used for bypassing the online server and playing with someone directly.
                 </Text>
-                <Text textStyle="xs" color="gray.300">
+                <Text textStyle="xs" color={theme.colors.main.textMedium}>
                     Make sure both players create a long 8 digit code to connect to eachother. This
                     is an early feature, so there are bound to be issues.
                 </Text>
@@ -48,10 +52,10 @@ export default function OfflinePage() {
                     <Field
                         label="Player"
                         helperText="The side you wish to play on, both users must be on opposite sides."
-                        color="gray.300"
+                        color={theme.colors.main.textMedium}
                     >
                         <SelectRoot
-                            color="blue.400"
+                            color={theme.colors.main.actionSecondary}
                             collection={players}
                             value={[player]}
                             onValueChange={(e) => setPlayer(e.value[0])}
@@ -71,11 +75,11 @@ export default function OfflinePage() {
                     <Field
                         label="Player Code"
                         helperText="Send this to your opponent, atleast 8 characters"
-                        color="gray.300"
+                        color={theme.colors.main.textMedium}
                     >
                         <Input
-                            bg="gray.200"
-                            color="gray.900"
+                            bg={theme.colors.main.textSubdued}
+                            color={theme.colors.main.bg}
                             min={8}
                             max={16}
                             type="text"
@@ -87,11 +91,11 @@ export default function OfflinePage() {
                     <Field
                         label="Opponent Code"
                         helperText="The Code of your opponent, atleast 8 characters"
-                        color="gray.300"
+                        color={theme.colors.main.textMedium}
                     >
                         <Input
-                            bg="gray.200"
-                            color="gray.900"
+                            bg={theme.colors.main.textSubdued}
+                            color={theme.colors.main.bg}
                             min={8}
                             max={16}
                             type="text"
@@ -111,7 +115,7 @@ export default function OfflinePage() {
                         />
                     </Field> */}
                     <Button
-                        bg="blue.500"
+                        bg={theme.colors.main.actionSecondary}
                         disabled={opponentPort.length < 8 || !player || myPort.length < 8}
                         alignSelf="center"
                         onClick={() => {

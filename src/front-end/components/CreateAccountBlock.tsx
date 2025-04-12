@@ -5,6 +5,7 @@ import { Button, Stack, Input, Box, Center, Spinner, Text, Flex, Heading } from 
 import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
 import { ArrowLeft } from 'lucide-react'
+import theme from '../utils/theme'
 
 export default function CreateAccountBlock() {
     const [isLoading, setIsLoading] = useState(false)
@@ -63,7 +64,7 @@ export default function CreateAccountBlock() {
     return (
         <Stack gap={2}>
             <Flex alignItems="center" gap="2">
-                <Text textStyle="xs" color="red.400">
+                <Text textStyle="xs" color={theme.colors.main.action}>
                     <Link to="/" className="[&.active]:font-bold">
                         <Flex gap="1">
                             <ArrowLeft size={18} />
@@ -71,15 +72,15 @@ export default function CreateAccountBlock() {
                         </Flex>
                     </Link>
                 </Text>
-                <Heading size="md" color="gray.300">
+                <Heading size="md" color={theme.colors.main.textMedium}>
                     Account Creation
                 </Heading>
             </Flex>
             <Box>
                 {isLoading && (
-                    <Box pos="absolute" inset="0" bg="gray.800" opacity="50%">
+                    <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
                         <Center h="full">
-                            <Spinner color="teal.500" />
+                            <Spinner color={theme.colors.main.action} />
                         </Center>
                     </Box>
                 )}
@@ -89,12 +90,12 @@ export default function CreateAccountBlock() {
                             label="Display Name"
                             required
                             helperText="This is the name that other users will see, you can also change it later."
-                            color="gray.400"
+                            color={theme.colors.main.textMedium}
                             textDecorationColor="red"
                         >
                             <Input
-                                bg="gray.200"
-                                color="gray.900"
+                                bg={theme.colors.main.textSubdued}
+                                color={theme.colors.main.bg}
                                 placeholder="my_user_name"
                                 maxLength={16}
                                 minLength={1}
@@ -110,10 +111,10 @@ export default function CreateAccountBlock() {
                                 value={login.name}
                             />
                         </Field>
-                        <Field label="Email" required color="gray.400">
+                        <Field label="Email" required color={theme.colors.main.textMedium}>
                             <Input
-                                bg="gray.200"
-                                color="gray.900"
+                                bg={theme.colors.main.textSubdued}
+                                color={theme.colors.main.bg}
                                 placeholder="blake@example.com"
                                 onChange={(e) =>
                                     setLogin({
@@ -131,11 +132,11 @@ export default function CreateAccountBlock() {
                             label="Password"
                             required
                             helperText="Must be atleast 6 alphanumeric characters in length."
-                            color="gray.400"
+                            color={theme.colors.main.textMedium}
                         >
                             <PasswordInput
-                                bg="gray.200"
-                                color="gray.900"
+                                bg={theme.colors.main.textSubdued}
+                                color={theme.colors.main.bg}
                                 placeholder="password"
                                 onChange={(e) =>
                                     setLogin({
@@ -149,10 +150,14 @@ export default function CreateAccountBlock() {
                                 value={login.pass}
                             />
                         </Field>
-                        <Field label="Re-enter Password" required color="gray.400">
+                        <Field
+                            label="Re-enter Password"
+                            required
+                            color={theme.colors.main.textMedium}
+                        >
                             <PasswordInput
-                                bg="gray.200"
-                                color="gray.900"
+                                bg={theme.colors.main.textSubdued}
+                                color={theme.colors.main.bg}
                                 placeholder="re-enter password"
                                 onChange={(e) =>
                                     setLogin({
@@ -168,7 +173,7 @@ export default function CreateAccountBlock() {
                         </Field>
                         <Stack>
                             <Button
-                                bg="blue.500"
+                                bg={theme.colors.main.actionSecondary}
                                 disabled={
                                     isLoading ||
                                     !login.pass ||

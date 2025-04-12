@@ -20,6 +20,7 @@ import CreateAccountPage from './pages/CreateAccountPage'
 import ErrorBoundary from './ErrorBoundary'
 import Layout from './layout/Layout'
 import Autologin from './components/AutoLogin'
+import theme from './utils/theme'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -142,7 +143,7 @@ const root = createRoot(document.body)
 root.render(
     <ErrorBoundary>
         <ChakraProvider value={system}>
-            <Box backgroundColor="gray.900">
+            <Box backgroundColor={theme.colors.main.bg}>
                 <RouterProvider router={router} />
             </Box>
         </ChakraProvider>

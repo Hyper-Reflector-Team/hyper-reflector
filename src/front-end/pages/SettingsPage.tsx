@@ -18,6 +18,7 @@ import {
 } from '../components/chakra/ui/select'
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
+import theme from '../utils/theme'
 
 export default function SettingsPage() {
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
@@ -68,18 +69,18 @@ export default function SettingsPage() {
 
     return (
         <Stack minH="100%">
-            <Heading flex="0" size="md" color="gray.200">
+            <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
                 Application Settings
             </Heading>
             <Stack flex="1">
-                <Text textStyle="xs" color="gray.400">
+                <Text textStyle="xs" color={theme.colors.main.textMedium}>
                     This is where we can set our emulator path and other setting
                 </Text>
-                <Text textStyle="xs" color="gray.300">
+                <Text textStyle="xs" color={theme.colors.main.textMedium}>
                     Current Path: {currentEmuPath}
                 </Text>
                 <Button
-                    bg="blue.500"
+                    bg={theme.colors.main.actionSecondary}
                     onClick={() => {
                         window.api.setEmulatorPath()
                     }}
@@ -88,12 +89,12 @@ export default function SettingsPage() {
                 </Button>
             </Stack>
             <Stack flex="1">
-                <Text textStyle="xs" color="gray.300">
+                <Text textStyle="xs" color={theme.colors.main.textMedium}>
                     Current delay: {currentDelay}
                 </Text>
-                <Field label="Online Delay" helperText="" color="gray.300">
+                <Field label="Online Delay" helperText="" color={theme.colors.main.textMedium}>
                     <SelectRoot
-                        color="blue.400"
+                        color={theme.colors.main.actionSecondary}
                         collection={delays}
                         value={[currentDelay]}
                         onValueChange={(e) => {
@@ -118,7 +119,7 @@ export default function SettingsPage() {
                 <Box display="flex">
                     {isLoggedIn && (
                         <>
-                            <Text textStyle="xs" flex="1" color="gray.400">
+                            <Text textStyle="xs" flex="1" color={theme.colors.main.textMedium}>
                                 Log out user, this will also make it so you do not automaitcally log
                                 in on start next time.
                             </Text>

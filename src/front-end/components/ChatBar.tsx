@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLoginStore } from '../state/store'
 import { Button, Stack, Input, Flex } from '@chakra-ui/react'
 import { Send } from 'lucide-react'
+import theme from '../utils/theme'
 
 export default function ChatBar() {
     const [message, setMessage] = useState('')
@@ -19,8 +20,8 @@ export default function ChatBar() {
             {isLoggedIn && (
                 <Flex gap="12px" padding="8px">
                     <Input
-                        bg="gray.100"
-                        color="gray.900"
+                        bg={theme.colors.main.text}
+                        color={theme.colors.main.textDark}
                         placeholder="Type a message!"
                         maxW="300px"
                         autoFocus
@@ -36,8 +37,8 @@ export default function ChatBar() {
                     <Button
                         id="message-send-btn"
                         onClick={sendMessage}
-                        bg="gray.700"
-                        color="red.500"
+                        bg={theme.colors.main.secondary}
+                        color={theme.colors.main.action}
                     >
                         <Send />
                     </Button>

@@ -28,6 +28,7 @@ import {
 } from '../components/chakra/ui/select'
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
+import theme from '../utils/theme'
 
 export default function PlayerProfilePage() {
     const { userId } = useParams({ strict: false })
@@ -152,47 +153,66 @@ export default function PlayerProfilePage() {
                 invalid={editedUserName && editedUserName.length <= 1}
             >
                 {!isEditName && (
-                    <Heading flex="1" size="lg" color="red.500" width="100px" height="36px">
+                    <Heading
+                        flex="1"
+                        size="lg"
+                        color={theme.colors.main.action}
+                        width="100px"
+                        height="36px"
+                    >
                         {editedUserName || userData?.userName || 'Unknown User'}
                     </Heading>
                 )}
 
-                <Editable.Input id="test" bg="gray.200" height="36px" value={editedUserName} />
+                <Editable.Input
+                    id="test"
+                    bg={theme.colors.main.textSubdued}
+                    height="36px"
+                    value={editedUserName}
+                />
                 {userData?.uid === userState.uid && (
                     <Editable.Control>
                         <Editable.EditTrigger asChild>
-                            <IconButton variant="ghost" size="xs" color="red.500">
+                            <IconButton variant="ghost" size="xs" color={theme.colors.main.action}>
                                 <Pencil />
                             </IconButton>
                         </Editable.EditTrigger>
                         <Editable.CancelTrigger asChild>
-                            <IconButton variant="outline" size="xs" color="red.500">
+                            <IconButton
+                                variant="outline"
+                                size="xs"
+                                color={theme.colors.main.action}
+                            >
                                 <X />
                             </IconButton>
                         </Editable.CancelTrigger>
                         <Editable.SubmitTrigger asChild>
-                            <IconButton variant="outline" size="xs" color="red.500">
+                            <IconButton
+                                variant="outline"
+                                size="xs"
+                                color={theme.colors.main.action}
+                            >
                                 <Check />
                             </IconButton>
                         </Editable.SubmitTrigger>
                     </Editable.Control>
                 )}
             </Editable.Root>
-            <Text textStyle="xs" color="gray.500">
+            <Text textStyle="xs" color={theme.colors.main.textMedium}>
                 Profile changes are not visible to others until the next time you log in.
             </Text>
             <Stack padding="24px">
                 <Stack>
-                    <Heading flex="0" size="md" color="gray.200">
+                    <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
                         Recent Matches
                     </Heading>
                     {matchTotal && (
                         <Box>
-                            <Text textStyle="md" padding="8px" color="gray.500">
+                            <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                                 Total Matches Played: {matchTotal}
                             </Text>
                             <Pagination.Root
-                                color="red.500"
+                                color={theme.colors.main.action}
                                 count={matchTotal}
                                 pageSize={10}
                                 defaultPage={1}
@@ -208,7 +228,7 @@ export default function PlayerProfilePage() {
                             >
                                 <ButtonGroup gap="4" size="sm" variant="ghost">
                                     <Pagination.PrevTrigger asChild>
-                                        <IconButton color="red.500">
+                                        <IconButton color={theme.colors.main.action}>
                                             <ChevronLeft />
                                         </IconButton>
                                     </Pagination.PrevTrigger>
@@ -216,7 +236,7 @@ export default function PlayerProfilePage() {
                                         {pageNumber} of {pageCount}
                                     </Text>
                                     <Pagination.NextTrigger asChild>
-                                        <IconButton color="red.500">
+                                        <IconButton color={theme.colors.main.action}>
                                             <ChevronRight />
                                         </IconButton>
                                     </Pagination.NextTrigger>
@@ -231,26 +251,30 @@ export default function PlayerProfilePage() {
                                 <>
                                     {isLoading && <Skeleton height="230px" />}
                                     {!isLoading && (
-                                        <Card.Root variant="elevated" maxH="230px" bg="gray.700">
-                                            <Card.Header color="gray.400">
+                                        <Card.Root
+                                            variant="elevated"
+                                            maxH="230px"
+                                            bg={theme.colors.main.tertiary}
+                                        >
+                                            <Card.Header color={theme.colors.main.textMedium}>
                                                 {new Date(
                                                     match.timestamp._seconds * 1000
                                                 ).toLocaleString()}
                                             </Card.Header>
-                                            <Card.Body flex="1" bg="gray.700">
+                                            <Card.Body flex="1" bg={theme.colors.main.tertiary}>
                                                 <Flex>
                                                     <Stack gap="0px" flex="1" alignItems="center">
                                                         <Text
                                                             textStyle="md"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.player1Name}
                                                         </Text>
                                                         <Text
                                                             textStyle="xs"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.player1Char}
                                                         </Text>
@@ -260,21 +284,21 @@ export default function PlayerProfilePage() {
                                                         <Text
                                                             textStyle="md"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.results === '1' ? 1 : 0}
                                                         </Text>
                                                         <Text
                                                             textStyle="md"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             VS
                                                         </Text>
                                                         <Text
                                                             textStyle="md"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.results === '2' ? 1 : 0}
                                                         </Text>
@@ -283,14 +307,14 @@ export default function PlayerProfilePage() {
                                                         <Text
                                                             textStyle="md"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.player2Name || 'Unknown User'}
                                                         </Text>
                                                         <Text
                                                             textStyle="xs"
                                                             padding="8px"
-                                                            color="gray.200"
+                                                            color={theme.colors.main.textSubdued}
                                                         >
                                                             {match.player2Char}
                                                         </Text>
@@ -307,9 +331,9 @@ export default function PlayerProfilePage() {
                 </Stack>
             </Stack>
             {isLoading && (
-                <Box pos="absolute" inset="0" bg="gray.800" opacity="50%">
+                <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
                     <Center h="full">
-                        <Spinner color="red.500" />
+                        <Spinner color={theme.colors.main.action} />
                     </Center>
                 </Box>
             )}

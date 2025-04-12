@@ -1,5 +1,6 @@
 import { Bleed, Box, Heading, Stack, Text, Flex } from '@chakra-ui/react'
 import BlogPost from '../components/BlogPost'
+import theme from '../utils/theme'
 
 const blogsArray = [
     {
@@ -35,7 +36,7 @@ const blogsArray = [
 export default function NewsPage() {
     return (
         <Stack gap="2">
-            <Heading size="md" color="gray.200">
+            <Heading size="md" color={theme.colors.main.textSubdued}>
                 Updates
             </Heading>
             <Stack>

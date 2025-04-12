@@ -19,6 +19,7 @@ import {
     Popover,
 } from '@chakra-ui/react'
 import { Crown } from 'lucide-react'
+import theme from '../../utils/theme'
 
 export default function UserCard({ user }) {
     const [isInMatch, setIsInMatch] = useState(false)
@@ -75,7 +76,7 @@ export default function UserCard({ user }) {
                     <Icon size="md" color="yellow.400">
                         <Crown />
                     </Icon>
-                    <Text textStyle="xs" fontWeight="bold" color="gray.100">
+                    <Text textStyle="xs" fontWeight="bold" color={theme.colors.main.text}>
                         {elo}
                     </Text>
                 </Box>
@@ -113,7 +114,11 @@ export default function UserCard({ user }) {
                         </Box>
                         <Stack gap="0px">
                             <Flex>
-                                <Text textStyle="sm" fontWeight="bold" color="gray.100">
+                                <Text
+                                    textStyle="sm"
+                                    fontWeight="bold"
+                                    color={theme.colors.main.text}
+                                >
                                     {user.name}
                                 </Text>
                             </Flex>
@@ -133,13 +138,13 @@ export default function UserCard({ user }) {
             </Popover.Trigger>
             <Portal>
                 <Popover.Positioner>
-                    <Popover.Content width="auto" backgroundColor="gray.700">
+                    <Popover.Content width="auto" backgroundColor={theme.colors.main.tertiary}>
                         <Popover.Arrow />
                         <Popover.Body>
                             <Flex gap="8px">
                                 {!isUserChallenging && user.uid !== userState.uid && (
                                     <Button
-                                        bg="red.500"
+                                        bg={theme.colors.main.action}
                                         disabled={isInMatch}
                                         onClick={() => {
                                             setIsInMatch(true)
@@ -159,7 +164,7 @@ export default function UserCard({ user }) {
                                     </Button>
                                 )}
                                 <Button
-                                    bg="blue.500"
+                                    bg={theme.colors.main.actionSecondary}
                                     onClick={async () => {
                                         await setLayoutTab('profile')
                                         navigate({ to: `/profile/${user.uid || ''}` })
