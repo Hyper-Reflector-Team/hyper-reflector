@@ -23,10 +23,6 @@ export default function CreateAccountBlock() {
     })
     const navigate = useNavigate()
 
-    const handleCreateSuccess = () => {
-        console.log('account created successfully')
-    }
-
     const handleLogIn = (loginInfo) => {
         setUserState(loginInfo)
         addUser(loginInfo)
@@ -45,9 +41,6 @@ export default function CreateAccountBlock() {
 
     useEffect(() => {
         // Listen for updates from Electron
-        window.api.removeExtraListeners('accountCreationSuccess', handleCreateSuccess)
-        window.api.on('accountCreationSuccess', handleCreateSuccess)
-
         window.api.removeExtraListeners('loginSuccess', handleLogIn)
         window.api.on('loginSuccess', handleLogIn)
 
@@ -55,7 +48,6 @@ export default function CreateAccountBlock() {
         window.api.on('login-failed', handleLoginFail)
 
         return () => {
-            window.api.removeListener('accountCreationSuccess', handleCreateSuccess)
             window.api.removeListener('loginSuccess', handleLogIn)
             window.api.removeListener('login-failed', handleLoginFail)
         }
@@ -106,7 +98,7 @@ export default function CreateAccountBlock() {
                                         pass: login.pass,
                                         repass: login.repass,
                                     })
-                                } // test
+                                }
                                 type="text"
                                 value={login.name}
                             />
@@ -115,6 +107,8 @@ export default function CreateAccountBlock() {
                             <Input
                                 bg={theme.colors.main.textSubdued}
                                 color={theme.colors.main.bg}
+                                maxLength={50}
+                                minLength={1}
                                 placeholder="blake@example.com"
                                 onChange={(e) =>
                                     setLogin({
@@ -137,6 +131,8 @@ export default function CreateAccountBlock() {
                             <PasswordInput
                                 bg={theme.colors.main.textSubdued}
                                 color={theme.colors.main.bg}
+                                maxLength={160}
+                                minLength={1}
                                 placeholder="password"
                                 onChange={(e) =>
                                     setLogin({
@@ -158,6 +154,8 @@ export default function CreateAccountBlock() {
                             <PasswordInput
                                 bg={theme.colors.main.textSubdued}
                                 color={theme.colors.main.bg}
+                                maxLength={160}
+                                minLength={1}
                                 placeholder="re-enter password"
                                 onChange={(e) =>
                                     setLogin({
