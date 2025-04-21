@@ -1,13 +1,23 @@
 import { useState } from 'react'
-import { Stack, Button, Box, Dialog, Portal, Input, Switch } from '@chakra-ui/react'
+import {
+    Stack,
+    Button,
+    Box,
+    Dialog,
+    Portal,
+    Input,
+    Switch,
+    Clipboard,
+    IconButton,
+} from '@chakra-ui/react'
 import { CloseButton } from '../components/chakra/ui/close-button'
 import { Field } from '../components/chakra/ui/field'
 import ChatWindow from '../components/ChatWindow'
 import ChatBar from '../components/ChatBar'
 import UsersChat from '../components/UsersChat'
 import SideBar from '../components/general/SideBar'
-
-import { KeySquare, Plus, Users } from 'lucide-react'
+import { toaster } from '../components/chakra/ui/toaster'
+import { ClipboardCopy, ClubIcon, KeySquare, Plus, Users } from 'lucide-react'
 import theme from '../utils/theme'
 import { PasswordInput } from '../components/chakra/ui/password-input'
 import { useMessageStore } from '../state/store'
@@ -147,6 +157,11 @@ export default function LobbyPage() {
                                         // call the BE to add the user to the new lobby
                                         setSelectedLobby(newLobby)
                                         setCurrentLobbyState(newLobby)
+                                        console.log(newLobby)
+                                        toaster.success({
+                                            title: 'Lobby Created!',
+                                            description: newLobby.name,
+                                        })
                                     }}
                                 >
                                     Create
@@ -300,8 +315,31 @@ export default function LobbyPage() {
                 </Dialog.Root>
             </SideBar>
             <Stack flex="3" minH="100%" overflow="hidden" gap="12px">
-                <Box marginLeft="12px" textStyle="xs" color={theme.colors.main.action}>
+                <Box
+                    marginLeft="12px"
+                    textStyle="xs"
+                    color={theme.colors.main.action}
+                    display="flex"
+                    alignItems="center"
+                    gap={'32px'}
+                >
                     {currentLobbyState?.name || ''}
+                    <Clipboard.Root
+                        value={currentLobbyState?.pass || 'eeeee'}
+                        color={theme.colors.main.action}
+                    >
+                        <Clipboard.Trigger asChild>
+                            <IconButton
+                                variant="ghost"
+                                size="xs"
+                                bg={theme.colors.main.bg}
+                                color={theme.colors.main.action}
+                            >
+                                copy password
+                                <ClipboardCopy />
+                            </IconButton>
+                        </Clipboard.Trigger>
+                    </Clipboard.Root>
                 </Box>
                 <ChatWindow />
                 <ChatBar />
