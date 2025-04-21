@@ -20,9 +20,12 @@ import {
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
+import SideBar from '../components/general/SideBar'
+import { UserRound } from 'lucide-react'
 
 export default function SettingsPage() {
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
+    const [currentTab, setCurrentTab] = useState<number>(0)
     const [currentEmuPath, setCurrentEmuPath] = useState('')
     const [currentDelay, setCurrentDelay] = useState('')
 
@@ -67,75 +70,121 @@ export default function SettingsPage() {
     }, [])
 
     return (
-        <Stack minH="100%">
-            <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
-                Application Settings
-            </Heading>
-            <Stack flex="1">
-                <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                    This is where we can set our emulator path and other setting
-                </Text>
-                <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                    Current Path: {currentEmuPath}
-                </Text>
+        <Box display="flex" gap="12px">
+            <SideBar width="160px">
                 <Button
-                    bg={theme.colors.main.actionSecondary}
-                    onClick={() => {
-                        window.api.setEmulatorPath()
-                    }}
+                    disabled={currentTab === 0}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(0)}
                 >
-                    Set Emulator Path
+                    <UserRound />
+                    Application
                 </Button>
-            </Stack>
+
+                <Button
+                    disabled={currentTab === 1}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(1)}
+                >
+                    <UserRound />
+                    Online Settings
+                </Button>
+
+                <Button
+                    disabled={currentTab === 2}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(2)}
+                >
+                    <UserRound />
+                    Danger
+                </Button>
+            </SideBar>
             <Stack flex="1">
-                <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                    Current delay: {currentDelay}
-                </Text>
-                <Field label="Online Delay" helperText="" color={theme.colors.main.textMedium}>
-                    <SelectRoot
-                        color={theme.colors.main.actionSecondary}
-                        collection={delays}
-                        value={[currentDelay]}
-                        onValueChange={(e) => {
-                            handleSetDelay(e.value[0])
-                            window.api.setEmulatorDelay(e.value[0])
-                        }}
-                    >
-                        <SelectTrigger>
-                            <SelectValueText placeholder="Select Delay" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {delays.items.map((delay) => (
-                                <SelectItem item={delay} key={delay.value}>
-                                    {delay.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </SelectRoot>
-                </Field>
-            </Stack>
-            <Stack flex="1" justifyContent="flex-end">
-                <Box display="flex">
-                    {isLoggedIn && (
-                        <>
-                            <Text textStyle="xs" flex="1" color={theme.colors.main.textMedium}>
+                {currentTab === 0 && (
+                    <Box>
+                        <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
+                            Application Settings
+                        </Heading>
+                        <Stack>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                This is where we can set our emulator path and other setting
+                            </Text>
+                            <Button
+                                bg={theme.colors.main.actionSecondary}
+                                onClick={() => {
+                                    window.api.setEmulatorPath()
+                                }}
+                            >
+                                Set Emulator Path
+                            </Button>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                Current Path: {currentEmuPath}
+                            </Text>
+                        </Stack>
+                    </Box>
+                )}
+                {currentTab === 1 && (
+                    <Box>
+                        <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
+                            Online Settings
+                        </Heading>
+                        <Stack>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                Online Delay
+                            </Text>
+                            <SelectRoot
+                                color={theme.colors.main.actionSecondary}
+                                collection={delays}
+                                value={[currentDelay]}
+                                onValueChange={(e) => {
+                                    handleSetDelay(e.value[0])
+                                    window.api.setEmulatorDelay(e.value[0])
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValueText placeholder="Select Delay" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {delays.items.map((delay) => (
+                                        <SelectItem item={delay} key={delay.value}>
+                                            {delay.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </SelectRoot>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                Current delay: {currentDelay}
+                            </Text>
+                        </Stack>
+                    </Box>
+                )}
+
+                {currentTab === 2 && isLoggedIn && (
+                    <Box>
+                        <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
+                            Danger Settings
+                        </Heading>
+                        <Stack>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Log out user, this will also make it so you do not automaitcally log
                                 in on start next time.
                             </Text>
+
                             <Button
                                 colorPalette="red"
-                                flex="1"
-                                alignSelf="center"
                                 onClick={() => {
                                     window.api.logOutUser()
                                 }}
                             >
                                 Log Out
                             </Button>
-                        </>
-                    )}
-                </Box>
+                        </Stack>
+                    </Box>
+                )}
             </Stack>
-        </Stack>
+        </Box>
     )
 }
