@@ -19,18 +19,15 @@ export default function Autologin() {
     }
 
     const handleAutoLoginFail = () => {
-        console.log('auto log failed')
         navigate({ to: '/' })
     }
 
     const handleLogIn = (loginInfo) => {
-        console.log(loginInfo)
         setUserState(loginInfo)
         addUser(loginInfo)
         successLogin()
         setIsLoading(false)
         navigate({ to: '/chat' })
-        // handle do some funky stateful call for logging in redirect etc
     }
 
     const handleLoginFail = (event) => {

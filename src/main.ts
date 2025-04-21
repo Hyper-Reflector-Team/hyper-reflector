@@ -77,7 +77,7 @@ const sendLog = (text: string) => {
 }
 
 async function autoUpdate() {
-    console.log('initializing automatcic updates')
+    console.log('initializing automatic updates')
     try {
         await updateElectronApp()
         console.log('starting update')

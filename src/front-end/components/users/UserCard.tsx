@@ -148,12 +148,6 @@ export default function UserCard({ user }) {
                                         disabled={isInMatch}
                                         onClick={() => {
                                             setIsInMatch(true)
-                                            console.log(
-                                                'trying to call someone from: ',
-                                                userState.uid,
-                                                ' to => ',
-                                                user.uid
-                                            )
                                             window.api.callUser({
                                                 callerId: userState.uid,
                                                 calleeId: user.uid,

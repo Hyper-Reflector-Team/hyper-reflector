@@ -4,7 +4,7 @@ import { useLoginStore, useMessageStore } from '../state/store'
 import { Button, Stack, Input, Box, Center, Spinner, Text, Heading, Flex } from '@chakra-ui/react'
 import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
-import { Camera, Hammer } from 'lucide-react'
+import { Hammer } from 'lucide-react'
 import theme from '../utils/theme'
 
 export default function LoginBlock() {
@@ -28,7 +28,6 @@ export default function LoginBlock() {
         successLogin()
         setIsLoading(false)
         navigate({ to: '/chat' })
-        // handle do some funky stateful call for logging in redirect etc
     }
 
     const handleLoginFail = (event) => {
@@ -73,6 +72,8 @@ export default function LoginBlock() {
                                 <Input
                                     bg={theme.colors.main.textSubdued}
                                     color={theme.colors.main.bg}
+                                    maxLength={50}
+                                    minLength={1}
                                     placeholder="bobby@example.com"
                                     disabled={isLoading}
                                     onChange={(e) =>
@@ -96,6 +97,8 @@ export default function LoginBlock() {
                                 <PasswordInput
                                     bg={theme.colors.main.textSubdued}
                                     color={theme.colors.main.bg}
+                                    maxLength={160}
+                                    minLength={1}
                                     placeholder="password"
                                     disabled={isLoading}
                                     onChange={(e) =>

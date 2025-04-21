@@ -40,8 +40,8 @@ export default function NewsPage() {
                 Updates
             </Heading>
             <Stack>
-                {blogsArray.map((blog) => (
-                    <BlogPost blog={blog} />
+                {blogsArray.map((blog, index) => (
+                    <BlogPost blog={blog} key={`blog-post-${index}`} />
                 ))}
             </Stack>
         </Stack>

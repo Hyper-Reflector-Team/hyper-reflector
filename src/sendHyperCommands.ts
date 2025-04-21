@@ -47,7 +47,6 @@ export async function readStatFile(mainWindow: any) {
     try {
         const filePath = path.join(filePathBase, 'hyper_track_match.txt')
         const data = await fs.readFileSync(filePath, { encoding: 'utf8' })
-        console.log('file read ', data)
         if (mainWindow) {
             mainWindow.webContents.send('stats-from-main', data)
         }

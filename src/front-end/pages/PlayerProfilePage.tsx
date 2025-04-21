@@ -47,7 +47,6 @@ export default function PlayerProfilePage() {
     const [matchTotal, setMatchTotal] = useState(undefined)
 
     const handleSetRecentMatches = (matchData) => {
-        // console.log(matchData)
         const { matches, lastVisible, totalMatches, firstVisible } = matchData
         // only set this once
         if (!matchTotal) {
@@ -61,7 +60,6 @@ export default function PlayerProfilePage() {
     }
 
     const handleSetUserData = (data) => {
-        console.log(data, userState)
         setUserData(data)
         setEditedUserName(data.userName)
     }

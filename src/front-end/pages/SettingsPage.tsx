@@ -43,12 +43,10 @@ export default function SettingsPage() {
     }
 
     const handleSetDelay = (delay: string) => {
-        console.log(delay)
         setCurrentDelay(delay)
     }
 
     useEffect(() => {
-        console.log('re-rendered')
         window.api.getEmulatorDelay()
         window.api.getEmulatorPath()
     }, [])
@@ -128,7 +126,6 @@ export default function SettingsPage() {
                                 flex="1"
                                 alignSelf="center"
                                 onClick={() => {
-                                    console.log('trying to log out')
                                     window.api.logOutUser()
                                 }}
                             >

@@ -1,6 +1,6 @@
 import keys from './private/keys'
 import './index.css'
-// Load our react app
+// Load the react application
 import './front-end/app'
 
 let signalServerSocket: WebSocket = null // socket reference
@@ -31,7 +31,6 @@ const googleStuns = [
 const peerConnections: Record<string, RTCPeerConnection> = {}
 
 async function createNewPeerConnection(userUID: string, isInitiator: boolean) {
-    // console.log('trying to create a new peer connection with - ', userUID)
     const peerConnection = new RTCPeerConnection({
         iceServers: [
             {
@@ -70,7 +69,7 @@ async function createNewPeerConnection(userUID: string, isInitiator: boolean) {
         if (event.candidate) {
             setupLogging(peerConnection, userName, event)
         } else {
-            console.log('ICE Candidate gathering complete!')
+            // console.log('ICE Candidate gathering complete!')
         }
     }
 
@@ -91,7 +90,6 @@ async function createNewPeerConnection(userUID: string, isInitiator: boolean) {
 
 function closePeerConnection(userId: string) {
     if (peerConnections[userId]) {
-        console.log(`closing peer connection with ${userId}`)
         peerConnections[userId].getSenders().forEach((sender) => {
             peerConnections[userId].removeTrack(sender)
         })
@@ -112,8 +110,6 @@ function setupLogging(peer, userLabel, event) {
         let candidate = event.candidate.candidate
 
         if (candidate.includes('srflx')) {
-            console.log(`${userLabel} STUN Candidate (srflx):`, candidate)
-
             let regex = /([0-9]{1,3}\.){3}[0-9]{1,3} (\d+) typ srflx raddr ([0-9\.]+) rport (\d+)/
             let matches = candidate.match(regex)
             if (matches) {
@@ -121,8 +117,6 @@ function setupLogging(peer, userLabel, event) {
                 let port = matches[2] // The port (e.g., 50133)
                 let raddr = matches[3] // The private IP address (e.g., 192.168.11.2)
                 let rport = matches[4] // The rport (e.g., 50133)
-                console.log(`${userLabel} External IP: ${ip}, Port: ${port}`)
-                console.log('----------------MATCHES ', matches, rport)
             }
             candidateList.push(event.candidate)
             if (callerIdState) {
@@ -144,11 +138,9 @@ function setupLogging(peer, userLabel, event) {
 window.api.on('loginSuccess', (user) => {
     if (user) {
         myUID = user.uid
-        console.log('User logged in:', user.email)
         userName = user.email
         connectWebSocket(user)
     } else {
-        console.log("User not logged in. WebSocket won't connect.")
         if (signalServerSocket) {
             signalServerSocket.close()
             signalServerSocket = null
@@ -165,7 +157,6 @@ window.api.on('login-failed', () => {
 })
 
 window.api.on('loggedOutSuccess', async (user) => {
-    console.log('user logged out, kill socket')
     // kill the socket connection
     if (signalServerSocket) {
         await signalServerSocket.send(JSON.stringify({ type: 'userDisconnect', user }))
@@ -210,10 +201,10 @@ function connectWebSocket(user) {
     window.api.on(
         'callUser',
         async ({ callerId, calleeId }: { callerId: string; calleeId: string }) => {
-            console.log(calleeId, calleeId)
-            await createNewPeerConnection(calleeId, true).catch((err) => console.log(err))
-            console.log('we are trying to make a call to :', calleeId)
+            await createNewPeerConnection(calleeId, true).catch((err) => console.warn(err))
+
             const offer = await peerConnections[calleeId].createOffer()
+
             await peerConnections[calleeId].setLocalDescription(offer)
             const localDescription = peerConnections[calleeId].localDescription
             signalServerSocket.send(
@@ -229,8 +220,6 @@ function connectWebSocket(user) {
             let answer = await peerConnections[callerId].createAnswer()
             await peerConnections[callerId].setLocalDescription(answer)
 
-            console.log('we should be answering the call')
-            console.log('sending out answer', callerId, answer)
             signalServerSocket.send(
                 JSON.stringify({
                     type: 'answerCall',
@@ -243,8 +232,6 @@ function connectWebSocket(user) {
             )
             callerIdState = callerId
             opponentUID = callerId
-            console.log('answer call opponentUID set to =  ', opponentUID)
-            console.log('opponentUID start match =  ', opponentUID)
             playerNum = 1 // if we answer a call we are always player 1
             window.api.startGameOnline(opponentUID, playerNum)
         }
@@ -253,7 +240,6 @@ function connectWebSocket(user) {
     window.api.on(
         'declineCall',
         async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
-            console.log('declining call')
             await signalServerSocket.send(
                 JSON.stringify({
                     type: 'declineCall',
@@ -269,7 +255,6 @@ function connectWebSocket(user) {
 
     // allow users to chat
     window.api.on('sendMessage', (text: string) => {
-        console.log(JSON.stringify(candidateList))
         // sends a message over to another user
         if (text.length) {
             signalServerSocket.send(
@@ -285,7 +270,6 @@ function connectWebSocket(user) {
             if (event.data instanceof Blob) {
                 const text = await event.data.text()
                 const data = JSON.parse(text)
-                // console.log(data)
                 return data
             } else {
                 const data = JSON.parse(event.data)
@@ -298,10 +282,8 @@ function connectWebSocket(user) {
 
     signalServerSocket.onmessage = async (message) => {
         const data = await convertBlob(message).then((res) => res)
-        console.log(data)
         if (data.type === 'connected-users') {
             if (data.users.length) {
-                // console.log('connected users = ', data.users)
                 window.api.addUserGroupToRoom(data.users)
             }
         }
@@ -312,7 +294,6 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'userDisconnect') {
-            console.log('should DC users?')
             // Here we want to close the Peer connection if a user leaves if the connection already exists.
             closePeerConnection(data.userUID)
         }
@@ -320,8 +301,6 @@ function connectWebSocket(user) {
         if (data.type === 'matchEndedClose') {
             //user the userUID and close all matches.
             if (opponentUID === data.userUID) {
-                console.warn('my opponent wants to rage quit', opponentUID)
-                console.log('killing emulator and closing peer connection', data.userUID)
                 closePeerConnection(data.userUID)
                 window.api.killEmulator()
                 resetState()
@@ -332,34 +311,23 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'getRoomMessage') {
-            console.log('received a message ==============================================')
             window.api.sendRoomMessage(data)
         }
 
         if (data.type === 'incomingCall') {
-            console.log('Incoming call from:', data.callerId)
-            console.log(data)
             await createNewPeerConnection(data.callerId, false)
             await peerConnections[data.callerId]
                 .setRemoteDescription(new RTCSessionDescription(data.offer))
-                .catch((err) => console.log(err))
+                .catch((err) => console.warn(err))
 
-            console.log('peer connection set')
             window.api.receivedCall(data)
         }
 
         if (data.type === 'callAnswered') {
-            console.log('Call answered:', data)
             await peerConnections[data.data.answererId].setRemoteDescription(
                 new RTCSessionDescription(data.data.answer)
             )
             opponentUID = data.data.answererId // set the current opponent so we can get them from the peer list.
-            console.log('someone answered our call, opponentUID set to =  ', opponentUID)
-            console.log(
-                'Answering call, trying to send some data; ',
-                data.data.callerId,
-                candidateList[0]
-            )
             signalServerSocket.send(
                 JSON.stringify({
                     type: 'iceCandidate',
@@ -376,7 +344,7 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'iceCandidate') {
-            console.log(
+            console.info(
                 'made a connection with someone, probably need to initialize some data channel stuff'
             )
         }
@@ -385,9 +353,7 @@ function connectWebSocket(user) {
 
 //ends match with any player who has an active connection with you, this should also close the rtc connection
 window.api.on('endMatch', (userUID: string) => {
-    console.log('ending match as - ', userUID)
     if (userUID) {
-        console.log('sending socket signal to close')
         signalServerSocket.send(
             JSON.stringify({
                 type: 'matchEnd',

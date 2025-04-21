@@ -119,8 +119,6 @@ export default function OfflinePage() {
                         disabled={opponentPort.length < 8 || !player || myPort.length < 8}
                         alignSelf="center"
                         onClick={() => {
-                            console.log('starting match offline')
-                            // TODO rename everything
                             window.api.startGameOnline(opponentPort, player, myPort)
                         }}
                     >
