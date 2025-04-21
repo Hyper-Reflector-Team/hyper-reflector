@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import {
-    Button,
     IconButton,
     ButtonGroup,
     Stack,
-    Input,
     Text,
     Heading,
-    createListCollection,
     Box,
     Flex,
     Center,
@@ -17,15 +14,17 @@ import {
     Pagination,
     Skeleton,
     Editable,
+    Select,
 } from '@chakra-ui/react'
-import { Check, ChevronLeft, ChevronRight, Pencil, X } from 'lucide-react'
 import {
     SelectContent,
     SelectItem,
+    SelectLabel,
     SelectRoot,
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
+import { Check, ChevronLeft, ChevronRight, Pencil, X } from 'lucide-react'
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
@@ -68,7 +67,7 @@ export default function PlayerProfilePage() {
         //TODO sometimes this fails to get match data
         window.api.getUserData(userId)
         window.api.getUserMatches({ userId, lastMatchId: lastMatch })
-        // temp
+        // temp - this is just so we can fake load for a short period of time to prevent visual bugs
         setTimeout(() => {
             setIsLoading(false)
         }, 1000)
@@ -154,11 +153,15 @@ export default function PlayerProfilePage() {
                     <Heading
                         flex="1"
                         size="lg"
-                        color={theme.colors.main.action}
+                        color={theme.colors.main.actionSecondary}
                         width="100px"
                         height="36px"
                     >
-                        {editedUserName || userData?.userName || 'Unknown User'}
+                        {editedUserName || userData?.userName ? (
+                            editedUserName || userData?.userName
+                        ) : (
+                            <Skeleton height="24px" />
+                        )}
                     </Heading>
                 )}
 
@@ -196,6 +199,29 @@ export default function PlayerProfilePage() {
                     </Editable.Control>
                 )}
             </Editable.Root>
+            <Field
+                label="Title"
+                helperText="The side you wish to play on, both users must be on opposite sides."
+                color={theme.colors.main.textMedium}
+            >
+                <SelectRoot
+                    color={theme.colors.main.actionSecondary}
+                    // collection={players}
+                    // value={[player]}
+                    // onValueChange={(e) => setPlayer(e.value[0])}
+                >
+                    <SelectTrigger>
+                        <SelectValueText placeholder="Title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {/* {players.items.map((player) => (
+                            <SelectItem item={player} key={player.value}>
+                                {player.label}
+                            </SelectItem>
+                        ))} */}
+                    </SelectContent>
+                </SelectRoot>
+            </Field>
             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                 Profile changes are not visible to others until the next time you log in.
             </Text>
@@ -244,9 +270,9 @@ export default function PlayerProfilePage() {
                     )}
 
                     {recentMatches &&
-                        recentMatches.map((match) => {
+                        recentMatches.map((match, index) => {
                             return (
-                                <>
+                                <div key={`player-match-${index}`}>
                                     {isLoading && <Skeleton height="230px" />}
                                     {!isLoading && (
                                         <Card.Root
@@ -323,7 +349,7 @@ export default function PlayerProfilePage() {
                                             <Card.Footer />
                                         </Card.Root>
                                     )}
-                                </>
+                                </div>
                             )
                         })}
                 </Stack>

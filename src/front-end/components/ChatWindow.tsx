@@ -10,7 +10,6 @@ export default function ChatWindow() {
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const pushMessage = useMessageStore((state) => state.pushMessage)
     const userState = useLoginStore((state) => state.userState)
-    const updateUserState = useLoginStore((state) => state.updateUserState)
 
     const chatEndRef = useRef<null | HTMLDivElement>(null)
 
@@ -32,21 +31,13 @@ export default function ChatWindow() {
         })
     }
 
-    // const handleEndMatch = () => {
-    //     updateUserState({ isFighting: false })
-    // }
-
     // get message from websockets
     useEffect(() => {
         window.api.removeAllListeners('sendRoomMessage', handleRoomMessage)
         window.api.on('sendRoomMessage', handleRoomMessage)
 
-        // window.api.removeAllListeners('endMatch', handleEndMatch)
-        // window.api.on('endMatch', handleEndMatch)
-
         return () => {
             window.api.removeListener('sendRoomMessage', handleRoomMessage)
-            // window.api.removeListener('endMatch', handleEndMatch)
         }
     }, [])
 
@@ -59,7 +50,12 @@ export default function ChatWindow() {
             {isLoggedIn && (
                 <Box paddingLeft="8px" paddingRight="8px">
                     {messageState.map((message, index) => {
-                        return <UserChallengeMessage message={message} />
+                        return (
+                            <UserChallengeMessage
+                                key={`challenge-message-${index}`}
+                                message={message}
+                            />
+                        )
                     })}
                     <Box ref={chatEndRef} />
                 </Box>

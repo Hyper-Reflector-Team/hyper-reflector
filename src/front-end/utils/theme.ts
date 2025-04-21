@@ -11,9 +11,9 @@ const theme = {
             action: 'green.600',
             actionLight: 'green.400',
             actionDark: 'green.800',
-            actionSecondary: 'orange.600',
-            actionSecondaryLight: 'orange.400',
-            actionSecondaryDark: 'orange.800',
+            actionSecondary: 'pink.600',
+            actionSecondaryLight: 'pink.400',
+            actionSecondaryDark: 'pink.800',
             card: 'gray.600',
             cardLight: 'gray.400',
             cardDark: 'gray.800',
@@ -23,5 +23,7 @@ const theme = {
         },
     },
 }
+
+// add functions to change theme here.
 
 export default theme
