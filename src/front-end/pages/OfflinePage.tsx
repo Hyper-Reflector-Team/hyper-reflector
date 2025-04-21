@@ -169,7 +169,6 @@ export default function OfflinePage() {
                         </Flex>
                     </Stack>
                 )}
-
                 {currentTab === 2 && (
                     <div>
                         <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">

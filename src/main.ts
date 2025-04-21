@@ -130,7 +130,6 @@ const createWindow = () => {
                 .showOpenDialog({ properties: ['openFile', 'openDirectory'] })
                 .then((res) => {
                     if (res.canceled || !res.filePaths.length) return
-                    console.log('response', res)
                     try {
                         const filePath = path.join(filePathBase, 'config.txt')
                         mainWindow.webContents.send(
@@ -167,6 +166,7 @@ const createWindow = () => {
                     } catch (error) {
                         mainWindow.webContents.send('message-from-main', error)
                         console.error('Failed to write to config file:', error)
+                        return 'Failed to write to config file'
                     }
                 })
                 .catch((err) => console.log(err))

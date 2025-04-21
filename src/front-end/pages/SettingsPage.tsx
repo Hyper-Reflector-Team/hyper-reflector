@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Button, Stack, Text, Heading, createListCollection, Box } from '@chakra-ui/react'
 import {
     SelectContent,
@@ -7,16 +7,19 @@ import {
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
+import { toaster } from '../components/chakra/ui/toaster'
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
 import SideBar from '../components/general/SideBar'
-import { AlertCircle, Settings, Settings2, UserRound } from 'lucide-react'
+import { AlertCircle, Settings, Settings2 } from 'lucide-react'
 
 export default function SettingsPage() {
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [currentEmuPath, setCurrentEmuPath] = useState('')
     const [currentDelay, setCurrentDelay] = useState('')
+    const prevEmuPathRef = useRef('')
+    const hasMounted = useRef(false)
 
     const delays = createListCollection({
         items: [
@@ -43,6 +46,27 @@ export default function SettingsPage() {
         window.api.getEmulatorDelay()
         window.api.getEmulatorPath()
     }, [])
+
+    useEffect(() => {
+        if (prevEmuPathRef.current !== '') {
+            console.log('Previous count:', prevEmuPathRef.current)
+            toaster.success({
+                title: 'Path Set!',
+                description: `${currentEmuPath}`,
+            })
+        }
+
+        if (prevEmuPathRef.current === currentEmuPath && hasMounted.current) {
+            console.log('prev path:', prevEmuPathRef.current)
+            toaster.error({
+                title: 'Path Set!',
+                description: `${currentEmuPath}`,
+            })
+        }
+
+        prevEmuPathRef.current = currentEmuPath
+        hasMounted.current = true
+    }, [currentEmuPath])
 
     useEffect(() => {
         window.api.removeExtraListeners('emulatorPath', handleSetPath)
@@ -103,7 +127,14 @@ export default function SettingsPage() {
                             <Button
                                 bg={theme.colors.main.actionSecondary}
                                 onClick={() => {
-                                    window.api.setEmulatorPath()
+                                    try {
+                                        window.api.setEmulatorPath()
+                                    } catch (error) {
+                                        toaster.error({
+                                            title: 'Update successful',
+                                            description: 'File saved successfully to the server',
+                                        })
+                                    }
                                 }}
                             >
                                 Set Emulator Path
@@ -130,6 +161,10 @@ export default function SettingsPage() {
                                 onValueChange={(e) => {
                                     handleSetDelay(e.value[0])
                                     window.api.setEmulatorDelay(e.value[0])
+                                    toaster.success({
+                                        title: 'Delay Set',
+                                        description: `Successfully Set Delay to: ${e.value[0]}`,
+                                    })
                                 }}
                             >
                                 <SelectTrigger>

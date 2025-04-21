@@ -20,11 +20,13 @@ import ErrorBoundary from './ErrorBoundary'
 import Layout from './layout/Layout'
 import Autologin from './components/AutoLogin'
 import theme from './utils/theme'
+import { Toaster } from './components/chakra/ui/toaster'
 
 const rootRoute = createRootRoute({
     component: () => (
         <>
             <Layout>
+                <Toaster />
                 <Outlet />
             </Layout>
             {/* <TanStackRouterDevtools /> */}
