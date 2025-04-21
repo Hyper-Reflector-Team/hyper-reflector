@@ -330,13 +330,13 @@ export default function LobbyPage() {
                     >
                         <Clipboard.Trigger asChild>
                             <IconButton
-                                variant="ghost"
+                                variant="subtle"
                                 size="xs"
                                 bg={theme.colors.main.bg}
                                 color={theme.colors.main.action}
                             >
-                                copy password
                                 <ClipboardCopy />
+                                copy password
                             </IconButton>
                         </Clipboard.Trigger>
                     </Clipboard.Root>

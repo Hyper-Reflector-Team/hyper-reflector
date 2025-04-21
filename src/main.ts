@@ -30,6 +30,7 @@ import {
 } from 'firebase/auth'
 import { firebaseConfig } from './private/firebase'
 import { TLogin } from './types'
+import { error } from 'console'
 
 // Initialize Firebase
 const fbapp = initializeApp(firebaseConfig)
@@ -542,7 +543,16 @@ const createWindow = () => {
                     player: data.player,
                     delay: parseInt(config.app.emuDelay),
                     isTraining: false, // Might be used in the future.
-                    callBack: () => {
+                    callBack: (isOnOpen: boolean) => {
+                        if (isOnOpen) {
+                            mainWindow.webContents.send('sendAlert', {
+                                type: 'error',
+                                message: {
+                                    title: 'Emulator failed to open.',
+                                    description: 'Failed to open emulator, please check your path',
+                                },
+                            })
+                        }
                         sendMessageToS(true)
                         // attempt to kill the emulator
                         console.log('emulator should die')
@@ -655,7 +665,20 @@ const createWindow = () => {
     })
 
     ipcMain.on('start-solo-mode', (event) => {
-        startSoloMode({ config })
+        startSoloMode({
+            config,
+            callBack: (isOnOpen) => {
+                if (isOnOpen) {
+                    mainWindow.webContents.send('sendAlert', {
+                        type: 'error',
+                        message: {
+                            title: 'Emulator failed to open.',
+                            description: 'Failed to open emulator, please check your path',
+                        },
+                    })
+                }
+            },
+        })
     })
 
     // send a message off to websockets for other users to see and save our message on our front end.

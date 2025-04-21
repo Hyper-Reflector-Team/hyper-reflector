@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Stack, Tabs, Box, Text, Button } from '@chakra-ui/react'
+import { Stack, Tabs, Box, Text } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
+import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import theme from '../utils/theme'
 import { Settings } from 'lucide-react'
@@ -39,6 +40,22 @@ export default function Layout({ children }) {
             setLayoutTab('login')
         }
     }, [isLoggedIn])
+
+    const handleAlertFromMain = (alertData) => {
+        toaster.error({
+            title: alertData?.message?.title,
+            description: alertData?.message?.description,
+        })
+    }
+
+    useEffect(() => {
+        window.api.removeExtraListeners('sendAlert', handleAlertFromMain)
+        window.api.on('sendAlert', handleAlertFromMain)
+
+        return () => {
+            window.api.removeListener('sendAlert', handleAlertFromMain)
+        }
+    }, [])
 
     return (
         <Stack minH="100vh" height="100vh">
