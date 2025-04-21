@@ -20,7 +20,7 @@ import {
 import { Field } from '../components/chakra/ui/field'
 import theme from '../utils/theme'
 import SideBar from '../components/general/SideBar'
-import { BookUser, Construction, FlaskConical, Router, UserRound } from 'lucide-react'
+import { BookUser, Construction, FlaskConical, PaintBucket, Router, UserRound } from 'lucide-react'
 
 export default function OfflinePage() {
     const [currentTab, setCurrentTab] = useState<number>(0)
@@ -58,7 +58,6 @@ export default function OfflinePage() {
                     <BookUser />
                     Match By Code
                 </Button>
-
                 <Button
                     disabled={currentTab === 2}
                     justifyContent="flex-start"
@@ -67,6 +66,15 @@ export default function OfflinePage() {
                 >
                     <Router />
                     Match By IP
+                </Button>
+                <Button
+                    disabled={currentTab === 3}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(3)}
+                >
+                    <PaintBucket />
+                    Pallete Mods
                 </Button>
             </SideBar>
 
@@ -170,6 +178,14 @@ export default function OfflinePage() {
                     </Stack>
                 )}
                 {currentTab === 2 && (
+                    <div>
+                        <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
+                            <Construction />
+                            Under Construction
+                        </Box>
+                    </div>
+                )}
+                {currentTab === 3 && (
                     <div>
                         <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
                             <Construction />
