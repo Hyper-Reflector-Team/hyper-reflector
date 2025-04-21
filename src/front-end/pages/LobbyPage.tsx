@@ -41,7 +41,7 @@ export default function LobbyPage() {
             // prevent user from re-creating our default chat
             return true
         }
-        if (newLobby?.name?.length >= 17) {
+        if (newLobby?.name?.length <= 3 || newLobby?.name?.length >= 17) {
             return true
         }
         if (newLobby?.pass?.length >= 151) {
