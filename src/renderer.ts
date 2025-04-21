@@ -11,8 +11,8 @@ let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
 
-// const SOCKET_ADDRESS = `ws://127.0.0.1:3000` // debug
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3000` // live
+const SOCKET_ADDRESS = `ws://127.0.0.1:3000` // debug
+// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3000` // live
 
 // handle connection to remote turn server
 const googleStuns = [
@@ -273,11 +273,13 @@ function connectWebSocket(user) {
     })
 
     window.api.on('createNewLobby', (lobbyInfo) => {
+        console.log('sending lobby data', lobbyInfo)
         signalServerSocket.send(
             JSON.stringify({
                 type: 'createLobby',
                 lobbyId: lobbyInfo.name,
-                password: lobbyInfo.pass,
+                pass: lobbyInfo.pass,
+                private: lobbyInfo.private,
                 user: lobbyInfo.user, // this is our full user object
             })
         )
@@ -289,7 +291,8 @@ function connectWebSocket(user) {
             JSON.stringify({
                 type: 'changeLobby',
                 newLobbyId: lobbyInfo.newLobbyId,
-                password: lobbyInfo.pass,
+                pass: lobbyInfo.pass,
+                private: lobbyInfo.private,
                 user: lobbyInfo.user, // this is our full user object
             })
         )
@@ -331,7 +334,7 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'lobby-user-counts') {
-            console.log('lobby data', data)
+            window.api.updateLobbyStats(data.updates)
         }
 
         if (data.type === 'matchEndedClose') {

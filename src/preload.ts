@@ -29,10 +29,15 @@ contextBridge.exposeInMainWorld('api', {
     handShake: (type: string) => ipcRenderer.send('hand-shake-users', type),
     sendDataChannel: (data: string) => ipcRenderer.send('send-data-channel', data),
     //lobbies
-    createNewLobby: (lobbyData: { name: string; pass: string; user: any }) =>
+    createNewLobby: (lobbyData: { name: string; pass: string; user: any; private: boolean }) =>
         ipcRenderer.send('createNewLobby', lobbyData),
-    userChangeLobby: (lobbyData: { newLobbyId: string; pass: string; user: any }) =>
-        ipcRenderer.send('userChangeLobby', lobbyData),
+    userChangeLobby: (lobbyData: {
+        newLobbyId: string
+        pass: string
+        user: any
+        private: boolean
+    }) => ipcRenderer.send('userChangeLobby', lobbyData),
+    updateLobbyStats: (lobbyArray: any) => ipcRenderer.send('updateLobbyStats', lobbyArray),
     // user profile
     getUserMatches: (matches: any) => ipcRenderer.send('getUserMatches', matches),
     getUserData: (user: any) => ipcRenderer.send('getUserData', user),

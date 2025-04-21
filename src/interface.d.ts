@@ -13,7 +13,6 @@ export interface IElectronAPI {
     logOutUser: any
     getLoggedInUser: any
     sendMessage: any
-
     sendAlert: any
     sendRoomMessage: any
     addUserToRoom: any
@@ -22,6 +21,7 @@ export interface IElectronAPI {
     //lobbies
     createNewLobby: any
     userChangeLobby: any
+    updateLobbyStats: any
     handShake: any
     sendDataChannel: any
     setEmulatorPath: any

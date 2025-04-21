@@ -63,17 +63,30 @@ export default function LobbyPage() {
     useEffect(() => {
         if (selectedLobby && selectedLobby.name.length) {
             // this should only fire off if we change lobbies
-            console.log(selectedLobby)
             window.api.userChangeLobby({
                 newLobbyId: selectedLobby.name,
-                pass: selectedLobby.pass,
+                pass: selectedLobby.pass || enteredPass,
+                private: selectedLobby.private,
                 user: userState,
             })
             // set the userState lobby so that messages send to the current lobby via websockets
             updateUserState({ currentLobbyId: selectedLobby.name })
             clearMessageState()
         }
-    }, [selectedLobby])
+    }, [currentLobbyState])
+
+    const handleUpdateLobbies = (data) => {
+        setCurrentLobbiesState(data)
+    }
+
+    useEffect(() => {
+        window.api.removeExtraListeners('updateLobbyStats', handleUpdateLobbies)
+        window.api.on('updateLobbyStats', handleUpdateLobbies)
+
+        return () => {
+            window.api.removeListener('updateLobbyStats', handleUpdateLobbies)
+        }
+    }, [])
 
     return (
         <Box height="100%" display="flex" width="100%">
@@ -176,20 +189,20 @@ export default function LobbyPage() {
                                     onClick={() => {
                                         setOpenCreate(false)
                                         resetCreate()
-                                        setCurrentLobbiesState([...currentLobbiesState, newLobby])
                                         // call the BE to add the user to the new lobby
                                         setSelectedLobby(newLobby)
                                         setCurrentLobbyState(newLobby)
-                                        console.log(newLobby)
                                         window.api.createNewLobby({
                                             name: newLobby.name,
                                             pass: newLobby.pass,
+                                            private: newLobby.private,
                                             user: userState,
                                         }) // send new lobby info to BE
                                         toaster.success({
                                             title: 'Lobby Created!',
                                             description: newLobby.name,
                                         })
+                                        setCurrentLobbiesState([...currentLobbiesState, newLobby])
                                     }}
                                 >
                                     Create
@@ -326,6 +339,7 @@ export default function LobbyPage() {
                                         disabled={!enteredPass.length}
                                         onClick={() => {
                                             if (enteredPass === selectedLobby.pass) {
+                                                console.log('enetered pass', enteredPass)
                                                 setCurrentLobbyState(selectedLobby)
                                                 setEnteredPass('')
                                                 setOpen(false)

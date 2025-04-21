@@ -30,7 +30,6 @@ import {
 } from 'firebase/auth'
 import { firebaseConfig } from './private/firebase'
 import { TLogin } from './types'
-import { error } from 'console'
 
 // Initialize Firebase
 const fbapp = initializeApp(firebaseConfig)
@@ -688,13 +687,20 @@ const createWindow = () => {
         mainWindow.webContents.send('sendMessage', messageObject)
     })
 
-    ipcMain.on('createNewLobby', (event, lobbyData: { name: string; pass: string; user: any }) => {
-        mainWindow.webContents.send('createNewLobby', lobbyData)
+    ipcMain.on(
+        'createNewLobby',
+        (event, lobbyData: { name: string; pass: string; user: any; private: boolean }) => {
+            mainWindow.webContents.send('createNewLobby', lobbyData)
+        }
+    )
+
+    ipcMain.on('updateLobbyStats', (event, lobbyArray: any) => {
+        mainWindow.webContents.send('updateLobbyStats', lobbyArray)
     })
 
     ipcMain.on(
         'userChangeLobby',
-        (event, lobbyData: { newLobbyId: string; pass: string; user: any }) => {
+        (event, lobbyData: { newLobbyId: string; pass: string; user: any; private: boolean }) => {
             console.log('lobby changing', lobbyData)
             mainWindow.webContents.send('userChangeLobby', lobbyData)
         }
