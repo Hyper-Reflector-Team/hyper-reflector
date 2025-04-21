@@ -74,7 +74,7 @@ export default function OfflinePage() {
                     onClick={() => setCurrentTab(3)}
                 >
                     <PaintBucket />
-                    Pallete Mods
+                    Palette Mods
                 </Button>
             </SideBar>
 

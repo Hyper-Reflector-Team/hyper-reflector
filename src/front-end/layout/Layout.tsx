@@ -144,7 +144,7 @@ export default function Layout({ children }) {
                 </Tabs.Root>
             </Box>
             <Box flex="1" display="flex" flexDirection="column" height="calc(100vh - 120px)">
-                <Box flex="1" overflowY="auto" p="4">
+                <Box flex="1" overflowY="auto" p="4" scrollbarWidth={'thin'}>
                     {children}
                 </Box>
             </Box>

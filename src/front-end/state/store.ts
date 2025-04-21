@@ -22,6 +22,11 @@ export const useLoginStore = create((set) => ({
 }))
 
 export const useMessageStore = create((set) => ({
+    // current lobby
+    currentLobbyState: { name: 'Hyper Reflector', id: 0, pass: null, private: false, users: 1 },
+    setCurrentLobbyState: (lobby) => set((state) => ({ currentLobbyState: lobby })),
+    currentLobbiesState: [{ name: 'Hyper Reflector', id: 0, pass: null, private: false, users: 1 }],
+    setCurrentLobbiesState: (lobbies) => set((state) => ({ currentLobbiesState: lobbies })),
     // room messages
     messageState: [],
     updateMessage: (message) =>

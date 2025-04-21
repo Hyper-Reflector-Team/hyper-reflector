@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import { Stack, Box } from '@chakra-ui/react'
 import { useLoginStore, useMessageStore } from '../state/store'
 import UserChallengeMessage from './chat/UserChallengeMessage'
@@ -46,7 +46,7 @@ export default function ChatWindow() {
     }, [messageState])
 
     return (
-        <Stack height="100%" key={'chat'} overflowY="auto" id="chatbox-id">
+        <Stack height="100%" key={'chat'} overflowY="auto" scrollbarWidth={'thin'} id="chatbox-id">
             {isLoggedIn && (
                 <Box paddingLeft="8px" paddingRight="8px">
                     {messageState.map((message, index) => {
