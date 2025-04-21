@@ -254,13 +254,45 @@ function connectWebSocket(user) {
     )
 
     // allow users to chat
-    window.api.on('sendMessage', (text: string) => {
+    window.api.on('sendMessage', (messageObject: { text: string; user: any }) => {
         // sends a message over to another user
-        if (text.length) {
+        // probably need more validation
+        if (messageObject.text.length) {
             signalServerSocket.send(
-                JSON.stringify({ type: 'sendMessage', message: `${text}`, sender: user.name })
+                JSON.stringify({
+                    type: 'sendMessage',
+                    message: `${messageObject.text}`,
+                    sender: {
+                        name: messageObject.user.name,
+                        uid: myUID,
+                        lobbyId: messageObject.user.currentLobbyId || 'Hyper Reflector',
+                    },
+                })
             )
         }
+    })
+
+    window.api.on('createNewLobby', (lobbyInfo) => {
+        signalServerSocket.send(
+            JSON.stringify({
+                type: 'createLobby',
+                lobbyId: lobbyInfo.name,
+                password: lobbyInfo.pass,
+                user: lobbyInfo.user, // this is our full user object
+            })
+        )
+    })
+
+    window.api.on('userChangeLobby', (lobbyInfo) => {
+        console.log('hey we changed lobbies', lobbyInfo)
+        signalServerSocket.send(
+            JSON.stringify({
+                type: 'changeLobby',
+                newLobbyId: lobbyInfo.newLobbyId,
+                password: lobbyInfo.pass,
+                user: lobbyInfo.user, // this is our full user object
+            })
+        )
     })
 
     // This is a function for handling messages from the websocket server
@@ -296,6 +328,10 @@ function connectWebSocket(user) {
         if (data.type === 'userDisconnect') {
             // Here we want to close the Peer connection if a user leaves if the connection already exists.
             closePeerConnection(data.userUID)
+        }
+
+        if (data.type === 'lobby-user-counts') {
+            console.log('lobby data', data)
         }
 
         if (data.type === 'matchEndedClose') {

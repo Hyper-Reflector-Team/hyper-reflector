@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
     Stack,
     Button,
@@ -17,12 +17,15 @@ import ChatBar from '../components/ChatBar'
 import UsersChat from '../components/UsersChat'
 import SideBar from '../components/general/SideBar'
 import { toaster } from '../components/chakra/ui/toaster'
-import { ClipboardCopy, ClubIcon, KeySquare, Plus, Users } from 'lucide-react'
+import { ClipboardCopy, KeySquare, Plus, Users } from 'lucide-react'
 import theme from '../utils/theme'
 import { PasswordInput } from '../components/chakra/ui/password-input'
-import { useMessageStore } from '../state/store'
+import { useLoginStore, useMessageStore } from '../state/store'
 
 export default function LobbyPage() {
+    const clearMessageState = useMessageStore((state) => state.clearMessageState)
+    const userState = useLoginStore((state) => state.userState)
+    const updateUserState = useLoginStore((state) => state.updateUserState)
     const currentLobbyState = useMessageStore((state) => state.currentLobbyState)
     const setCurrentLobbyState = useMessageStore((state) => state.setCurrentLobbyState)
     const currentLobbiesState = useMessageStore((state) => state.currentLobbiesState)
@@ -34,6 +37,10 @@ export default function LobbyPage() {
     const [newLobby, setNewLobby] = useState({ name: '', private: false, pass: '' })
 
     const createBlocked = (): boolean => {
+        if (newLobby?.name === 'Hyper Reflector') {
+            // prevent user from re-creating our default chat
+            return true
+        }
         if (newLobby?.name?.length >= 17) {
             return true
         }
@@ -52,6 +59,21 @@ export default function LobbyPage() {
     const resetCreate = () => {
         setNewLobby({ name: '', private: false, pass: '' })
     }
+
+    useEffect(() => {
+        if (selectedLobby && selectedLobby.name.length) {
+            // this should only fire off if we change lobbies
+            console.log(selectedLobby)
+            window.api.userChangeLobby({
+                newLobbyId: selectedLobby.name,
+                pass: selectedLobby.pass,
+                user: userState,
+            })
+            // set the userState lobby so that messages send to the current lobby via websockets
+            updateUserState({ currentLobbyId: selectedLobby.name })
+            clearMessageState()
+        }
+    }, [selectedLobby])
 
     return (
         <Box height="100%" display="flex" width="100%">
@@ -159,6 +181,11 @@ export default function LobbyPage() {
                                         setSelectedLobby(newLobby)
                                         setCurrentLobbyState(newLobby)
                                         console.log(newLobby)
+                                        window.api.createNewLobby({
+                                            name: newLobby.name,
+                                            pass: newLobby.pass,
+                                            user: userState,
+                                        }) // send new lobby info to BE
                                         toaster.success({
                                             title: 'Lobby Created!',
                                             description: newLobby.name,
@@ -192,7 +219,7 @@ export default function LobbyPage() {
                                     disabled={currentLobbyState.name === lobby.name}
                                     justifyContent="flex-start"
                                     bg={theme.colors.main.card}
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (lobby.private) {
                                             setOpen(true)
                                             setSelectedLobby(lobby)
@@ -299,7 +326,6 @@ export default function LobbyPage() {
                                         disabled={!enteredPass.length}
                                         onClick={() => {
                                             if (enteredPass === selectedLobby.pass) {
-                                                console.log('make be call to the socket server etc')
                                                 setCurrentLobbyState(selectedLobby)
                                                 setEnteredPass('')
                                                 setOpen(false)
@@ -324,22 +350,24 @@ export default function LobbyPage() {
                     gap={'32px'}
                 >
                     {currentLobbyState?.name || ''}
-                    <Clipboard.Root
-                        value={currentLobbyState?.pass || 'eeeee'}
-                        color={theme.colors.main.action}
-                    >
-                        <Clipboard.Trigger asChild>
-                            <IconButton
-                                variant="subtle"
-                                size="xs"
-                                bg={theme.colors.main.bg}
-                                color={theme.colors.main.action}
-                            >
-                                <ClipboardCopy />
-                                copy password
-                            </IconButton>
-                        </Clipboard.Trigger>
-                    </Clipboard.Root>
+                    {currentLobbiesState?.private && (
+                        <Clipboard.Root
+                            value={currentLobbyState?.pass || 'eeeee'}
+                            color={theme.colors.main.action}
+                        >
+                            <Clipboard.Trigger asChild>
+                                <IconButton
+                                    variant="subtle"
+                                    size="xs"
+                                    bg={theme.colors.main.bg}
+                                    color={theme.colors.main.action}
+                                >
+                                    <ClipboardCopy />
+                                    copy password
+                                </IconButton>
+                            </Clipboard.Trigger>
+                        </Clipboard.Root>
+                    )}
                 </Box>
                 <ChatWindow />
                 <ChatBar />

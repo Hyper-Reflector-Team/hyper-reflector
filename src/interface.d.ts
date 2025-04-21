@@ -13,11 +13,15 @@ export interface IElectronAPI {
     logOutUser: any
     getLoggedInUser: any
     sendMessage: any
+
     sendAlert: any
     sendRoomMessage: any
     addUserToRoom: any
     removeUserFromRoom: any
     addUserGroupToRoom: any
+    //lobbies
+    createNewLobby: any
+    userChangeLobby: any
     handShake: any
     sendDataChannel: any
     setEmulatorPath: any

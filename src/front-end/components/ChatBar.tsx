@@ -5,12 +5,13 @@ import { Send } from 'lucide-react'
 import theme from '../utils/theme'
 
 export default function ChatBar() {
-    const [message, setMessage] = useState('')
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
+    const userState = useLoginStore((state) => state.userState)
+    const [message, setMessage] = useState('')
 
     const sendMessage = () => {
         if (message.length >= 1) {
-            window.api.sendMessage(message)
+            window.api.sendMessage({ text: message, user: userState })
         }
         setMessage('')
     }

@@ -682,11 +682,23 @@ const createWindow = () => {
     })
 
     // send a message off to websockets for other users to see and save our message on our front end.
-    ipcMain.on('sendMessage', (event, text: string) => {
+    ipcMain.on('sendMessage', (event, messageObject: { text: string; user: any }) => {
         // here we can parse the string etc
-        console.log('Main process received message:', text)
-        mainWindow.webContents.send('sendMessage', text)
+        console.log('Main process received message:', messageObject)
+        mainWindow.webContents.send('sendMessage', messageObject)
     })
+
+    ipcMain.on('createNewLobby', (event, lobbyData: { name: string; pass: string; user: any }) => {
+        mainWindow.webContents.send('createNewLobby', lobbyData)
+    })
+
+    ipcMain.on(
+        'userChangeLobby',
+        (event, lobbyData: { newLobbyId: string; pass: string; user: any }) => {
+            console.log('lobby changing', lobbyData)
+            mainWindow.webContents.send('userChangeLobby', lobbyData)
+        }
+    )
 
     // this is used by websockets to populate our chat room with other peoples messages
     ipcMain.on('sendRoomMessage', async (event, messageObject) => {

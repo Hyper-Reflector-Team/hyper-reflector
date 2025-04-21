@@ -22,7 +22,7 @@ export default function ChatWindow() {
             new Audio(soundBase64Data).play() // this line for renderer process only
         }
         pushMessage({
-            sender: messageObject.sender,
+            sender: messageObject.sender.name,
             message: messageObject.message,
             type: messageObject.type || 'sendMessage',
             declined: false,

@@ -18,7 +18,8 @@ contextBridge.exposeInMainWorld('api', {
     logOutUser: () => ipcRenderer.send('logOutUser'),
     getLoggedInUser: (uid: string) => ipcRenderer.send('getLoggedInUser', uid),
     // room related
-    sendMessage: (text: string) => ipcRenderer.send('sendMessage', text),
+    sendMessage: (messageObject: { text: string; user: any }) =>
+        ipcRenderer.send('sendMessage', messageObject),
     sendAlert: (alertObject: { type: string; message: { title: string; description: string } }) =>
         ipcRenderer.send('sendMessage', alertObject),
     sendRoomMessage: (text: string) => ipcRenderer.send('sendRoomMessage', text),
@@ -27,6 +28,11 @@ contextBridge.exposeInMainWorld('api', {
     addUserGroupToRoom: (users: [any]) => ipcRenderer.send('addUserGroupToRoom', users),
     handShake: (type: string) => ipcRenderer.send('hand-shake-users', type),
     sendDataChannel: (data: string) => ipcRenderer.send('send-data-channel', data),
+    //lobbies
+    createNewLobby: (lobbyData: { name: string; pass: string; user: any }) =>
+        ipcRenderer.send('createNewLobby', lobbyData),
+    userChangeLobby: (lobbyData: { newLobbyId: string; pass: string; user: any }) =>
+        ipcRenderer.send('userChangeLobby', lobbyData),
     // user profile
     getUserMatches: (matches: any) => ipcRenderer.send('getUserMatches', matches),
     getUserData: (user: any) => ipcRenderer.send('getUserData', user),
