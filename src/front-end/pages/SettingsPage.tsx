@@ -1,23 +1,12 @@
 import { useEffect, useState } from 'react'
-import {
-    Button,
-    Stack,
-    Input,
-    Text,
-    Heading,
-    createListCollection,
-    Box,
-    Flex,
-} from '@chakra-ui/react'
+import { Button, Stack, Text, Heading, createListCollection, Box } from '@chakra-ui/react'
 import {
     SelectContent,
     SelectItem,
-    SelectLabel,
     SelectRoot,
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
-import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
 import SideBar from '../components/general/SideBar'
@@ -56,7 +45,6 @@ export default function SettingsPage() {
     }, [])
 
     useEffect(() => {
-        // Listen for updates from Electron
         window.api.removeExtraListeners('emulatorPath', handleSetPath)
         window.api.on('emulatorPath', handleSetPath)
 
@@ -161,7 +149,6 @@ export default function SettingsPage() {
                         </Stack>
                     </Box>
                 )}
-
                 {currentTab === 2 && isLoggedIn && (
                     <Box>
                         <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
