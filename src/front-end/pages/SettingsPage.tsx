@@ -10,7 +10,7 @@ import {
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
 import SideBar from '../components/general/SideBar'
-import { UserRound } from 'lucide-react'
+import { AlertCircle, Settings, Settings2, UserRound } from 'lucide-react'
 
 export default function SettingsPage() {
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
@@ -66,7 +66,7 @@ export default function SettingsPage() {
                     bg={theme.colors.main.secondary}
                     onClick={() => setCurrentTab(0)}
                 >
-                    <UserRound />
+                    <Settings />
                     Application
                 </Button>
 
@@ -76,7 +76,7 @@ export default function SettingsPage() {
                     bg={theme.colors.main.secondary}
                     onClick={() => setCurrentTab(1)}
                 >
-                    <UserRound />
+                    <Settings2 />
                     Online Settings
                 </Button>
 
@@ -86,7 +86,7 @@ export default function SettingsPage() {
                     bg={theme.colors.main.secondary}
                     onClick={() => setCurrentTab(2)}
                 >
-                    <UserRound />
+                    <AlertCircle />
                     Danger
                 </Button>
             </SideBar>

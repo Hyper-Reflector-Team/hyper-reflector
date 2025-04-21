@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { Button, Stack, Input, Text, Heading, Flex, createListCollection } from '@chakra-ui/react'
+import {
+    Button,
+    Stack,
+    Input,
+    Text,
+    Heading,
+    Flex,
+    createListCollection,
+    Box,
+} from '@chakra-ui/react'
 import {
     SelectContent,
     SelectItem,
@@ -10,8 +19,11 @@ import {
 } from '../components/chakra/ui/select'
 import { Field } from '../components/chakra/ui/field'
 import theme from '../utils/theme'
+import SideBar from '../components/general/SideBar'
+import { BookUser, Construction, FlaskConical, Router, UserRound } from 'lucide-react'
 
 export default function OfflinePage() {
+    const [currentTab, setCurrentTab] = useState<number>(0)
     const [player, setPlayer] = useState('')
     const [opponentPort, setOpponentPort] = useState('')
     const [opponentIp, setOpponentIp] = useState('')
@@ -25,107 +37,148 @@ export default function OfflinePage() {
     })
 
     return (
-        <Stack gap={8}>
-            <Stack>
-                <Heading size="md" color={theme.colors.main.textSubdued}>
-                    Play Offline
-                </Heading>
+        <Box display="flex" gap="12px">
+            <SideBar width="160px">
                 <Button
-                    bg={theme.colors.main.actionSecondary}
-                    onClick={() => window.api.startSoloTraining()}
+                    disabled={currentTab === 0}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(0)}
                 >
-                    Training Mode
+                    <FlaskConical />
+                    Training
                 </Button>
-            </Stack>
-            <Stack>
-                <Heading size="sm" color={theme.colors.main.textSubdued}>
-                    Manual Connection
-                </Heading>
-                <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                    Used for bypassing the online server and playing with someone directly.
-                </Text>
-                <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                    Make sure both players create a long 8 digit code to connect to eachother. This
-                    is an early feature, so there are bound to be issues.
-                </Text>
-                <Flex gap="2">
-                    <Field
-                        label="Player"
-                        helperText="The side you wish to play on, both users must be on opposite sides."
-                        color={theme.colors.main.textMedium}
-                    >
-                        <SelectRoot
-                            color={theme.colors.main.actionSecondary}
-                            collection={players}
-                            value={[player]}
-                            onValueChange={(e) => setPlayer(e.value[0])}
+
+                <Button
+                    disabled={currentTab === 1}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(1)}
+                >
+                    <BookUser />
+                    Match By Code
+                </Button>
+
+                <Button
+                    disabled={currentTab === 2}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(2)}
+                >
+                    <Router />
+                    Match By IP
+                </Button>
+            </SideBar>
+
+            <Stack flex="1">
+                {currentTab === 0 && (
+                    <Stack>
+                        <Heading size="md" color={theme.colors.main.textSubdued}>
+                            Training Mode
+                        </Heading>
+                        <Button
+                            bg={theme.colors.main.actionSecondary}
+                            onClick={() => window.api.startSoloTraining()}
                         >
-                            <SelectTrigger>
-                                <SelectValueText placeholder="Select Player" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {players.items.map((player) => (
-                                    <SelectItem item={player} key={player.value}>
-                                        {player.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </SelectRoot>
-                    </Field>
-                    <Field
-                        label="Player Code"
-                        helperText="Send this to your opponent, atleast 8 characters"
-                        color={theme.colors.main.textMedium}
-                    >
-                        <Input
-                            bg={theme.colors.main.textSubdued}
-                            color={theme.colors.main.bg}
-                            min={8}
-                            max={16}
-                            type="text"
-                            value={myPort}
-                            onChange={(e) => setMyPort(e.target.value)}
-                            placeholder="Bobby789"
-                        />
-                    </Field>
-                    <Field
-                        label="Opponent Code"
-                        helperText="The Code of your opponent, atleast 8 characters"
-                        color={theme.colors.main.textMedium}
-                    >
-                        <Input
-                            bg={theme.colors.main.textSubdued}
-                            color={theme.colors.main.bg}
-                            min={8}
-                            max={16}
-                            type="text"
-                            value={opponentPort}
-                            onChange={(e) => setOpponentPort(e.target.value)}
-                            placeholder="Blake123"
-                        />
-                    </Field>
-                </Flex>
-                <Flex gap="8">
-                    {/* <Field label="Remote Port" helperText="Your opponent's public IP address.">
-                        <Input
-                            type="text"
-                            value={opponentIp}
-                            onChange={(e) => setOpponentIp(e.target.value)}
-                            placeholder="127.0.0.1"
-                        />
-                    </Field> */}
-                    <Button
-                        bg={theme.colors.main.actionSecondary}
-                        disabled={opponentPort.length < 8 || !player || myPort.length < 8}
-                        alignSelf="center"
-                        onClick={() => {
-                            window.api.startGameOnline(opponentPort, player, myPort)
-                        }}
-                    >
-                        Connect
-                    </Button>
-                </Flex>
+                            Start Training
+                        </Button>
+                    </Stack>
+                )}
+                {currentTab === 1 && (
+                    <Stack>
+                        <Heading size="md" color={theme.colors.main.textSubdued}>
+                            Connect By Code
+                        </Heading>
+                        <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                            Connect to another user via a code of your choosing, this uses Hyper
+                            Reflector's match making server to connect two users without the need to
+                            log in.
+                        </Text>
+                        <Text textStyle="xs" color={theme.colors.main.caution}>
+                            Make sure both players create a long 8 digit code to connect to
+                            eachother. This is an early feature, so there are bound to be issues.
+                        </Text>
+                        <Flex gap="2">
+                            <Field
+                                label="Player"
+                                helperText="The side you play on must be opposite of your opponent."
+                                color={theme.colors.main.textMedium}
+                            >
+                                <SelectRoot
+                                    color={theme.colors.main.actionSecondary}
+                                    collection={players}
+                                    value={[player]}
+                                    onValueChange={(e) => setPlayer(e.value[0])}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValueText placeholder="Select Player" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {players.items.map((player) => (
+                                            <SelectItem item={player} key={player.value}>
+                                                {player.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </SelectRoot>
+                            </Field>
+                            <Field
+                                label="Player Code"
+                                helperText="Send this to your opponent, atleast 8 characters"
+                                color={theme.colors.main.textMedium}
+                            >
+                                <Input
+                                    bg={theme.colors.main.textSubdued}
+                                    color={theme.colors.main.bg}
+                                    min={8}
+                                    max={16}
+                                    type="text"
+                                    value={myPort}
+                                    onChange={(e) => setMyPort(e.target.value)}
+                                    placeholder="Bobby789"
+                                />
+                            </Field>
+                            <Field
+                                label="Opponent Code"
+                                helperText="The Code of your opponent, atleast 8 characters"
+                                color={theme.colors.main.textMedium}
+                            >
+                                <Input
+                                    bg={theme.colors.main.textSubdued}
+                                    color={theme.colors.main.bg}
+                                    min={8}
+                                    max={16}
+                                    type="text"
+                                    value={opponentPort}
+                                    onChange={(e) => setOpponentPort(e.target.value)}
+                                    placeholder="Blake123"
+                                />
+                            </Field>
+                        </Flex>
+                        <Flex gap="8">
+                            <Button
+                                bg={theme.colors.main.actionSecondary}
+                                disabled={opponentPort.length < 8 || !player || myPort.length < 8}
+                                alignSelf="center"
+                                onClick={() => {
+                                    window.api.startGameOnline(opponentPort, player, myPort)
+                                }}
+                            >
+                                Connect
+                            </Button>
+                        </Flex>
+                    </Stack>
+                )}
+
+                {currentTab === 2 && (
+                    <div>
+                        <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
+                            <Construction />
+                            Under Construction
+                        </Box>
+                    </div>
+                )}
             </Stack>
-        </Stack>
+        </Box>
     )
 }

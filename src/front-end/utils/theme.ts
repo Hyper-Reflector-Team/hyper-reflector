@@ -18,7 +18,7 @@ const theme = {
             cardLight: 'gray.400',
             cardDark: 'gray.800',
             warning: 'red.700',
-            caution: 'yellow.700',
+            caution: 'yellow.600',
             success: 'green.500',
         },
     },

@@ -67,7 +67,6 @@ export default function PlayerProfilePage() {
         setPageNumber(1)
         setFirstMatch(null)
         setLastMatch(null)
-        // setUserData([])
         setRecentMatches([])
         setEditedUserName(undefined)
         setIsEditName(false)
@@ -280,7 +279,6 @@ export default function PlayerProfilePage() {
                                         </Pagination.Root>
                                     </Box>
                                 )}
-
                                 {recentMatches &&
                                     recentMatches.map((match, index) => {
                                         return (
