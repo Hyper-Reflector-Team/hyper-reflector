@@ -105,6 +105,7 @@ export default function LobbyPage() {
                                         />
                                     </Field>
                                     <Switch.Root
+                                        marginTop="12px"
                                         color={theme.colors.main.actionSecondary}
                                         onCheckedChange={(e) =>
                                             setNewLobby({ ...newLobby, private: e.checked })
@@ -119,7 +120,7 @@ export default function LobbyPage() {
                                 </Box>
 
                                 {newLobby?.private && (
-                                    <div>
+                                    <Box marginTop={'12px'}>
                                         <PasswordInput
                                             bg={theme.colors.main.textSubdued}
                                             color={theme.colors.main.bg}
@@ -131,7 +132,7 @@ export default function LobbyPage() {
                                                 setNewLobby({ ...newLobby, pass: e.target.value })
                                             }
                                         />
-                                    </div>
+                                    </Box>
                                 )}
                             </Dialog.Body>
                             <Dialog.Footer>
@@ -182,7 +183,6 @@ export default function LobbyPage() {
                     <Plus />
                     New Lobby
                 </Button>
-
                 <Dialog.Root open={open}>
                     {currentLobbiesState.map((lobby, index) => {
                         return (
