@@ -359,7 +359,7 @@ function connectWebSocket(user) {
             await peerConnections[data.callerId]
                 .setRemoteDescription(new RTCSessionDescription(data.offer))
                 .catch((err) => console.warn(err))
-
+            console.log(data)
             window.api.receivedCall(data)
         }
 

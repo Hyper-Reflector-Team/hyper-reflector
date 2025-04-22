@@ -38,9 +38,15 @@ export default function ChatWindow() {
         const input = messageObject.message
         const matches = matcher.getAllMatches(input)
         const censoredMessage = censor.applyTo(input, matches)
-
+        const getSender = () => {
+            if (typeof messageObject.sender === 'string') {
+                return messageObject.sender
+            } else {
+                return messageObject.sender.name
+            }
+        }
         pushMessage({
-            sender: messageObject.sender.name,
+            sender: getSender(),
             message: censoredMessage,
             type: messageObject.type || 'sendMessage',
             declined: false,
