@@ -434,6 +434,7 @@ const createWindow = () => {
                     // TODO: we should check if after a period of time, we don't get a sucessful message back from the server and kill sockets etc.
                     if (messageContent === 'ping' || message.includes('"port"')) {
                         if (message.includes('"port"') && !keepAliveInterval) {
+                            console.log(message)
                             keepAliveInterval = setInterval(() => {
                                 console.log('sending keep alive to B')
                                 sendMessageToB(
@@ -469,7 +470,7 @@ const createWindow = () => {
             }
 
             function sendMessageToS(kill: boolean) {
-                const serverPort = 33333
+                const serverPort = 33334
                 const serverHost = keys.COTURN_IP
                 // var serverHost = '127.0.0.1'
                 console.log(userUID, '- is kill? ' + kill)
