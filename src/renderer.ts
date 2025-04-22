@@ -217,7 +217,8 @@ function connectWebSocket(user) {
     window.api.on(
         'answerCall',
         async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
-            let answer = await peerConnections[callerId].createAnswer()
+            console.log('is this actually firing off?', callerId, answererId)
+            let answer = await peerConnections[callerId]?.createAnswer()
             await peerConnections[callerId].setLocalDescription(answer)
 
             signalServerSocket.send(
