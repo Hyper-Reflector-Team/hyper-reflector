@@ -6,14 +6,7 @@ import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
 import { ArrowLeft } from 'lucide-react'
 import theme from '../utils/theme'
-import { Filter } from 'bad-words'
-import acceptableWords from '../utils/profanityFilter'
-import {
-    RegExpMatcher,
-    TextCensor,
-    englishDataset,
-    englishRecommendedTransformers,
-} from 'obscenity'
+import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -36,10 +29,6 @@ export default function CreateAccountBlock() {
         repass: '',
     })
     const navigate = useNavigate()
-
-    const filter = new Filter()
-    // remove some excessively filtered words
-    filter.removeWords(...acceptableWords)
 
     const handleLogIn = (loginInfo) => {
         setUserState(loginInfo)

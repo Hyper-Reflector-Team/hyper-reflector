@@ -11,8 +11,8 @@ let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
 
-const SOCKET_ADDRESS = `ws://127.0.0.1:3000` // debug
-// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3000` // live
+// const SOCKET_ADDRESS = `ws://127.0.0.1:3001` // debug
+const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3001`
 
 // handle connection to remote turn server
 const googleStuns = [

@@ -69,6 +69,7 @@ export default function LobbyPage() {
                 private: selectedLobby.private,
                 user: userState,
             })
+            setSelectedLobby(selectedLobby)
             // set the userState lobby so that messages send to the current lobby via websockets
             updateUserState({ currentLobbyId: selectedLobby.name })
             clearMessageState()
@@ -362,9 +363,10 @@ export default function LobbyPage() {
                     display="flex"
                     alignItems="center"
                     gap={'32px'}
+                    height={'24px'}
                 >
                     {currentLobbyState?.name || ''}
-                    {currentLobbiesState?.private && (
+                    {currentLobbyState?.private && (
                         <Clipboard.Root
                             value={currentLobbyState?.pass || 'eeeee'}
                             color={theme.colors.main.action}
