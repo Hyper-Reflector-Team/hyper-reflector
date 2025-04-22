@@ -1,11 +1,20 @@
 import { useRef, useEffect } from 'react'
-import { Filter } from 'bad-words'
 import { Stack, Box } from '@chakra-ui/react'
 import { useLoginStore, useMessageStore } from '../state/store'
 import UserChallengeMessage from './chat/UserChallengeMessage'
+import {
+    RegExpMatcher,
+    TextCensor,
+    englishDataset,
+    englishRecommendedTransformers,
+} from 'obscenity'
 
 import soundBase64Data from './sound/challenge.wav'
-import acceptableWords from '../utils/profanityFilter'
+
+const matcher = new RegExpMatcher({
+    ...englishDataset.build(),
+    ...englishRecommendedTransformers,
+})
 
 export default function ChatWindow() {
     const messageState = useMessageStore((state) => state.messageState)
@@ -15,10 +24,6 @@ export default function ChatWindow() {
 
     const chatEndRef = useRef<null | HTMLDivElement>(null)
 
-    const filter = new Filter()
-    // remove some excessively filtered words
-    filter.removeWords(...acceptableWords)
-
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
@@ -27,10 +32,16 @@ export default function ChatWindow() {
         if (messageObject.type === 'challenge' && !userState.isFighting) {
             new Audio(soundBase64Data).play() // this line for renderer process only
         }
-        console.log(filter.clean(messageObject.message))
+
+        // censor words befor sending to BE
+        const censor = new TextCensor()
+        const input = messageObject.message
+        const matches = matcher.getAllMatches(input)
+        const censoredMessage = censor.applyTo(input, matches)
+
         pushMessage({
             sender: messageObject.sender.name,
-            message: messageObject.message,
+            message: censoredMessage,
             type: messageObject.type || 'sendMessage',
             declined: false,
             accepted: false,

@@ -40,7 +40,15 @@ import {
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore } from '../state/store'
 import theme from '../utils/theme'
+
+import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
+
 import SideBar from '../components/general/SideBar'
+
+const matcher = new RegExpMatcher({
+    ...englishDataset.build(),
+    ...englishRecommendedTransformers,
+})
 
 export default function PlayerProfilePage() {
     const { userId } = useParams({ strict: false })
@@ -49,6 +57,7 @@ export default function PlayerProfilePage() {
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [editedUserName, setEditedUserName] = useState(undefined)
     const [isEditName, setIsEditName] = useState(false)
+    const [nameInvalid, setNameInvalid] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [recentMatches, setRecentMatches] = useState([])
     const [userData, setUserData] = useState([])
@@ -61,6 +70,7 @@ export default function PlayerProfilePage() {
 
     // used when switching tabs etc
     const resetState = () => {
+        console.log('test')
         setMatchTotal(undefined)
         setIsBack(false)
         setPageCount(null)
@@ -176,6 +186,11 @@ export default function PlayerProfilePage() {
         )
     }
 
+    useEffect(() => {
+        console.log(matcher.getAllMatches(editedUserName))
+        setNameInvalid(true)
+    }, [editedUserName])
+
     return (
         <Box display="flex" gap="12px">
             <SideBar width="160px">
@@ -213,7 +228,10 @@ export default function PlayerProfilePage() {
                     disabled={currentTab === 3}
                     justifyContent="flex-start"
                     bg={theme.colors.main.secondary}
-                    onClick={() => setCurrentTab(3)}
+                    onClick={() => {
+                        resetState()
+                        setCurrentTab(3)
+                    }}
                 >
                     <Wrench />
                     User Setting
@@ -438,7 +456,7 @@ export default function PlayerProfilePage() {
                                 updateUserState({ name: e.value })
                             }}
                             value={editedUserName}
-                            invalid={editedUserName && editedUserName.length <= 1}
+                            invalid={editedUserName && editedUserName.length <= 1 && nameInvalid}
                         >
                             {!isEditName && (
                                 <Heading

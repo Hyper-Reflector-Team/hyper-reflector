@@ -6,6 +6,19 @@ import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
 import { ArrowLeft } from 'lucide-react'
 import theme from '../utils/theme'
+import { Filter } from 'bad-words'
+import acceptableWords from '../utils/profanityFilter'
+import {
+    RegExpMatcher,
+    TextCensor,
+    englishDataset,
+    englishRecommendedTransformers,
+} from 'obscenity'
+
+const matcher = new RegExpMatcher({
+    ...englishDataset.build(),
+    ...englishRecommendedTransformers,
+})
 
 export default function CreateAccountBlock() {
     const [isLoading, setIsLoading] = useState(false)
@@ -15,6 +28,7 @@ export default function CreateAccountBlock() {
     const setUserState = useLoginStore((state) => state.setUserState)
     const addUser = useMessageStore((state) => state.pushUser)
     const clearUserList = useMessageStore((state) => state.clearUserList)
+    const [nameInvalid, setNameInvalid] = useState<boolean>(false)
     const [login, setLogin] = useState({
         name: '',
         email: '',
@@ -22,6 +36,10 @@ export default function CreateAccountBlock() {
         repass: '',
     })
     const navigate = useNavigate()
+
+    const filter = new Filter()
+    // remove some excessively filtered words
+    filter.removeWords(...acceptableWords)
 
     const handleLogIn = (loginInfo) => {
         setUserState(loginInfo)
@@ -91,14 +109,19 @@ export default function CreateAccountBlock() {
                                 placeholder="my_user_name"
                                 maxLength={16}
                                 minLength={1}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                    if (matcher.hasMatch(e.target.value)) {
+                                        setNameInvalid(true)
+                                    } else {
+                                        setNameInvalid(false)
+                                    }
                                     setLogin({
                                         name: e.target.value,
                                         email: login.email,
                                         pass: login.pass,
                                         repass: login.repass,
                                     })
-                                }
+                                }}
                                 type="text"
                                 value={login.name}
                             />
@@ -173,6 +196,7 @@ export default function CreateAccountBlock() {
                             <Button
                                 bg={theme.colors.main.actionSecondary}
                                 disabled={
+                                    nameInvalid ||
                                     isLoading ||
                                     !login.pass ||
                                     !login.repass ||
