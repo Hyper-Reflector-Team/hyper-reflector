@@ -436,7 +436,7 @@ const createWindow = () => {
                     if (messageContent === 'ping' || message.includes('"port"')) {
                         if (message.includes('"port"') && !keepAliveInterval) {
                             keepAliveInterval = setInterval(() => {
-                                console.log('sending keep alive to B')
+                                // console.log('sending keep alive to B')
                                 sendMessageToB(
                                     opponentEndpoint.peer.address,
                                     opponentEndpoint.peer.port,
@@ -444,10 +444,10 @@ const createWindow = () => {
                                 )
                             }, 1000)
                         }
-                        console.log(
-                            `Ignoring keep-alive message from ${remote.address}:${remote.port}`
-                        )
-                        console.log(remote.address + ':' + remote.port + ' - ' + message)
+                        // console.log(
+                        //     `Ignoring keep-alive message from ${remote.address}:${remote.port}`
+                        // )
+                        // console.log(remote.address + ':' + remote.port + ' - ' + message)
                     } else {
                         socket.send(message, 0, message.length, 7000, '127.0.0.1')
                     }
@@ -848,6 +848,7 @@ async function handleReadAndUploadMatch() {
             player1: lastKnownPlayerSlot == 0 ? userUID : opponentUID || 'fake-user',
             player2: lastKnownPlayerSlot == 1 ? userUID : opponentUID || 'fake-user',
         }
+        console.log(matchData)
         await api.uploadMatchData(auth, matchData)
     }
 }
