@@ -747,6 +747,14 @@ const createWindow = () => {
         mainWindow.webContents.send('getUserMatches', setOfMatchesPaginated)
     })
 
+    ipcMain.on('getGlobalSet', async (event, { userId, matchId }) => {
+        const matches = await api
+            .getGlobalSet(auth, userId, matchId)
+            .catch((err) => console.log(err))
+
+        mainWindow.webContents.send('getGlobalSet', matches)
+    })
+
     ipcMain.on('getUserData', async (event, userId) => {
         const userData = await api.getUserData(auth, userId).catch((err) => console.log(err))
         console.log('user data', userData)
@@ -837,6 +845,11 @@ ipcMain.on('request-data', (event) => {
 
 async function handleReadAndUploadMatch() {
     const data = await readCommand()
+    if (!data) return
+    // remove below code
+    if (!currentMatchId) {
+        currentMatchId = 'dev-test-matches'
+    }
     if (data && data.length && currentMatchId) {
         //send match data to back end
         console.log('we got some match data, sending it to the BE')

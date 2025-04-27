@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('api', {
     updateLobbyStats: (lobbyArray: any) => ipcRenderer.send('updateLobbyStats', lobbyArray),
     // user profile
     getUserMatches: (matches: any) => ipcRenderer.send('getUserMatches', matches),
+    getGlobalSet: (matches: any) => ipcRenderer.send('getGlobalSet', matches),
     getUserData: (user: any) => ipcRenderer.send('getUserData', user),
     changeUserData: (userData: any) => ipcRenderer.send('changeUserData', userData),
     // match

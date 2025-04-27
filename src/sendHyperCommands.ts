@@ -50,6 +50,7 @@ export async function readStatFile(mainWindow: any) {
         if (mainWindow) {
             mainWindow.webContents.send('stats-from-main', data)
         }
+        // console.log('read the tracking file', data)
         return data
     } catch (error) {
         console.error('Failed to read file:', error)

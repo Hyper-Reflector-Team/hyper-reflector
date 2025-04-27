@@ -44,6 +44,7 @@ import theme from '../utils/theme'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
 import SideBar from '../components/general/SideBar'
+import MatchSetCard from '../components/users/MatchSetCard'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -70,7 +71,6 @@ export default function PlayerProfilePage() {
 
     // used when switching tabs etc
     const resetState = () => {
-        console.log('test')
         setMatchTotal(undefined)
         setIsBack(false)
         setPageCount(null)
@@ -84,6 +84,7 @@ export default function PlayerProfilePage() {
 
     const handleSetRecentMatches = (matchData) => {
         const { matches, lastVisible, totalMatches, firstVisible } = matchData
+        console.log(matches)
         // only set this once
         if (!matchTotal) {
             setMatchTotal(totalMatches)
@@ -176,11 +177,11 @@ export default function PlayerProfilePage() {
             superColor = 'yellow.500'
         } else if (code === 1) {
             superColor = 'orange.500'
-        } else {
+        } else if (code === 2) {
             superColor = 'blue.500'
         }
         return (
-            <Text textStyle="md" padding="8px" color={superColor}>
+            <Text textStyle="md" padding="8px" color={superColor} width={'60px'}>
                 {currentSuper}
             </Text>
         )
@@ -300,130 +301,12 @@ export default function PlayerProfilePage() {
                                 {recentMatches &&
                                     recentMatches.map((match, index) => {
                                         return (
-                                            <div key={`player-match-${index}`}>
-                                                {isLoading && <Skeleton height="230px" />}
-                                                {!isLoading && (
-                                                    <Card.Root
-                                                        variant="elevated"
-                                                        maxH="230px"
-                                                        bg={theme.colors.main.tertiary}
-                                                    >
-                                                        <Card.Header
-                                                            color={theme.colors.main.textMedium}
-                                                        >
-                                                            {new Date(
-                                                                match.timestamp._seconds * 1000
-                                                            ).toLocaleString()}
-                                                        </Card.Header>
-                                                        <Card.Body
-                                                            flex="1"
-                                                            bg={theme.colors.main.tertiary}
-                                                        >
-                                                            <Flex>
-                                                                <Stack
-                                                                    gap="0px"
-                                                                    flex="1"
-                                                                    alignItems="center"
-                                                                >
-                                                                    <Text
-                                                                        textStyle="md"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.player1Name}
-                                                                    </Text>
-                                                                    <Text
-                                                                        textStyle="xs"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.player1Char}
-                                                                    </Text>
-                                                                    <RenderSuperArt
-                                                                        code={match.player1Super}
-                                                                    />
-                                                                </Stack>
-                                                                <Flex
-                                                                    flex="1"
-                                                                    justifyContent="center"
-                                                                >
-                                                                    <Text
-                                                                        textStyle="md"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.results === '1'
-                                                                            ? 1
-                                                                            : 0}
-                                                                    </Text>
-                                                                    <Text
-                                                                        textStyle="md"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        VS
-                                                                    </Text>
-                                                                    <Text
-                                                                        textStyle="md"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.results === '2'
-                                                                            ? 1
-                                                                            : 0}
-                                                                    </Text>
-                                                                </Flex>
-                                                                <Stack
-                                                                    gap="0px"
-                                                                    flex="1"
-                                                                    alignItems="center"
-                                                                >
-                                                                    <Text
-                                                                        textStyle="md"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.player2Name ||
-                                                                            'Unknown User'}
-                                                                    </Text>
-                                                                    <Text
-                                                                        textStyle="xs"
-                                                                        padding="8px"
-                                                                        color={
-                                                                            theme.colors.main
-                                                                                .textSubdued
-                                                                        }
-                                                                    >
-                                                                        {match.player2Char}
-                                                                    </Text>
-                                                                    <RenderSuperArt
-                                                                        code={match.player2Super}
-                                                                    />
-                                                                </Stack>
-                                                            </Flex>
-                                                        </Card.Body>
-                                                        <Card.Footer />
-                                                    </Card.Root>
-                                                )}
-                                            </div>
+                                            <MatchSetCard
+                                                match={match}
+                                                index={index}
+                                                isLoading={isLoading}
+                                                RenderSuperArt={RenderSuperArt}
+                                            />
                                         )
                                     })}
                             </Stack>

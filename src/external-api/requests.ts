@@ -1,8 +1,8 @@
 import keys from '../private/keys'
 import { firebaseConfig } from '../private/firebase'
 
-const SERVER = keys.COTURN_IP
-// const SERVER = '127.0.0.1' // -- used for testing the backend locally
+// const SERVER = keys.COTURN_IP
+const SERVER = '127.0.0.1' // -- used for testing the backend locally
 
 function checkCurrentAuthState(auth) {
     if (auth.currentUser != null) {
@@ -271,7 +271,7 @@ async function uploadMatchData(auth, matchData) {
             player2: matchData.player2,
             matchData: matchData.matchData, // this is the entirety of the stat-tracking-file
         })
-        // console.log(requestBody)
+        console.log(requestBody)
         try {
             fetch(`http://${SERVER}:${keys.API_PORT}/upload-match`, {
                 method: 'POST',
@@ -319,6 +319,37 @@ async function getUserMatches(auth, userId, lastMatchId = null, firstMatchId = n
     }
 }
 
+async function getGlobalSet(auth, userId, matchId = null) {
+    console.log('trying to fetch global set')
+    if (checkCurrentAuthState(auth)) {
+        const idToken = await auth.currentUser.getIdToken().then((res) => res)
+        try {
+            const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-global-set`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    userUID: userId,
+                    matchId,
+                }),
+            })
+
+            if (!response.ok) {
+                console.log(response)
+                return false
+            }
+
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.log(error)
+            console.error(error.message)
+        }
+    }
+}
+
 export default {
     externalApiDoSomething,
     addLoggedInUser,
@@ -334,4 +365,5 @@ export default {
     //matches
     uploadMatchData,
     getUserMatches,
+    getGlobalSet,
 }
