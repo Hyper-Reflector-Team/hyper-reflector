@@ -17,6 +17,7 @@ import {
     Select,
     Button,
     Portal,
+    Collapsible,
 } from '@chakra-ui/react'
 import { Drawer } from '@chakra-ui/react'
 import theme from '../../utils/theme'
@@ -127,10 +128,11 @@ function MatchSetCard({
                     <Card.Footer />
                 </Card.Root>
             )}
+
             <Drawer.Root
                 open={detailsOpen}
                 onOpenChange={(e) => setDetailsOpen(e.open)}
-                size={'xl'}
+                size={'lg'}
             >
                 <Portal>
                     <Drawer.Backdrop />
@@ -163,63 +165,74 @@ function MatchSetCard({
                                         selectedMatchDetails?.matches?.length > 0 &&
                                         selectedMatchDetails.matches.map((match, index) => {
                                             return (
-                                                <Box
-                                                    key={index}
-                                                    display={'flex'}
-                                                    borderRadius={'8px'}
-                                                    bg={theme.colors.main.secondary}
-                                                    padding={'8px'}
-                                                    alignItems={'center'}
-                                                >
-                                                    <Text
-                                                        flex="1"
-                                                        textStyle="sm"
-                                                        padding="8px"
-                                                        color={theme.colors.main.action}
-                                                    >
-                                                        Match: {index + 1} -
-                                                    </Text>
-                                                    <RenderSuperArt
-                                                        code={match.player1Super}
-                                                        flex="1"
-                                                    />
-                                                    <Text
-                                                        flex="1"
-                                                        textStyle="md"
-                                                        padding="8px"
-                                                        color={theme.colors.main.textSubdued}
-                                                    >
-                                                        {match.player1Char}
-                                                    </Text>
-                                                    <Text
-                                                        flex="1"
-                                                        textStyle="md"
-                                                        padding="8px"
-                                                        color={theme.colors.main.textSubdued}
-                                                    >
-                                                        VS
-                                                    </Text>
-                                                    <RenderSuperArt code={match.player2Super} />
-                                                    <Text
-                                                        flex="1"
-                                                        textStyle="md"
-                                                        padding="8px"
-                                                        color={theme.colors.main.textSubdued}
-                                                    >
-                                                        {match.player2Char}
-                                                    </Text>
-                                                </Box>
+                                                <Collapsible.Root>
+                                                    <Collapsible.Trigger width={'100%'}>
+                                                        <Box
+                                                            key={index}
+                                                            display={'flex'}
+                                                            borderRadius={'8px'}
+                                                            bg={theme.colors.main.secondary}
+                                                            padding={'8px'}
+                                                            alignItems={'center'}
+                                                        >
+                                                            <Text
+                                                                flex="1"
+                                                                textStyle="sm"
+                                                                padding="8px"
+                                                                color={theme.colors.main.action}
+                                                            >
+                                                                Match: {index + 1} -
+                                                            </Text>
+                                                            <RenderSuperArt
+                                                                code={match.player1Super}
+                                                                flex="1"
+                                                            />
+                                                            <Text
+                                                                flex="1"
+                                                                textStyle="md"
+                                                                padding="8px"
+                                                                color={
+                                                                    theme.colors.main.textSubdued
+                                                                }
+                                                            >
+                                                                {match.player1Char}
+                                                            </Text>
+                                                            <Text
+                                                                flex="1"
+                                                                textStyle="md"
+                                                                padding="8px"
+                                                                color={
+                                                                    theme.colors.main.textSubdued
+                                                                }
+                                                            >
+                                                                VS
+                                                            </Text>
+                                                            <RenderSuperArt
+                                                                code={match.player2Super}
+                                                            />
+                                                            <Text
+                                                                flex="1"
+                                                                textStyle="md"
+                                                                padding="8px"
+                                                                color={
+                                                                    theme.colors.main.textSubdued
+                                                                }
+                                                            >
+                                                                {match.player2Char}
+                                                            </Text>
+                                                        </Box>
+                                                    </Collapsible.Trigger>
+                                                    <Collapsible.Content>
+                                                        <Box padding="4">
+                                                            {JSON.stringify(match.matchData)}
+                                                        </Box>
+                                                    </Collapsible.Content>
+                                                </Collapsible.Root>
                                             )
                                         })}
                                 </Stack>
                             </Drawer.Body>
-                            <Drawer.Footer>
-                                <Drawer.CloseTrigger asChild>
-                                    <CloseButton size="sm" />
-                                </Drawer.CloseTrigger>
-                                <Button variant="outline">Cancel</Button>
-                                <Button>Save</Button>
-                            </Drawer.Footer>
+                            <Drawer.Footer></Drawer.Footer>
                         </Drawer.Content>
                     </Drawer.Positioner>
                 </Portal>
