@@ -22,23 +22,31 @@ import { Drawer } from '@chakra-ui/react'
 import theme from '../../utils/theme'
 import { CloseButton } from '../chakra/ui/close-button'
 
-function MatchSetCard({ match, index, isLoading, RenderSuperArt }) {
+function MatchSetCard({
+    recentMatches,
+    match,
+    index,
+    isLoading,
+    RenderSuperArt,
+    selectedMatchDetails,
+}) {
     const { userId } = useParams({ strict: false })
     const [detailsOpen, setDetailsOpen] = useState(false)
-    const [selectedMatchDetails, setSelectedMatchDetails] = useState(undefined)
-
-    const globalSetDataFill = ({ globalSet }) => {
-        setSelectedMatchDetails(globalSet)
-    }
+    const [isLoadingSet, setIsLoadingSet] = useState(false)
 
     useEffect(() => {
-        window.api.removeExtraListeners('getGlobalSet', globalSetDataFill)
-        window.api.on('getGlobalSet', globalSetDataFill)
-
-        return () => {
-            window.api.removeListener('getGlobalSet', globalSetDataFill)
+        if (!selectedMatchDetails?.matches.length) {
+            setIsLoadingSet(false)
+            setDetailsOpen(false)
         }
-    }, [])
+        if (
+            selectedMatchDetails?.matches.length &&
+            match?.sessionId === selectedMatchDetails?.sessionId
+        ) {
+            setIsLoadingSet(false)
+            setDetailsOpen(true)
+        }
+    }, [selectedMatchDetails])
 
     const VersusCount = () => {
         return (
@@ -67,8 +75,13 @@ function MatchSetCard({ match, index, isLoading, RenderSuperArt }) {
                     _hover={{ bg: theme.colors.main.secondary, cursor: 'pointer' }}
                     onClick={() => {
                         console.log('open')
-                        setDetailsOpen(true)
-                        window.api.getGlobalSet({ userId, matchId: match.sessionId })
+                        if (recentMatches[index] === match) {
+                            console.log(match)
+                            if (match.sessionId) {
+                                window.api.getGlobalSet({ userId, matchId: match.sessionId })
+                                setIsLoadingSet(true)
+                            }
+                        }
                     }}
                 >
                     <Card.Header color={theme.colors.main.action}>
@@ -146,11 +159,12 @@ function MatchSetCard({ match, index, isLoading, RenderSuperArt }) {
                             </Drawer.Header>
                             <Drawer.Body>
                                 <Stack>
-                                    {selectedMatchDetails &&
-                                        selectedMatchDetails.matches &&
+                                    {detailsOpen &&
+                                        selectedMatchDetails?.matches?.length > 0 &&
                                         selectedMatchDetails.matches.map((match, index) => {
                                             return (
                                                 <Box
+                                                    key={index}
                                                     display={'flex'}
                                                     borderRadius={'8px'}
                                                     bg={theme.colors.main.secondary}
@@ -197,7 +211,6 @@ function MatchSetCard({ match, index, isLoading, RenderSuperArt }) {
                                                 </Box>
                                             )
                                         })}
-                                    {/* {JSON.stringify(selectedMatchDetails)} */}
                                 </Stack>
                             </Drawer.Body>
                             <Drawer.Footer>
@@ -211,6 +224,13 @@ function MatchSetCard({ match, index, isLoading, RenderSuperArt }) {
                     </Drawer.Positioner>
                 </Portal>
             </Drawer.Root>
+            {isLoadingSet && (
+                <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
+                    <Center h="full">
+                        <Spinner color={theme.colors.main.action} />
+                    </Center>
+                </Box>
+            )}
         </Box>
     )
 }

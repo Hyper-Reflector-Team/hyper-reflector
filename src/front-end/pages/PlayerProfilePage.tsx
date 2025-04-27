@@ -68,6 +68,7 @@ export default function PlayerProfilePage() {
     const [pageCount, setPageCount] = useState(null)
     const [isBack, setIsBack] = useState(false)
     const [matchTotal, setMatchTotal] = useState(undefined)
+    const [selectedMatchDetails, setSelectedMatchDetails] = useState(undefined)
 
     // used when switching tabs etc
     const resetState = () => {
@@ -84,7 +85,6 @@ export default function PlayerProfilePage() {
 
     const handleSetRecentMatches = (matchData) => {
         const { matches, lastVisible, totalMatches, firstVisible } = matchData
-        console.log(matches)
         // only set this once
         if (!matchTotal) {
             setMatchTotal(totalMatches)
@@ -147,11 +147,23 @@ export default function PlayerProfilePage() {
         window.api.removeExtraListeners('getUserMatches', handleSetRecentMatches)
         window.api.on('getUserMatches', handleSetRecentMatches)
 
+        window.api.removeExtraListeners('fillGlobalSet', globalSetDataFill)
+        window.api.on('fillGlobalSet', globalSetDataFill)
+
         return () => {
             window.api.removeListener('getUserData', handleSetUserData)
             window.api.removeListener('getUserMatches', handleSetRecentMatches)
+            window.api.removeListener('fillGlobalSet', globalSetDataFill)
         }
     }, [])
+
+    const globalSetDataFill = ({ globalSet }) => {
+        if (globalSet) {
+            setSelectedMatchDetails(globalSet)
+        } else {
+            setSelectedMatchDetails({ matches: [] })
+        }
+    }
 
     const getSuperArt = (code) => {
         switch (parseInt(code)) {
@@ -302,10 +314,13 @@ export default function PlayerProfilePage() {
                                     recentMatches.map((match, index) => {
                                         return (
                                             <MatchSetCard
+                                                recentMatches={recentMatches}
+                                                key={index}
                                                 match={match}
                                                 index={index}
                                                 isLoading={isLoading}
                                                 RenderSuperArt={RenderSuperArt}
+                                                selectedMatchDetails={selectedMatchDetails}
                                             />
                                         )
                                     })}

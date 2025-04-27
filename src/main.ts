@@ -751,8 +751,8 @@ const createWindow = () => {
         const matches = await api
             .getGlobalSet(auth, userId, matchId)
             .catch((err) => console.log(err))
-
-        mainWindow.webContents.send('getGlobalSet', matches)
+        console.log('making a set request', matches)
+        mainWindow.webContents.send('fillGlobalSet', matches)
     })
 
     ipcMain.on('getUserData', async (event, userId) => {
