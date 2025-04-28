@@ -43,7 +43,8 @@ export default function UserChallengeMessage({ message }) {
                         <Flex>
                             <Text color={theme.colors.main.text}>Received challenge from: </Text>
                             <Text fontWeight="bold" color={theme.colors.main.actionSecondaryLight}>
-                                {userList.find((user) => user.uid === caller.callerId).name}
+                                {userList.find((user) => user.uid === caller.callerId)?.name ||
+                                    'Unknown User'}
                             </Text>
                         </Flex>
                     )}
