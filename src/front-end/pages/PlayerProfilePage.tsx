@@ -81,6 +81,7 @@ export default function PlayerProfilePage() {
         setRecentMatches([])
         setEditedUserName(undefined)
         setIsEditName(false)
+        setSelectedMatchDetails(undefined)
     }
 
     const handleSetRecentMatches = (matchData) => {
