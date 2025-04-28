@@ -20,6 +20,18 @@ import { toaster } from '../components/chakra/ui/toaster'
 import { ClipboardCopy, KeySquare, Plus, Users } from 'lucide-react'
 import { PasswordInput } from '../components/chakra/ui/password-input'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import {
+    RegExpMatcher,
+    asteriskCensorStrategy,
+    TextCensor,
+    englishDataset,
+    englishRecommendedTransformers,
+} from 'obscenity'
+
+const matcher = new RegExpMatcher({
+    ...englishDataset.build(),
+    ...englishRecommendedTransformers,
+})
 
 export default function LobbyPage() {
     const theme = useLayoutStore((state) => state.appTheme)
@@ -188,22 +200,34 @@ export default function LobbyPage() {
                                     color={theme.colors.main.text}
                                     disabled={!!createBlocked()}
                                     onClick={() => {
+                                        const strategy = asteriskCensorStrategy()
+                                        const censor = new TextCensor().setStrategy(strategy)
+                                        const nameMatch = newLobby?.name
+                                        const matches = matcher.getAllMatches(nameMatch)
+                                        const censoredLobbyName = censor.applyTo(nameMatch, matches)
+                                        const censoredLobby = {
+                                            ...newLobby,
+                                            name: censoredLobbyName,
+                                        }
                                         setOpenCreate(false)
                                         resetCreate()
                                         // call the BE to add the user to the new lobby
-                                        setSelectedLobby(newLobby)
-                                        setCurrentLobbyState(newLobby)
+                                        setSelectedLobby(censoredLobby)
+                                        setCurrentLobbyState(censoredLobby)
                                         window.api.createNewLobby({
-                                            name: newLobby.name,
+                                            name: censoredLobbyName,
                                             pass: newLobby.pass,
                                             private: newLobby.private,
                                             user: userState,
                                         }) // send new lobby info to BE
                                         toaster.success({
                                             title: 'Lobby Created!',
-                                            description: newLobby.name,
+                                            description: censoredLobbyName,
                                         })
-                                        setCurrentLobbiesState([...currentLobbiesState, newLobby])
+                                        setCurrentLobbiesState([
+                                            ...currentLobbiesState,
+                                            censoredLobby,
+                                        ])
                                     }}
                                 >
                                     Create

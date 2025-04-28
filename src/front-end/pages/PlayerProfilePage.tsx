@@ -40,7 +40,12 @@ import {
 import { Field } from '../components/chakra/ui/field'
 import { useLoginStore, useLayoutStore } from '../state/store'
 
-import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
+import {
+    RegExpMatcher,
+    TextCensor,
+    englishDataset,
+    englishRecommendedTransformers,
+} from 'obscenity'
 
 import SideBar from '../components/general/SideBar'
 import MatchSetCard from '../components/users/MatchSetCard'
@@ -377,9 +382,13 @@ export default function PlayerProfilePage() {
                             maxLength={16}
                             onEditChange={(e) => setIsEditName(e.edit)}
                             onValueCommit={(e) => {
-                                setEditedUserName(e.value)
-                                updateUserState({ name: e.value })
-                                window.api.changeUserData({ userName: e.value })
+                                const censor = new TextCensor()
+                                const nameMatch = e.value
+                                const matches = matcher.getAllMatches(nameMatch)
+                                const censoredMessage = censor.applyTo(nameMatch, matches)
+                                setEditedUserName(censoredMessage)
+                                updateUserState({ name: censoredMessage })
+                                window.api.changeUserData({ userName: censoredMessage })
                             }}
                             onValueChange={(e) => setEditedUserName(e.value)}
                             onValueRevert={(e) => {
