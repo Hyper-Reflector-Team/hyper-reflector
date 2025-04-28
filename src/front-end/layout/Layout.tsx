@@ -115,7 +115,7 @@ export default function Layout({ children }) {
                                     setLayoutTab('news')
                                 }}
                             >
-                                News
+                                Home
                             </Tabs.Trigger>
                             {isLoggedIn && (
                                 <>
@@ -129,7 +129,7 @@ export default function Layout({ children }) {
                                             setLayoutTab('chat')
                                         }}
                                     >
-                                        Chat
+                                        Lobby
                                     </Tabs.Trigger>
                                     <Tabs.Trigger
                                         width={'100px'}

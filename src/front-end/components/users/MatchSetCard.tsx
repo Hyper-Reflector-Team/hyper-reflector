@@ -223,7 +223,7 @@ function MatchSetCard({
                 </Portal>
             </Drawer.Root>
             {isLoadingSet && (
-                <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
+                <Box pos="absolute" inset="0" bg={theme.colors.main.bg} opacity="50%">
                     <Center h="full">
                         <Spinner color={theme.colors.main.action} />
                     </Center>

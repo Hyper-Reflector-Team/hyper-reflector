@@ -44,6 +44,7 @@ import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'o
 
 import SideBar from '../components/general/SideBar'
 import MatchSetCard from '../components/users/MatchSetCard'
+import TitleBadge from '../components/users/TitleBadge'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -258,17 +259,33 @@ export default function PlayerProfilePage() {
             <Stack minH="100%" maxWidth={'600px'} flex={1}>
                 {currentTab === 0 && (
                     <Box>
-                        <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
+                        {/* <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
                             <Construction />
-                        </Box>
-                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                        </Box> */}
+                        {/* <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             {JSON.stringify(userData)}
-                        </Text>
+                        </Text> */}
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             {userData?.userName || 'Unknown User'}
+                            <TitleBadge title={userData?.userTitle} />
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            {userData?.userTitle || 'Unknown User'}
+                            Current Win Streak: 10
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Total Games: 10
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Wins: 10
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Losses: 3
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Win rate 70%
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Character: Elena
                         </Text>
                     </Box>
                 )}
@@ -351,6 +368,10 @@ export default function PlayerProfilePage() {
 
                 {currentTab === 3 && (
                     <Box>
+                        <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                            Profile changes are not visible to others until the next time you log
+                            in.
+                        </Text>
                         <Editable.Root
                             defaultValue={userData?.userName}
                             maxLength={16}
@@ -422,8 +443,10 @@ export default function PlayerProfilePage() {
                                 </Editable.Control>
                             )}
                         </Editable.Root>
+                        <TitleBadge title={userData?.userTitle} />
                         <Field
-                            label="Title"
+                            marginTop={'8px'}
+                            label=""
                             helperText="The side you wish to play on, both users must be on opposite sides."
                             color={theme.colors.main.textMedium}
                         >
@@ -434,7 +457,7 @@ export default function PlayerProfilePage() {
                                 // onValueChange={(e) => setPlayer(e.value[0])}
                             >
                                 <SelectTrigger>
-                                    <SelectValueText placeholder="Title" />
+                                    <SelectValueText placeholder="Change Title" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {/* {players.items.map((player) => (
@@ -445,15 +468,11 @@ export default function PlayerProfilePage() {
                                 </SelectContent>
                             </SelectRoot>
                         </Field>
-                        <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                            Profile changes are not visible to others until the next time you log
-                            in.
-                        </Text>
                     </Box>
                 )}
 
                 {isLoading && (
-                    <Box pos="absolute" inset="0" bg={theme.colors.main.secondary} opacity="50%">
+                    <Box pos="absolute" inset="0" bg={theme.colors.main.bg} opacity="50%">
                         <Center h="full">
                             <Spinner color={theme.colors.main.action} />
                         </Center>

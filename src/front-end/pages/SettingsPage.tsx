@@ -71,15 +71,15 @@ export default function SettingsPage() {
             console.log('Previous count:', prevEmuPathRef.current)
             toaster.success({
                 title: 'Path Set!',
-                description: `${currentEmuPath}`,
+                // description: `${currentEmuPath}`,
             })
         }
 
         if (prevEmuPathRef.current === currentEmuPath && hasMounted.current) {
             console.log('prev path:', prevEmuPathRef.current)
             toaster.error({
-                title: 'Path Set!',
-                description: `${currentEmuPath}`,
+                title: 'Path setting failed!',
+                // description: `${currentEmuPath}`,
             })
         }
 

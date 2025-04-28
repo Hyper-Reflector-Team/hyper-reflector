@@ -19,6 +19,7 @@ import {
     Popover,
 } from '@chakra-ui/react'
 import { Crown } from 'lucide-react'
+import TitleBadge from './TitleBadge'
 
 export default function UserCard({ user }) {
     const theme = useLayoutStore((state) => state.appTheme)
@@ -122,13 +123,7 @@ export default function UserCard({ user }) {
                                     {user.name}
                                 </Text>
                             </Flex>
-                            <Box minH="16px">
-                                {user.userTitle && (
-                                    <Badge size="xs" variant="subtle" colorPalette="red">
-                                        {user.userTitle}
-                                    </Badge>
-                                )}
-                            </Box>
+                            <TitleBadge title={user.userTitle || null} />
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
                         <RankDisplay elo={user.elo} />
