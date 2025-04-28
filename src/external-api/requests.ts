@@ -350,6 +350,36 @@ async function getGlobalSet(auth, userId, matchId = null) {
     }
 }
 
+async function getAllTitles(auth, userId, matchId = null) {
+    console.log('trying to fetch titles')
+    if (checkCurrentAuthState(auth)) {
+        const idToken = await auth.currentUser.getIdToken().then((res) => res)
+        try {
+            const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-titles`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    userUID: userId,
+                }),
+            })
+
+            if (!response.ok) {
+                console.log(response)
+                return false
+            }
+
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.log(error)
+            console.error(error.message)
+        }
+    }
+}
+
 export default {
     externalApiDoSomething,
     addLoggedInUser,
@@ -362,6 +392,7 @@ export default {
     createAccount,
     getUserByAuth,
     getUserData,
+    getAllTitles,
     //matches
     uploadMatchData,
     getUserMatches,

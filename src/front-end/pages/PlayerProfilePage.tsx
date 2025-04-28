@@ -16,6 +16,7 @@ import {
     Editable,
     Select,
     Button,
+    createListCollection,
 } from '@chakra-ui/react'
 import {
     SelectContent,
@@ -56,6 +57,7 @@ const matcher = new RegExpMatcher({
     ...englishRecommendedTransformers,
 })
 
+//TODO: user should have to click a button to save all data
 export default function PlayerProfilePage() {
     const theme = useLayoutStore((state) => state.appTheme)
     const { userId } = useParams({ strict: false })
@@ -75,6 +77,8 @@ export default function PlayerProfilePage() {
     const [isBack, setIsBack] = useState(false)
     const [matchTotal, setMatchTotal] = useState(undefined)
     const [selectedMatchDetails, setSelectedMatchDetails] = useState(undefined)
+    const [titleList, setTitleList] = useState(undefined)
+    const [selectedTitle, setSelectedTitle] = useState(undefined)
 
     // used when switching tabs etc
     const resetState = () => {
@@ -112,6 +116,7 @@ export default function PlayerProfilePage() {
         // use effects when we switch tabs
         // public profile
         if (currentTab === 0) {
+            window.api.getAllTitles({ userId })
             setIsLoading(true)
             window.api.getUserData(userId)
         }
@@ -147,6 +152,24 @@ export default function PlayerProfilePage() {
         }
     }, [firstMatch])
 
+    const handleSetTitles = (data) => {
+        const titles = createListCollection({
+            items: [
+                ...data?.titleData?.titles.map((title, index) => {
+                    return { label: title.title, value: index, data: title }
+                }),
+            ],
+        })
+        setTitleList(titles)
+    }
+
+    useEffect(() => {
+        if (!titleList?.items) return
+        const newTitle = titleList.items[selectedTitle].data
+        updateUserState({ userTitle: newTitle })
+        window.api.changeUserData({ userTitle: newTitle })
+    }, [selectedTitle])
+
     useEffect(() => {
         window.api.removeExtraListeners('getUserData', handleSetUserData)
         window.api.on('getUserData', handleSetUserData)
@@ -157,10 +180,14 @@ export default function PlayerProfilePage() {
         window.api.removeExtraListeners('fillGlobalSet', globalSetDataFill)
         window.api.on('fillGlobalSet', globalSetDataFill)
 
+        window.api.removeExtraListeners('fillAllTitles', handleSetTitles)
+        window.api.on('fillAllTitles', handleSetTitles)
+
         return () => {
             window.api.removeListener('getUserData', handleSetUserData)
             window.api.removeListener('getUserMatches', handleSetRecentMatches)
             window.api.removeListener('fillGlobalSet', globalSetDataFill)
+            window.api.removeListener('fillAllTitles', handleSetTitles)
         }
     }, [])
 
@@ -272,7 +299,7 @@ export default function PlayerProfilePage() {
                         </Text> */}
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             {userData?.userName || 'Unknown User'}
-                            <TitleBadge title={userData?.userTitle} />
+                            <TitleBadge title={userState?.userTitle || userData?.userTitle} />
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             Current Win Streak: 10
@@ -452,28 +479,28 @@ export default function PlayerProfilePage() {
                                 </Editable.Control>
                             )}
                         </Editable.Root>
-                        <TitleBadge title={userData?.userTitle} />
+                        <TitleBadge title={userState?.userTitle || userData?.userTitle} />
                         <Field
                             marginTop={'8px'}
                             label=""
-                            helperText="The side you wish to play on, both users must be on opposite sides."
+                            helperText="Title flair to display to other users"
                             color={theme.colors.main.textMedium}
                         >
                             <SelectRoot
                                 color={theme.colors.main.actionSecondary}
-                                // collection={players}
-                                // value={[player]}
-                                // onValueChange={(e) => setPlayer(e.value[0])}
+                                collection={titleList || []}
+                                value={selectedTitle}
+                                onValueChange={(e) => setSelectedTitle(e.value)}
                             >
                                 <SelectTrigger>
                                     <SelectValueText placeholder="Change Title" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {/* {players.items.map((player) => (
-                            <SelectItem item={player} key={player.value}>
-                                {player.label}
-                            </SelectItem>
-                        ))} */}
+                                    {titleList?.items.map((title) => (
+                                        <SelectItem item={title} key={title.value}>
+                                            {title.label}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </SelectRoot>
                         </Field>

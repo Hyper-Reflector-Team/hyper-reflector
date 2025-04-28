@@ -41,6 +41,7 @@ export default function UserCard({ user }) {
         })
     }, [callData, user.uid])
 
+    //TODO: modify this to not use a time out maybe?
     const handleEndMatch = () => {
         updateUserState({ isFighting: false })
         setTimeout(() => {
