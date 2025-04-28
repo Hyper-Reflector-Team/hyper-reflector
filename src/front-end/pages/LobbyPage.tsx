@@ -18,11 +18,11 @@ import UsersChat from '../components/UsersChat'
 import SideBar from '../components/general/SideBar'
 import { toaster } from '../components/chakra/ui/toaster'
 import { ClipboardCopy, KeySquare, Plus, Users } from 'lucide-react'
-import theme from '../utils/theme'
 import { PasswordInput } from '../components/chakra/ui/password-input'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 
 export default function LobbyPage() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const clearMessageState = useMessageStore((state) => state.clearMessageState)
     const userState = useLoginStore((state) => state.userState)
     const updateUserState = useLoginStore((state) => state.updateUserState)

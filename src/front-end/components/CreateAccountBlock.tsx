@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Button, Stack, Input, Box, Center, Spinner, Text, Flex, Heading } from '@chakra-ui/react'
 import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
 import { ArrowLeft } from 'lucide-react'
-import theme from '../utils/theme'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
 const matcher = new RegExpMatcher({
@@ -14,6 +13,7 @@ const matcher = new RegExpMatcher({
 })
 
 export default function CreateAccountBlock() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isLoading, setIsLoading] = useState(false)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const failedLogin = useLoginStore((state) => state.failedLogin)

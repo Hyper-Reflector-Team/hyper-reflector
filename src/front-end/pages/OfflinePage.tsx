@@ -18,11 +18,12 @@ import {
     SelectValueText,
 } from '../components/chakra/ui/select'
 import { Field } from '../components/chakra/ui/field'
-import theme from '../utils/theme'
 import SideBar from '../components/general/SideBar'
 import { BookUser, Construction, FlaskConical, PaintBucket, Router, UserRound } from 'lucide-react'
+import { useLayoutStore } from '../state/store'
 
 export default function OfflinePage() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [player, setPlayer] = useState('')
     const [opponentPort, setOpponentPort] = useState('')

@@ -1,13 +1,14 @@
 import { Box, Heading, Stack, Text, Flex } from '@chakra-ui/react'
-import theme from '../utils/theme'
+import { useLayoutStore } from '../state/store'
 
 export function BlogPost({ blog }: { blog: { content: string; title: string; date: string } }) {
+    const theme = useLayoutStore((state) => state.appTheme)
     return (
         <Stack padding={2} gap="0">
             <Flex
                 justifyContent={'space-between'}
                 backgroundColor={theme.colors.main.tertiary}
-                color={theme.colors.main.textMedium}
+                color={theme.colors.main.bg}
                 padding="2"
             >
                 <Heading size="sm">{blog.title}</Heading>

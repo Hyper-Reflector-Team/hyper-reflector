@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Stack, Box, Center, Spinner, Text } from '@chakra-ui/react'
-import theme from '../utils/theme'
 
 export default function Autologin() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isLoading, setIsLoading] = useState(true)
     const failedLogin = useLoginStore((state) => state.failedLogin)
     const successLogin = useLoginStore((state) => state.successLogin)

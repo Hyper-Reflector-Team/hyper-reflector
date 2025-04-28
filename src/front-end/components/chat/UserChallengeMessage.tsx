@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Flex, Stack, Text, Button } from '@chakra-ui/react'
-import { useMessageStore, useLoginStore } from '../../state/store'
-import theme from '../../utils/theme'
+import { useMessageStore, useLoginStore, useLayoutStore } from '../../state/store'
 
 export default function UserChallengeMessage({ message }) {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isDeclined, setIsDeclined] = useState(false)
     const [isAccepted, setIsAccepted] = useState(false)
     const callData = useMessageStore((state) => state.callData)

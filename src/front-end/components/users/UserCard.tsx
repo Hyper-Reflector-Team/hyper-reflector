@@ -19,9 +19,9 @@ import {
     Popover,
 } from '@chakra-ui/react'
 import { Crown } from 'lucide-react'
-import theme from '../../utils/theme'
 
 export default function UserCard({ user }) {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isInMatch, setIsInMatch] = useState(false)
     const [isUserChallenging, setIsUserChallenging] = useState(false)
     const userState = useLoginStore((state) => state.userState)

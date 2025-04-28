@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Button, Stack, Input, Box, Center, Spinner, Text, Heading, Flex } from '@chakra-ui/react'
 import { PasswordInput } from './chakra/ui/password-input'
 import { Field } from './chakra/ui/field'
 import { Hammer } from 'lucide-react'
-import theme from '../utils/theme'
 
 export default function LoginBlock() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isLoading, setIsLoading] = useState(false)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const failedLogin = useLoginStore((state) => state.failedLogin)

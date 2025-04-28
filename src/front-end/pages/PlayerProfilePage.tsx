@@ -38,8 +38,7 @@ import {
     X,
 } from 'lucide-react'
 import { Field } from '../components/chakra/ui/field'
-import { useLoginStore } from '../state/store'
-import theme from '../utils/theme'
+import { useLoginStore, useLayoutStore } from '../state/store'
 
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
@@ -52,6 +51,7 @@ const matcher = new RegExpMatcher({
 })
 
 export default function PlayerProfilePage() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const { userId } = useParams({ strict: false })
     const userState = useLoginStore((state) => state.userState)
     const updateUserState = useLoginStore((state) => state.updateUserState)

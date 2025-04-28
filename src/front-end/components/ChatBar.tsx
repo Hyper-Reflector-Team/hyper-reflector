@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useLoginStore } from '../state/store'
+import { useLayoutStore, useLoginStore } from '../state/store'
 import { Button, Stack, Input, Flex } from '@chakra-ui/react'
 import { Send } from 'lucide-react'
-import theme from '../utils/theme'
 
 export default function ChatBar() {
+    const theme = useLayoutStore((state) => state.appTheme)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const userState = useLoginStore((state) => state.userState)
     const [message, setMessage] = useState('')

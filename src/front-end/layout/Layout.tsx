@@ -3,10 +3,10 @@ import { Stack, Tabs, Box, Text } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
-import theme from '../utils/theme'
 import { Settings } from 'lucide-react'
 
 export default function Layout({ children }) {
+    const theme = useLayoutStore((state) => state.appTheme)
     const [isLoading, setIsLoading] = useState(false)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const setUserState = useLoginStore((state) => state.setUserState)

@@ -8,18 +8,26 @@ import {
     SelectValueText,
 } from '../components/chakra/ui/select'
 import { toaster } from '../components/chakra/ui/toaster'
-import { useLoginStore } from '../state/store'
-import theme from '../utils/theme'
+import { useLayoutStore, useLoginStore } from '../state/store'
+import { getThemeList } from '../utils/theme'
 import SideBar from '../components/general/SideBar'
 import { AlertCircle, Settings, Settings2 } from 'lucide-react'
 
 export default function SettingsPage() {
+    const theme = useLayoutStore((state) => state.appTheme)
+    const setTheme = useLayoutStore((state) => state.setTheme)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [currentEmuPath, setCurrentEmuPath] = useState('')
     const [currentDelay, setCurrentDelay] = useState('')
     const prevEmuPathRef = useRef('')
     const hasMounted = useRef(false)
+
+    const themes = getThemeList()
+
+    useEffect(() => {
+        console.log('theme changed', theme)
+    }, [theme])
 
     const delays = createListCollection({
         items: [
@@ -83,6 +91,7 @@ export default function SettingsPage() {
 
     return (
         <Box display="flex" gap="12px">
+            <Button onClick={() => setTheme('Aegis Reflector Dark')}>test</Button>
             <SideBar width="160px">
                 <Button
                     disabled={currentTab === 0}

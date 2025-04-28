@@ -20,8 +20,8 @@ import {
     Collapsible,
 } from '@chakra-ui/react'
 import { Drawer } from '@chakra-ui/react'
-import theme from '../../utils/theme'
 import { CloseButton } from '../chakra/ui/close-button'
+import { useLayoutStore } from '../../state/store'
 
 function MatchSetCard({
     recentMatches,
@@ -31,6 +31,7 @@ function MatchSetCard({
     RenderSuperArt,
     selectedMatchDetails,
 }) {
+    const theme = useLayoutStore((state) => state.appTheme)
     const { userId } = useParams({ strict: false })
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [isLoadingSet, setIsLoadingSet] = useState(false)
@@ -85,7 +86,7 @@ function MatchSetCard({
                         }
                     }}
                 >
-                    <Card.Header color={theme.colors.main.action}>
+                    <Card.Header color={theme.colors.main.bg}>
                         {new Date(match.timestamp).toLocaleString()}
                     </Card.Header>
                     <Card.Body flex="1">
@@ -98,13 +99,6 @@ function MatchSetCard({
                                 >
                                     {match.player1Name}
                                 </Text>
-                                {/* <Text
-                                    textStyle="xs"
-                                    padding="8px"
-                                    color={theme.colors.main.textSubdued}
-                                >
-                                    {match.player1Char}
-                                </Text> */}
                             </Stack>
                             <VersusCount />
                             <Stack gap="0px" flex="1" alignItems="center">
@@ -115,20 +109,12 @@ function MatchSetCard({
                                 >
                                     {match.player2Name || 'Unknown User'}
                                 </Text>
-                                {/* <Text
-                                    textStyle="xs"
-                                    padding="8px"
-                                    color={theme.colors.main.textSubdued}
-                                >
-                                    {match.player2Char}
-                                </Text> */}
                             </Stack>
                         </Flex>
                     </Card.Body>
                     <Card.Footer />
                 </Card.Root>
             )}
-
             <Drawer.Root
                 open={detailsOpen}
                 onOpenChange={(e) => setDetailsOpen(e.open)}
@@ -137,7 +123,7 @@ function MatchSetCard({
                 <Portal>
                     <Drawer.Backdrop />
                     <Drawer.Positioner>
-                        <Drawer.Content bg={theme.colors.main.card}>
+                        <Drawer.Content bg={theme.colors.main.panel}>
                             <Drawer.Header>
                                 <Drawer.Title color={theme.colors.main.text}>
                                     <Box display={'flex'}>
