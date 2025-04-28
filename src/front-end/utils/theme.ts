@@ -172,6 +172,11 @@ const getThemeList = () => {
     return [slimeTheme, pinkTheme, pinkTheme2, purpleTheme, greenTheme, orangeTheme]
 }
 
-export { getThemeList }
+const getThemeNameList = (): string[] => {
+    const themeNames = getThemeList().map((t) => t.name)
+    return themeNames
+}
+
+export { getThemeList, getThemeNameList }
 
 export default theme

@@ -225,6 +225,47 @@ const createWindow = () => {
         mainWindow.webContents.send('emulatorDelay', config.app.emuDelay)
     }
 
+    const setAppTheme = async (themeIndex: number) => {
+        console.log('attempting set theme', themeIndex)
+        try {
+            const filePath = path.join(filePathBase, 'config.txt')
+            mainWindow.webContents.send('message-from-main', `Set emulator theme to: ${themeIndex}`)
+
+            // Read the existing file
+            let fileContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : ''
+
+            // Split the file into lines
+            let lines = fileContent.split('\n')
+
+            // Find and update the theme line
+            let found = false
+            lines = lines.map((line: string) => {
+                if (line.startsWith('appTheme=')) {
+                    found = true
+                    return `appTheme=${themeIndex}`
+                }
+                return line
+            })
+
+            if (!found) {
+                lines.push(`appTheme=${themeIndex}`)
+            }
+
+            // Write back the modified content
+            fs.writeFileSync(filePath, lines.join('\n'), 'utf8')
+
+            console.log(`CONFIG: Updated delay to ${themeIndex}`)
+        } catch (error) {
+            mainWindow.webContents.send('message-from-main', error)
+            console.error('Failed to write to config file:', error)
+        }
+    }
+
+    const getAppTheme = async () => {
+        await getConfigData()
+        mainWindow.webContents.send('appTheme', config.app.appTheme)
+    }
+
     // firebase login
     async function handleLogin({ email, pass }: TLogin) {
         try {
@@ -361,6 +402,14 @@ const createWindow = () => {
 
     ipcMain.on('getEmulatorDelay', () => {
         getEmulatorDelay()
+    })
+
+    ipcMain.on('setAppTheme', (event, themeIndex) => {
+        setAppTheme(themeIndex)
+    })
+
+    ipcMain.on('getAppTheme', () => {
+        getAppTheme()
     })
 
     // receives text from front end sends it to emulator

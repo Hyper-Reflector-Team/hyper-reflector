@@ -9,7 +9,7 @@ import {
 } from '../components/chakra/ui/select'
 import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore } from '../state/store'
-import { getThemeList } from '../utils/theme'
+import { getThemeNameList } from '../utils/theme'
 import SideBar from '../components/general/SideBar'
 import { AlertCircle, Settings, Settings2 } from 'lucide-react'
 
@@ -20,14 +20,9 @@ export default function SettingsPage() {
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [currentEmuPath, setCurrentEmuPath] = useState('')
     const [currentDelay, setCurrentDelay] = useState('')
+    const [currentTheme, setCurrentTheme] = useState('')
     const prevEmuPathRef = useRef('')
     const hasMounted = useRef(false)
-
-    const themes = getThemeList()
-
-    useEffect(() => {
-        console.log('theme changed', theme)
-    }, [theme])
 
     const delays = createListCollection({
         items: [
@@ -42,6 +37,14 @@ export default function SettingsPage() {
         ],
     })
 
+    const themes = createListCollection({
+        items: [
+            ...getThemeNameList().map((t, index) => {
+                return { label: t, value: index }
+            }),
+        ],
+    })
+
     const handleSetPath = (path: string) => {
         setCurrentEmuPath(path)
     }
@@ -50,9 +53,18 @@ export default function SettingsPage() {
         setCurrentDelay(delay)
     }
 
+    const handleSetTheme = (themeIndex: string) => {
+        console.log('trying to set the current theme data', themeIndex)
+        setCurrentTheme(themeIndex)
+        const themeToSet = themes.items[parseInt(themeIndex)].label
+        console.log(themeToSet)
+        setTheme(themeToSet)
+    }
+
     useEffect(() => {
-        window.api.getEmulatorDelay()
         window.api.getEmulatorPath()
+        window.api.getEmulatorDelay()
+        window.api.getAppTheme()
     }, [])
 
     useEffect(() => {
@@ -83,15 +95,18 @@ export default function SettingsPage() {
         window.api.removeExtraListeners('emulatorDelay', handleSetDelay)
         window.api.on('emulatorDelay', handleSetDelay)
 
+        window.api.removeExtraListeners('appTheme', handleSetTheme)
+        window.api.on('appTheme', handleSetTheme)
+
         return () => {
             window.api.removeListener('emulatorPath', handleSetPath)
             window.api.removeListener('emulatorDelay', handleSetDelay)
+            window.api.removeListener('appTheme', handleSetTheme)
         }
     }, [])
 
     return (
         <Box display="flex" gap="12px">
-            <Button onClick={() => setTheme('Aegis Reflector Dark')}>test</Button>
             <SideBar width="160px">
                 <Button
                     disabled={currentTab === 0}
@@ -151,6 +166,30 @@ export default function SettingsPage() {
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Current Path: {currentEmuPath}
                             </Text>
+
+                            <SelectRoot
+                                color={theme.colors.main.actionSecondary}
+                                collection={themes}
+                                value={[currentTheme]}
+                                onValueChange={(e) => {
+                                    handleSetTheme(e.value[0])
+                                    window.api.setAppTheme(e.value[0])
+                                    toaster.success({
+                                        title: 'Theme Changed',
+                                    })
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValueText placeholder="Theme" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {themes.items.map((theme) => (
+                                        <SelectItem item={theme} key={theme.value}>
+                                            {theme.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </SelectRoot>
                         </Stack>
                     </Box>
                 )}

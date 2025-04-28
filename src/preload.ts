@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld('api', {
     getEmulatorPath: () => ipcRenderer.send('getEmulatorPath'),
     setEmulatorDelay: (delay: number) => ipcRenderer.send('setEmulatorDelay', delay),
     getEmulatorDelay: (delay: number) => ipcRenderer.send('getEmulatorDelay', delay),
+    setAppTheme: (themeIndex: number) => ipcRenderer.send('setAppTheme', themeIndex),
+    getAppTheme: (themeIndex: number) => ipcRenderer.send('getAppTheme', themeIndex),
     endMatch: (userUID: string) => ipcRenderer.send('endMatch', userUID),
     endMatchUI: (userUID: string) => ipcRenderer.send('endMatch', userUID),
     killEmulator: () => ipcRenderer.send('killEmulator'),

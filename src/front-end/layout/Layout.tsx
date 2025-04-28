@@ -4,9 +4,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Settings } from 'lucide-react'
+import { getThemeNameList } from '../utils/theme'
 
 export default function Layout({ children }) {
     const theme = useLayoutStore((state) => state.appTheme)
+    const setTheme = useLayoutStore((state) => state.setTheme)
     const [isLoading, setIsLoading] = useState(false)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const setUserState = useLoginStore((state) => state.setUserState)
@@ -19,6 +21,22 @@ export default function Layout({ children }) {
 
     const navigate = useNavigate()
 
+    // Initially set the theme when loaded
+    useEffect(() => {
+        window.api.removeExtraListeners('appTheme', handleSetTheme)
+        window.api.on('appTheme', handleSetTheme)
+
+        return () => {
+            window.api.removeListener('appTheme', handleSetTheme)
+        }
+    }, [])
+
+    const handleSetTheme = (themeIndex: string) => {
+        const themeToSet = getThemeNameList()[parseInt(themeIndex)]
+        setTheme(themeToSet)
+    }
+    // - end
+
     useEffect(() => {
         window.api.on('loggedOutSuccess', (event) => {
             clearUserList()
@@ -29,6 +47,7 @@ export default function Layout({ children }) {
             navigate({ to: '/' })
             // handle do some funky stateful call for logging in redirect etc
         })
+        window.api.getAppTheme()
     }, [])
 
     useEffect(() => {

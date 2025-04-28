@@ -24,10 +24,14 @@ export interface IElectronAPI {
     updateLobbyStats: any
     handShake: any
     sendDataChannel: any
+    // settings
     setEmulatorPath: any
     getEmulatorPath: any
     setEmulatorDelay: any
     getEmulatorDelay: any
+    setAppTheme: any
+    getAppTheme: any
+    // -
     endMatch: any
     endMatchUI: any
     killEmulator: any
