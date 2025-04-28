@@ -263,7 +263,8 @@ const createWindow = () => {
 
     const getAppTheme = async () => {
         await getConfigData()
-        mainWindow.webContents.send('appTheme', config.app.appTheme)
+        console.log(config.app.appTheme)
+        mainWindow.webContents.send('appTheme', parseInt(config.app.appTheme))
     }
 
     // firebase login

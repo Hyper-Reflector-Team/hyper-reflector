@@ -82,8 +82,8 @@ const pinkTheme = {
     },
 }
 
-const pinkTheme2 = {
-    name: 'Aegis Reflector Dark',
+const hrTheme = {
+    name: 'Hyper Reflector',
     colors: {
         main: {
             bg: 'gray.900',
@@ -166,10 +166,10 @@ const greenTheme = {
     },
 }
 
-let theme = { ...slimeTheme } // Non stateful fallback
+let theme = { ...hrTheme } // Non stateful fallback
 
 const getThemeList = () => {
-    return [slimeTheme, pinkTheme, pinkTheme2, purpleTheme, greenTheme, orangeTheme]
+    return [hrTheme, slimeTheme, pinkTheme, purpleTheme, greenTheme, orangeTheme]
 }
 
 const getThemeNameList = (): string[] => {

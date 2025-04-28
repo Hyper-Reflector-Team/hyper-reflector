@@ -54,10 +54,9 @@ export default function SettingsPage() {
     }
 
     const handleSetTheme = (themeIndex: string) => {
-        console.log('trying to set the current theme data', themeIndex)
+        console.log(themeIndex, currentTheme)
         setCurrentTheme(themeIndex)
         const themeToSet = themes.items[parseInt(themeIndex)].label
-        console.log(themeToSet)
         setTheme(themeToSet)
     }
 
@@ -166,8 +165,11 @@ export default function SettingsPage() {
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Current Path: {currentEmuPath}
                             </Text>
-
+                            <Text textStyle="md" color={theme.colors.main.text}>
+                                Theme
+                            </Text>
                             <SelectRoot
+                                key="theme-select"
                                 color={theme.colors.main.actionSecondary}
                                 collection={themes}
                                 value={[currentTheme]}
@@ -180,7 +182,7 @@ export default function SettingsPage() {
                                 }}
                             >
                                 <SelectTrigger>
-                                    <SelectValueText placeholder="Theme" />
+                                    <SelectValueText placeholder="Select Theme" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {themes.items.map((theme) => (
