@@ -801,8 +801,12 @@ const createWindow = () => {
         const matches = await api
             .getGlobalSet(auth, userId, matchId)
             .catch((err) => console.log(err))
-        console.log('making a set request', matches)
         mainWindow.webContents.send('fillGlobalSet', matches)
+    })
+
+    ipcMain.on('getAllTitles', async (event, { userId }) => {
+        const matches = await api.getAllTitles(auth, userId).catch((err) => console.log(err))
+        mainWindow.webContents.send('fillAllTitles', matches)
     })
 
     ipcMain.on('getUserData', async (event, userId) => {
