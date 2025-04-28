@@ -140,6 +140,8 @@ const customConfig = defineConfig({
 
 export const system = createSystem(defaultConfig, customConfig)
 
+// TODO allow users to change the background color for all themes
+
 const root = createRoot(document.body)
 root.render(
     <ErrorBoundary>

@@ -79,7 +79,7 @@ export default function OfflinePage() {
                 </Button>
             </SideBar>
 
-            <Stack flex="1">
+            <Stack flex="1" maxWidth={'600px'}>
                 {currentTab === 0 && (
                     <Stack>
                         <Heading size="md" color={theme.colors.main.textSubdued}>

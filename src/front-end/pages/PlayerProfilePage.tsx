@@ -201,7 +201,6 @@ export default function PlayerProfilePage() {
     }
 
     useEffect(() => {
-        console.log(matcher.getAllMatches(editedUserName))
         setNameInvalid(true)
     }, [editedUserName])
 
@@ -229,41 +228,53 @@ export default function PlayerProfilePage() {
                     <Joystick />
                     Recent Matches
                 </Button>
-                <Button
-                    disabled={currentTab === 2}
-                    justifyContent="flex-start"
-                    bg={theme.colors.main.secondary}
-                    onClick={() => setCurrentTab(2)}
-                >
-                    <ChartBar />
-                    Statistics
-                </Button>
-                <Button
-                    disabled={currentTab === 3}
-                    justifyContent="flex-start"
-                    bg={theme.colors.main.secondary}
-                    onClick={() => {
-                        resetState()
-                        setCurrentTab(3)
-                    }}
-                >
-                    <Wrench />
-                    User Setting
-                </Button>
+                {userData?.uid === userState.uid ? (
+                    <Button
+                        disabled={currentTab === 2}
+                        justifyContent="flex-start"
+                        bg={theme.colors.main.secondary}
+                        onClick={() => setCurrentTab(2)}
+                    >
+                        <ChartBar />
+                        Statistics
+                    </Button>
+                ) : null}
+                {userData?.uid === userState.uid ? (
+                    <Button
+                        disabled={currentTab === 3}
+                        justifyContent="flex-start"
+                        bg={theme.colors.main.secondary}
+                        onClick={() => {
+                            resetState()
+                            setCurrentTab(3)
+                        }}
+                    >
+                        <Wrench />
+                        User Setting
+                    </Button>
+                ) : null}
             </SideBar>
 
-            <Stack minH="100%" flex={1}>
+            <Stack minH="100%" maxWidth={'600px'} flex={1}>
                 {currentTab === 0 && (
-                    <div>
+                    <Box>
                         <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
                             <Construction />
-                            Under Construction
                         </Box>
-                    </div>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            {JSON.stringify(userData)}
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            {userData?.userName || 'Unknown User'}
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            {userData?.userTitle || 'Unknown User'}
+                        </Text>
+                    </Box>
                 )}
 
                 {currentTab === 1 && (
-                    <div>
+                    <Box>
                         <Stack>
                             <Stack>
                                 <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>
@@ -327,19 +338,19 @@ export default function PlayerProfilePage() {
                                     })}
                             </Stack>
                         </Stack>
-                    </div>
+                    </Box>
                 )}
                 {currentTab === 2 && (
-                    <div>
+                    <Box>
                         <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
                             <Construction />
                             Under Construction
                         </Box>
-                    </div>
+                    </Box>
                 )}
 
                 {currentTab === 3 && (
-                    <div>
+                    <Box>
                         <Editable.Root
                             defaultValue={userData?.userName}
                             maxLength={16}
@@ -438,7 +449,7 @@ export default function PlayerProfilePage() {
                             Profile changes are not visible to others until the next time you log
                             in.
                         </Text>
-                    </div>
+                    </Box>
                 )}
 
                 {isLoading && (

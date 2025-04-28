@@ -137,7 +137,7 @@ export default function SettingsPage() {
                     Danger
                 </Button>
             </SideBar>
-            <Stack flex="1">
+            <Stack flex="1" maxWidth={'600px'}>
                 {currentTab === 0 && (
                     <Box>
                         <Heading flex="0" size="md" color={theme.colors.main.textSubdued}>

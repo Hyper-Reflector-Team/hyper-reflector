@@ -1,3 +1,31 @@
+const hrTheme = {
+    name: 'Hyper Reflector',
+    colors: {
+        main: {
+            bg: 'gray.900',
+            secondary: 'gray.700',
+            tertiary: 'gray.600',
+            panel: 'gray.900',
+            text: 'gray.100',
+            textDark: 'gray.900',
+            textMedium: 'gray.400',
+            textSubdued: 'gray.200',
+            action: 'pink.600',
+            actionLight: 'pink.400',
+            actionDark: 'pink.800',
+            actionSecondary: 'purple.600',
+            actionSecondaryLight: 'purple.400',
+            actionSecondaryDark: 'purple.800',
+            card: 'pink.500',
+            cardLight: 'pink.400',
+            cardDark: 'pink.700',
+            warning: 'red.700',
+            caution: 'yellow.600',
+            success: 'green.500',
+        },
+    },
+}
+
 const slimeTheme = {
     name: 'Slime',
     colors: {
@@ -61,34 +89,6 @@ const pinkTheme = {
             bg: 'pink.900',
             secondary: 'pink.700',
             tertiary: 'pink.600',
-            panel: 'gray.900',
-            text: 'gray.100',
-            textDark: 'gray.900',
-            textMedium: 'gray.400',
-            textSubdued: 'gray.200',
-            action: 'pink.600',
-            actionLight: 'pink.400',
-            actionDark: 'pink.800',
-            actionSecondary: 'purple.600',
-            actionSecondaryLight: 'purple.400',
-            actionSecondaryDark: 'purple.800',
-            card: 'pink.500',
-            cardLight: 'pink.400',
-            cardDark: 'pink.700',
-            warning: 'red.700',
-            caution: 'yellow.600',
-            success: 'green.500',
-        },
-    },
-}
-
-const hrTheme = {
-    name: 'Hyper Reflector',
-    colors: {
-        main: {
-            bg: 'gray.900',
-            secondary: 'gray.700',
-            tertiary: 'gray.600',
             panel: 'gray.900',
             text: 'gray.100',
             textDark: 'gray.900',

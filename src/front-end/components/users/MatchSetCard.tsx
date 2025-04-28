@@ -67,7 +67,7 @@ function MatchSetCard({
     }
 
     return (
-        <Box key={`player-match-${index}`} width="80%">
+        <Box key={`player-match-${index}`}>
             {isLoading && <Skeleton height="230px" />}
             {!isLoading && (
                 <Card.Root
@@ -76,7 +76,6 @@ function MatchSetCard({
                     bg={theme.colors.main.tertiary}
                     _hover={{ bg: theme.colors.main.secondary, cursor: 'pointer' }}
                     onClick={() => {
-                        console.log('open')
                         if (recentMatches[index] === match) {
                             console.log(match)
                             if (match.sessionId) {
