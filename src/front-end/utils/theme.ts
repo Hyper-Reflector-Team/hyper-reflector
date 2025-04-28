@@ -166,10 +166,75 @@ const greenTheme = {
     },
 }
 
+const greenTheme2 = {
+    name: 'Yagyu',
+    colors: {
+        main: {
+            bg: 'gray.900',
+            secondary: 'green.700',
+            tertiary: 'green.600',
+            panel: 'gray.900',
+            text: 'gray.100',
+            textDark: 'gray.900',
+            textMedium: 'gray.400',
+            textSubdued: 'gray.200',
+            action: 'green.600',
+            actionLight: 'green.400',
+            actionDark: 'green.800',
+            actionSecondary: 'orange.600',
+            actionSecondaryLight: 'orange.200',
+            actionSecondaryDark: 'orange.800',
+            card: 'green.500',
+            cardLight: 'green.400',
+            cardDark: 'green.700',
+            warning: 'red.700',
+            caution: 'yellow.600',
+            success: 'green.500',
+        },
+    },
+}
+
+const evilTheme = {
+    name: 'Deadly',
+    colors: {
+        main: {
+            bg: 'gray.900',
+            secondary: 'gray.700',
+            tertiary: 'gray.600',
+            panel: 'gray.900',
+            text: 'gray.100',
+            textDark: 'gray.900',
+            textMedium: 'gray.400',
+            textSubdued: 'gray.200',
+            action: 'red.600',
+            actionLight: 'red.400',
+            actionDark: 'red.800',
+            actionSecondary: 'red.500',
+            actionSecondaryLight: 'red.300',
+            actionSecondaryDark: 'gray.800',
+            card: 'red.500',
+            cardLight: 'red.400',
+            cardDark: 'red.700',
+            warning: 'red.700',
+            caution: 'yellow.600',
+            success: 'green.500',
+        },
+    },
+}
+
 let theme = { ...hrTheme } // Non stateful fallback
 
 const getThemeList = () => {
-    return [hrTheme, slimeTheme, pinkTheme, purpleTheme, greenTheme, orangeTheme]
+    return [
+        hrTheme,
+        slimeTheme,
+        pinkTheme,
+        purpleTheme,
+        greenTheme,
+        greenTheme2,
+        orangeTheme,
+        evilTheme,
+    ]
 }
 
 const getThemeNameList = (): string[] => {
