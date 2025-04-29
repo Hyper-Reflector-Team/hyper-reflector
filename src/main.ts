@@ -719,10 +719,12 @@ const createWindow = () => {
         mainWindow.webContents.send('endMatchUI', userUID)
     })
 
-    ipcMain.on('start-solo-mode', (event) => {
+    ipcMain.on('startTrainingMode', (event) => {
         startSoloMode({
             config,
             callBack: (isOnOpen) => {
+                console.log('emulator force closed')
+                mainWindow.webContents.send('endMatch', userUID)
                 if (isOnOpen) {
                     mainWindow.webContents.send('sendAlert', {
                         type: 'error',

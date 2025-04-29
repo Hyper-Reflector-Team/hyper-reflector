@@ -20,10 +20,11 @@ import {
 import { Field } from '../components/chakra/ui/field'
 import SideBar from '../components/general/SideBar'
 import { BookUser, Construction, FlaskConical, PaintBucket, Router, UserRound } from 'lucide-react'
-import { useLayoutStore } from '../state/store'
+import { useLayoutStore, useLoginStore } from '../state/store'
 
 export default function OfflinePage() {
     const theme = useLayoutStore((state) => state.appTheme)
+    const updateUserState = useLoginStore((state) => state.updateUserState)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [player, setPlayer] = useState('')
     const [opponentPort, setOpponentPort] = useState('')
@@ -87,7 +88,10 @@ export default function OfflinePage() {
                         </Heading>
                         <Button
                             bg={theme.colors.main.actionSecondary}
-                            onClick={() => window.api.startSoloTraining()}
+                            onClick={() => {
+                                window.api.startSoloTraining()
+                                updateUserState({ isFighting: true })
+                            }}
                         >
                             Start Training
                         </Button>
