@@ -95,6 +95,7 @@ export default function UserCard({ user }) {
         >
             <Popover.Trigger asChild>
                 <Box
+                    minW="260px"
                     minH="60px"
                     maxH="60px"
                     background={theme.colors.main.card}
@@ -132,7 +133,9 @@ export default function UserCard({ user }) {
                             <TitleBadge title={user.userTitle || null} />
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
-                        <RankDisplay elo={user.elo} />
+                        <Box marginLeft={'12px'}>
+                            <RankDisplay elo={user.elo} />
+                        </Box>
                         <Box>{/* eventually we will display ping here */}</Box>
                     </Flex>
                 </Box>
