@@ -109,7 +109,7 @@ function MatchSetCard({
             <Drawer.Root
                 open={detailsOpen}
                 onOpenChange={(e) => setDetailsOpen(e.open)}
-                size={'lg'}
+                size={'xl'}
             >
                 {isLoadingSet && (
                     <Box
@@ -135,7 +135,7 @@ function MatchSetCard({
                                 alignSelf="flex-start"
                                 position="absolute"
                             >
-                                <CloseButton bg={theme.colors.main.bg} size="sm" />
+                                <CloseButton bg={theme.colors.main.panel} size="sm" />
                             </Drawer.CloseTrigger>
                             <Drawer.Header>
                                 <Drawer.Title color={theme.colors.main.text}>
