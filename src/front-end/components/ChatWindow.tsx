@@ -9,8 +9,6 @@ import {
     englishRecommendedTransformers,
 } from 'obscenity'
 
-import soundBase64Data from './sound/challenge.wav'
-
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),
     ...englishRecommendedTransformers,
@@ -20,7 +18,6 @@ export default function ChatWindow() {
     const messageState = useMessageStore((state) => state.messageState)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const pushMessage = useMessageStore((state) => state.pushMessage)
-    const userState = useLoginStore((state) => state.userState)
 
     const chatEndRef = useRef<null | HTMLDivElement>(null)
 
@@ -29,10 +26,6 @@ export default function ChatWindow() {
     }
 
     const handleRoomMessage = (messageObject) => {
-        if (messageObject.type === 'challenge' && !userState.isFighting) {
-            new Audio(soundBase64Data).play() // this line for renderer process only
-        }
-
         // censor words befor sending to BE
         const censor = new TextCensor()
         const input = messageObject.message

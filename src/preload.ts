@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
     sendAlert: (alertObject: { type: string; message: { title: string; description: string } }) =>
         ipcRenderer.send('sendMessage', alertObject),
     sendRoomMessage: (text: string) => ipcRenderer.send('sendRoomMessage', text),
+    getChallengeQueue: (text: string) => ipcRenderer.send('getChallengeQueue', text),
     addUserToRoom: (user: any) => ipcRenderer.send('addUserToRoom', user),
     removeUserFromRoom: (user: any) => ipcRenderer.send('removeUserFromRoom', user),
     addUserGroupToRoom: (users: [any]) => ipcRenderer.send('addUserGroupToRoom', users),

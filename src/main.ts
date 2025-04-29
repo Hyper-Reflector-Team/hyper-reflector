@@ -724,6 +724,7 @@ const createWindow = () => {
             config,
             callBack: (isOnOpen) => {
                 console.log('emulator force closed')
+                mainWindow.webContents.send('endMatchUI', userUID)
                 mainWindow.webContents.send('endMatch', userUID)
                 if (isOnOpen) {
                     mainWindow.webContents.send('sendAlert', {
@@ -767,6 +768,10 @@ const createWindow = () => {
     // this is used by websockets to populate our chat room with other peoples messages
     ipcMain.on('sendRoomMessage', async (event, messageObject) => {
         mainWindow.webContents.send('sendRoomMessage', messageObject)
+    })
+
+    ipcMain.on('getChallengeQueue', async (event, messageObject) => {
+        mainWindow.webContents.send('getChallengeQueue', messageObject)
     })
 
     // add a user to the current chat room
@@ -838,14 +843,16 @@ const createWindow = () => {
 
     ipcMain.on('receivedCall', (event, data) => {
         mainWindow.webContents.send('receivedCall', data)
-        mainWindow.webContents.send('sendRoomMessage', {
+        const challengeObject = {
             sender: data.callerId,
             message: 'got a challenge',
             type: 'challenge',
             declined: false,
             accepted: false,
             id: Date.now(), // TODO this is not a long lasting solution
-        })
+        }
+        mainWindow.webContents.send('sendRoomMessage', challengeObject)
+        mainWindow.webContents.send('getChallengeQueue', challengeObject)
     })
 
     // and load the index.html of the app.

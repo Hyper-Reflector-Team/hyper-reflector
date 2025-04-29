@@ -83,7 +83,7 @@ export default function LobbyPage() {
             })
             setSelectedLobby(selectedLobby)
             // set the userState lobby so that messages send to the current lobby via websockets
-            updateUserState({ currentLobbyId: selectedLobby.name })
+            updateUserState({ ...userState, currentLobbyId: selectedLobby.name })
             clearMessageState()
         }
     }, [currentLobbyState])

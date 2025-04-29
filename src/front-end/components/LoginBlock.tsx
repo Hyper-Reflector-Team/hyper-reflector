@@ -133,7 +133,7 @@ export default function LoginBlock() {
                                 <Text textStyle="sm" color={theme.colors.main.textMedium}>
                                     <Link to="/create" className="[&.active]:font-bold">
                                         <Flex gap="1">
-                                            <p> Create New Account </p>
+                                            <div> Create New Account </div>
                                             <Hammer size={18} />
                                         </Flex>
                                     </Link>

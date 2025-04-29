@@ -15,6 +15,7 @@ export interface IElectronAPI {
     sendMessage: any
     sendAlert: any
     sendRoomMessage: any
+    getChallengeQueue: any
     addUserToRoom: any
     removeUserFromRoom: any
     addUserGroupToRoom: any

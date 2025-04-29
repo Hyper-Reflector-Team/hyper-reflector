@@ -7,6 +7,8 @@ import { Settings } from 'lucide-react'
 import { getThemeNameList } from '../utils/theme'
 import bgImage from './bgImage.svg'
 
+import soundBase64Data from '../components/sound/challenge.wav'
+
 export default function Layout({ children }) {
     const theme = useLayoutStore((state) => state.appTheme)
     const setTheme = useLayoutStore((state) => state.setTheme)
@@ -74,6 +76,38 @@ export default function Layout({ children }) {
 
         return () => {
             window.api.removeListener('sendAlert', handleAlertFromMain)
+        }
+    }, [])
+
+    useEffect(() => {
+        console.log('user state change', user)
+    }, [user])
+
+    // update chats
+    const handleChallengeQueue = (messageObject) => {
+        const currentUser = useLoginStore.getState().userState
+        console.log('test message', messageObject, currentUser.isFighting)
+        if (messageObject.type === 'challenge' && !currentUser.isFighting) {
+            // TODO: adjust this to feedback
+            // if we are in the lobby tab, play the sound, if not push a notification etc.
+            new Audio(soundBase64Data).play() // this line for renderer process only
+
+            // TODO need to have another way of handling messages as they come in to the system outside of tab
+            // toaster.create({
+            //     type: 'warning',
+            //     title: 'Received a challenge!',
+            //     // description: 'from some user', fix this later
+            // })
+        }
+    }
+
+    // get message from websockets
+    useEffect(() => {
+        window.api.removeAllListeners('getChallengeQueue', handleChallengeQueue)
+        window.api.on('getChallengeQueue', handleChallengeQueue)
+
+        return () => {
+            window.api.removeListener('getChallengeQueue', handleChallengeQueue)
         }
     }, [])
 

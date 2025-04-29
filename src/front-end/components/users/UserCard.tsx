@@ -23,6 +23,7 @@ import TitleBadge from './TitleBadge'
 
 export default function UserCard({ user }) {
     const theme = useLayoutStore((state) => state.appTheme)
+    const [userPopOpen, setUserPopOpen] = useState(false)
     const [isInMatch, setIsInMatch] = useState(false)
     const [isUserChallenging, setIsUserChallenging] = useState(false)
     const userState = useLoginStore((state) => state.userState)
@@ -43,7 +44,7 @@ export default function UserCard({ user }) {
 
     //TODO: modify this to not use a time out maybe?
     const handleEndMatch = () => {
-        updateUserState({ isFighting: false })
+        updateUserState({ ...userState, isFighting: false })
         setTimeout(() => {
             setIsInMatch(false)
             clearCallData()
@@ -87,7 +88,11 @@ export default function UserCard({ user }) {
     }
 
     return (
-        <Popover.Root positioning={{ sameWidth: true, offset: { crossAxis: 0, mainAxis: -4 } }}>
+        <Popover.Root
+            open={userPopOpen}
+            onOpenChange={(e) => setUserPopOpen(e.open)}
+            positioning={{ sameWidth: true, offset: { crossAxis: 0, mainAxis: -4 } }}
+        >
             <Popover.Trigger asChild>
                 <Box
                     minH="60px"
@@ -143,6 +148,7 @@ export default function UserCard({ user }) {
                                         bg={theme.colors.main.action}
                                         disabled={isInMatch}
                                         onClick={() => {
+                                            setUserPopOpen(false)
                                             setIsInMatch(true)
                                             window.api.callUser({
                                                 callerId: userState.uid,
@@ -156,6 +162,7 @@ export default function UserCard({ user }) {
                                 <Button
                                     bg={theme.colors.main.actionSecondary}
                                     onClick={async () => {
+                                        setUserPopOpen(false)
                                         await setLayoutTab('profile')
                                         navigate({ to: `/profile/${user.uid || ''}` })
                                     }}

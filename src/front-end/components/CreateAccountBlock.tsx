@@ -67,7 +67,7 @@ export default function CreateAccountBlock() {
                     <Link to="/" className="[&.active]:font-bold">
                         <Flex gap="1">
                             <ArrowLeft size={18} />
-                            <p>Login</p>
+                            <div>Login</div>
                         </Flex>
                     </Link>
                 </Text>

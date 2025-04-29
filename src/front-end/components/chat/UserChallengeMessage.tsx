@@ -11,9 +11,11 @@ export default function UserChallengeMessage({ message }) {
     const updateMessage = useMessageStore((state) => state.updateMessage)
     const userList = useMessageStore((state) => state.userList)
     const updateUserState = useLoginStore((state) => state.updateUserState)
+    const userState = useLoginStore((state) => state.userState)
 
     var timestamp = new Date()
     const caller = callData.find((call) => call.callerId === message.sender)
+    //TODO: fix bug where decline while fighting has some issues closing on the other users end
     return (
         <Flex
             key={timestamp + message.message}
@@ -60,7 +62,7 @@ export default function UserChallengeMessage({ message }) {
                                     }
                                     updateMessage(updatedMessage)
                                     window.api.answerCall(caller)
-                                    updateUserState({ isFighting: true })
+                                    updateUserState({ ...userState, isFighting: true })
                                 }}
                             >
                                 Accept
@@ -80,7 +82,7 @@ export default function UserChallengeMessage({ message }) {
                                         declined: true,
                                     }
                                     updateMessage(updatedMessage)
-                                    updateUserState({ isFighting: true })
+                                    updateUserState({ ...userState, isFighting: false })
                                 }}
                             >
                                 Decline
