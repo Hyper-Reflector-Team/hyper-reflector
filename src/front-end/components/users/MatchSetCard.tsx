@@ -119,6 +119,19 @@ function MatchSetCard({
                 onOpenChange={(e) => setDetailsOpen(e.open)}
                 size={'lg'}
             >
+                {isLoadingSet && (
+                    <Box
+                        pos="absolute"
+                        zIndex={'10'}
+                        inset="0"
+                        bg={theme.colors.main.bg}
+                        opacity="50%"
+                    >
+                        <Center h="full">
+                            <Spinner color={theme.colors.main.action} />
+                        </Center>
+                    </Box>
+                )}
                 <Portal>
                     <Drawer.Backdrop />
                     <Drawer.Positioner>
@@ -222,13 +235,6 @@ function MatchSetCard({
                     </Drawer.Positioner>
                 </Portal>
             </Drawer.Root>
-            {isLoadingSet && (
-                <Box pos="absolute" inset="0" bg={theme.colors.main.bg} opacity="50%">
-                    <Center h="full">
-                        <Spinner color={theme.colors.main.action} />
-                    </Center>
-                </Box>
-            )}
         </Box>
     )
 }
