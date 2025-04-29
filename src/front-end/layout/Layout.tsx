@@ -197,7 +197,7 @@ export default function Layout({ children }) {
                     https://discord.gg/T77dSXG7Re
                 </Text>
                 <Text textStyle="xs" color={theme.colors.main.action}>
-                    Hyper Reflector version 0.2.3a 2025
+                    Hyper Reflector version 0.3.0a 2025
                 </Text>
             </Box>
         </Stack>
