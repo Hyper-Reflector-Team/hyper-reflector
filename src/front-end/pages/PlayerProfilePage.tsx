@@ -162,7 +162,8 @@ export default function PlayerProfilePage() {
 
     useEffect(() => {
         if (!titleList?.items) return
-        const newTitle = titleList.items[selectedTitle].data
+        const newTitle = titleList.items[selectedTitle]?.data
+        if (!newTitle) return
         updateUserState({ userTitle: newTitle })
         window.api.changeUserData({ userTitle: newTitle })
     }, [selectedTitle])
@@ -192,7 +193,6 @@ export default function PlayerProfilePage() {
         if (globalSet) {
             setSelectedMatchDetails(globalSet)
         } else {
-            console.log('test')
             toaster.error({
                 title: 'Failed to load set!',
             })
@@ -262,31 +262,30 @@ export default function PlayerProfilePage() {
                     <Joystick />
                     Recent Matches
                 </Button>
-                {userData?.uid === userState.uid ? (
-                    <Button
-                        disabled={currentTab === 2}
-                        justifyContent="flex-start"
-                        bg={theme.colors.main.secondary}
-                        onClick={() => setCurrentTab(2)}
-                    >
-                        <ChartBar />
-                        Statistics
-                    </Button>
-                ) : null}
-                {userData?.uid === userState.uid ? (
-                    <Button
-                        disabled={currentTab === 3}
-                        justifyContent="flex-start"
-                        bg={theme.colors.main.secondary}
-                        onClick={() => {
-                            resetState()
-                            setCurrentTab(3)
-                        }}
-                    >
-                        <Wrench />
-                        User Setting
-                    </Button>
-                ) : null}
+                <Button
+                    disabled={currentTab === 2 || userData?.uid !== userState.uid}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => setCurrentTab(2)}
+                >
+                    <ChartBar />
+                    Statistics
+                </Button>
+                <Button
+                    data-state="open"
+                    animationDuration="slow"
+                    animationStyle={{ _open: 'slide-fade-in', _closed: 'slide-fade-out' }}
+                    disabled={currentTab === 3 || userData?.uid !== userState.uid}
+                    justifyContent="flex-start"
+                    bg={theme.colors.main.secondary}
+                    onClick={() => {
+                        resetState()
+                        setCurrentTab(3)
+                    }}
+                >
+                    <Wrench />
+                    User Setting
+                </Button>
             </SideBar>
 
             <Stack minH="100%" maxWidth={'600px'} flex={1}>

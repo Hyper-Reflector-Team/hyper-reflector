@@ -78,7 +78,13 @@ export default function Layout({ children }) {
     }, [])
 
     return (
-        <Stack minH="100vh" height="100vh" bg={theme.colors.main.bg} bgImage={`url(${bgImage})`}>
+        <Stack
+            minH="100vh"
+            height="100vh"
+            bg={theme.colors.main.bg}
+            bgImage={`url(${bgImage})`}
+            bgBlendMode={'color-dodge'}
+        >
             <Box
                 h="60px"
                 display="flex"
