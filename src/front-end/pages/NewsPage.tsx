@@ -4,9 +4,18 @@ import { useLayoutStore } from '../state/store'
 
 const blogsArray = [
     {
+        title: 'Update Version 0.3.0a',
+        date: '4/29/2025',
+        content: `
+        qweqwe
+         'This is the first major update for hyper reflector, unfortunately not touching on this news page =().',
+            "test"
+        `,
+    },
+    {
         title: 'Update Version 0.2.2a',
         date: '3/25/2025',
-        content: 'hot fixes lua sorry + Small bug fixes from 0.2.0 -- edit: more hotixes...',
+        content: 'hot fixes lua sorry + Small bug fixes from 0.2.0 -- edit: more hotfixes...',
     },
     {
         title: 'Update Version 0.1.9a',

@@ -5,6 +5,7 @@ import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Settings } from 'lucide-react'
 import { getThemeNameList } from '../utils/theme'
+import bgImage from './bgImage.svg'
 
 export default function Layout({ children }) {
     const theme = useLayoutStore((state) => state.appTheme)
@@ -77,7 +78,7 @@ export default function Layout({ children }) {
     }, [])
 
     return (
-        <Stack minH="100vh" height="100vh">
+        <Stack minH="100vh" height="100vh" bg={theme.colors.main.bg} bgImage={`url(${bgImage})`}>
             <Box
                 h="60px"
                 display="flex"
