@@ -193,9 +193,9 @@ export default function PlayerProfilePage() {
         if (globalSet) {
             setSelectedMatchDetails(globalSet)
         } else {
-            toaster.error({
-                title: 'Failed to load set!',
-            })
+            // toaster.error({
+            //     title: 'Failed to load set!',
+            // })
             setSelectedMatchDetails({ matches: [] })
         }
     }

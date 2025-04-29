@@ -808,6 +808,14 @@ const createWindow = () => {
         const matches = await api
             .getGlobalSet(auth, userId, matchId)
             .catch((err) => console.log(err))
+        if (!matches) {
+            mainWindow.webContents.send('sendAlert', {
+                type: 'error',
+                message: {
+                    title: 'Failed to load Match Set.',
+                },
+            })
+        }
         mainWindow.webContents.send('fillGlobalSet', matches)
     })
 
