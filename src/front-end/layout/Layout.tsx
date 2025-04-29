@@ -234,9 +234,9 @@ export default function Layout({ children }) {
                 px="4"
                 flexShrink={0}
             >
-                <Text textStyle="xs" color={theme.colors.main.action}>
+                {/* <Text textStyle="xs" color={theme.colors.main.action}>
                     https://discord.gg/T77dSXG7Re
-                </Text>
+                </Text> */}
                 <Text textStyle="xs" color={theme.colors.main.action}>
                     Hyper Reflector version 0.3.0a 2025
                 </Text>
