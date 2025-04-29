@@ -7,21 +7,17 @@ import {
     Text,
     Heading,
     Box,
-    Flex,
     Center,
     Spinner,
-    Card,
     Pagination,
     Skeleton,
     Editable,
-    Select,
     Button,
     createListCollection,
 } from '@chakra-ui/react'
 import {
     SelectContent,
     SelectItem,
-    SelectLabel,
     SelectRoot,
     SelectTrigger,
     SelectValueText,
@@ -39,6 +35,7 @@ import {
     X,
 } from 'lucide-react'
 import { Field } from '../components/chakra/ui/field'
+import { toaster } from '../components/chakra/ui/toaster'
 import { useLoginStore, useLayoutStore } from '../state/store'
 
 import {
@@ -195,6 +192,10 @@ export default function PlayerProfilePage() {
         if (globalSet) {
             setSelectedMatchDetails(globalSet)
         } else {
+            console.log('test')
+            toaster.error({
+                title: 'Failed to load set!',
+            })
             setSelectedMatchDetails({ matches: [] })
         }
     }

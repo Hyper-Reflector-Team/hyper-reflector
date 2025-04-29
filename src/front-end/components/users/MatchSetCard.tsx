@@ -1,25 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import {
-    IconButton,
-    ButtonGroup,
     Stack,
     Text,
-    Heading,
     Box,
     Flex,
     Center,
     Spinner,
     Card,
-    Pagination,
     Skeleton,
-    Editable,
-    Select,
-    Button,
     Portal,
     Collapsible,
+    Drawer,
 } from '@chakra-ui/react'
-import { Drawer } from '@chakra-ui/react'
 import { CloseButton } from '../chakra/ui/close-button'
 import { useLayoutStore } from '../../state/store'
 
@@ -77,10 +70,9 @@ function MatchSetCard({
                     _hover={{ bg: theme.colors.main.secondary, cursor: 'pointer' }}
                     onClick={() => {
                         if (recentMatches[index] === match) {
-                            console.log(match)
                             if (match.sessionId) {
                                 window.api.getGlobalSet({ userId, matchId: match.sessionId })
-                                setIsLoadingSet(true)
+                                return setIsLoadingSet(true)
                             }
                         }
                     }}
@@ -136,6 +128,15 @@ function MatchSetCard({
                     <Drawer.Backdrop />
                     <Drawer.Positioner>
                         <Drawer.Content bg={theme.colors.main.panel}>
+                            <Drawer.CloseTrigger
+                                color={theme.colors.main.actionSecondary}
+                                asChild
+                                width="20px"
+                                alignSelf="flex-start"
+                                position="absolute"
+                            >
+                                <CloseButton bg={theme.colors.main.bg} size="sm" />
+                            </Drawer.CloseTrigger>
                             <Drawer.Header>
                                 <Drawer.Title color={theme.colors.main.text}>
                                     <Box display={'flex'}>
@@ -157,7 +158,7 @@ function MatchSetCard({
                                     </Box>
                                 </Drawer.Title>
                             </Drawer.Header>
-                            <Drawer.Body>
+                            <Drawer.Body scrollbarWidth={'thin'} overflowY="scroll">
                                 <Stack>
                                     {detailsOpen &&
                                         selectedMatchDetails?.matches?.length > 0 &&
@@ -172,6 +173,7 @@ function MatchSetCard({
                                                             bg={theme.colors.main.secondary}
                                                             padding={'8px'}
                                                             alignItems={'center'}
+                                                            cursor={'pointer'}
                                                         >
                                                             <Text
                                                                 flex="1"
