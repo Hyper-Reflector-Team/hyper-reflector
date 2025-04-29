@@ -25,6 +25,7 @@ import { useLayoutStore, useLoginStore } from '../state/store'
 export default function OfflinePage() {
     const theme = useLayoutStore((state) => state.appTheme)
     const updateUserState = useLoginStore((state) => state.updateUserState)
+    const userState = useLoginStore((state) => state.userState)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [player, setPlayer] = useState('')
     const [opponentPort, setOpponentPort] = useState('')
@@ -89,8 +90,10 @@ export default function OfflinePage() {
                         <Button
                             bg={theme.colors.main.actionSecondary}
                             onClick={() => {
+                                // TODO eventually adjust this for effecting the match making queue, challenge sound etc.
+                                updateUserState({ ...userState, isFighting: true })
+                                // console.log('updating fighting state')
                                 window.api.startSoloTraining()
-                                updateUserState({ isFighting: true })
                             }}
                         >
                             Start Training

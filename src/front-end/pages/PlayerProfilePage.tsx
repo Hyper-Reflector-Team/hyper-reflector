@@ -164,7 +164,7 @@ export default function PlayerProfilePage() {
         if (!titleList?.items) return
         const newTitle = titleList.items[selectedTitle]?.data
         if (!newTitle) return
-        updateUserState({ userTitle: newTitle })
+        updateUserState({ ...userState, userTitle: newTitle })
         window.api.changeUserData({ userTitle: newTitle })
     }, [selectedTitle])
 
@@ -414,13 +414,13 @@ export default function PlayerProfilePage() {
                                 const matches = matcher.getAllMatches(nameMatch)
                                 const censoredMessage = censor.applyTo(nameMatch, matches)
                                 setEditedUserName(censoredMessage)
-                                updateUserState({ name: censoredMessage })
+                                updateUserState({ ...userState, name: censoredMessage })
                                 window.api.changeUserData({ userName: censoredMessage })
                             }}
                             onValueChange={(e) => setEditedUserName(e.value)}
                             onValueRevert={(e) => {
                                 setEditedUserName(e.value)
-                                updateUserState({ name: e.value })
+                                updateUserState({ ...userState, name: e.value })
                             }}
                             value={editedUserName}
                             invalid={editedUserName && editedUserName.length <= 1 && nameInvalid}
