@@ -145,21 +145,20 @@ export default function Layout({ children }) {
                                     Sign In
                                 </Tabs.Trigger>
                             )}
-
-                            <Tabs.Trigger
-                                width={'100px'}
-                                _selected={{ bgColor: theme.colors.main.action }}
-                                color={theme.colors.main.text}
-                                value="news"
-                                onClick={() => {
-                                    navigate({ to: '/news' })
-                                    setLayoutTab('news')
-                                }}
-                            >
-                                Home
-                            </Tabs.Trigger>
                             {isLoggedIn && (
                                 <>
+                                    <Tabs.Trigger
+                                        width={'100px'}
+                                        _selected={{ bgColor: theme.colors.main.action }}
+                                        color={theme.colors.main.text}
+                                        value="news"
+                                        onClick={() => {
+                                            navigate({ to: '/news' })
+                                            setLayoutTab('news')
+                                        }}
+                                    >
+                                        Home
+                                    </Tabs.Trigger>
                                     <Tabs.Trigger
                                         width={'100px'}
                                         _selected={{ bgColor: theme.colors.main.action }}

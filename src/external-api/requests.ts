@@ -1,8 +1,8 @@
 import keys from '../private/keys'
 import { firebaseConfig } from '../private/firebase'
 
-const SERVER = keys.COTURN_IP
-// const SERVER = '127.0.0.1' // -- used for testing the backend locally
+// const SERVER = keys.COTURN_IP
+const SERVER = '127.0.0.1' // -- used for testing the backend locally
 
 function checkCurrentAuthState(auth) {
     if (auth.currentUser != null) {
@@ -330,8 +330,7 @@ async function getGlobalSet(auth, userId, matchId = null) {
     }
 }
 
-async function getGLobalStats(auth, userId) {
-    console.log('trying to fetch global stats')
+async function getGlobalStats(auth, userId) {
     if (checkCurrentAuthState(auth)) {
         const idToken = await auth.currentUser.getIdToken().then((res) => res)
         try {
@@ -437,5 +436,5 @@ export default {
     uploadMatchData,
     getUserMatches,
     getGlobalSet,
-    getGLobalStats,
+    getGlobalStats,
 }

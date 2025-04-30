@@ -825,8 +825,8 @@ const createWindow = () => {
         mainWindow.webContents.send('getUserData', { ...userData, ...playerStats })
     })
 
-    ipcMain.on('getGlobalStats', async (event, userId) => {
-        const globalStats = await api.getGLobalStats(auth, userId).catch((err) => console.log(err))
+    ipcMain.on('getGlobalStats', async (event, { userId }) => {
+        const globalStats = await api.getGlobalStats(auth, userId).catch((err) => console.log(err))
         console.log('global stats', globalStats)
         mainWindow.webContents.send('fillGlobalStats', globalStats)
     })
