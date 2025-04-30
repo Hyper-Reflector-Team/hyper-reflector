@@ -10,8 +10,7 @@ const blogsArray = [
         title: 'Update Version 0.3.0a',
         date: '4/30/2025',
         content: `
-        qweqwe
-         'This is the first major update for hyper reflector!
+         This is the first major update for hyper reflector!
          In addition to bug fixes, performance improvements: This update adds player flair, app themes, private and public lobby creation, matches are now saved as sets which can be browsed for statistics (coming soon).
          Additionally, global and personal stat tracking is here!, characters played, matches, win rates, check your profile after a few matches! - Full notes on github and discord.
         `,
