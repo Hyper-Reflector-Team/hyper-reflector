@@ -86,16 +86,6 @@ export default function NewsPage() {
 
     const getPercent = (value: number) => chart.getValuePercent('value', value).toFixed(2)
 
-    // const getWinRate = (): number => {
-    //     console.log(userData)
-    //     if (userData?.playerStatSet?.totalWins > 0) {
-    //         return (
-    //             (userData?.playerStatSet?.totalWins / userData?.playerStatSet?.totalGames) *
-    //             100
-    //         ).toFixed(2)
-    //     } else return 0
-    // }
-
     const GeneratedCharacterDonut = ({ characterName }) => {
         if (!globalStats.globalCharacterChoice) return null
         const character = globalStats.globalCharacterChoice[characterName]
