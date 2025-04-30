@@ -15,6 +15,8 @@ import {
 } from '@chakra-ui/react'
 import { CloseButton } from '../chakra/ui/close-button'
 import { useLayoutStore } from '../../state/store'
+import { parseMatchData } from './utils'
+import { Construction } from 'lucide-react'
 
 function MatchSetCard({
     recentMatches,
@@ -28,6 +30,7 @@ function MatchSetCard({
     const { userId } = useParams({ strict: false })
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [isLoadingSet, setIsLoadingSet] = useState(false)
+    const [parsedMatchData, setParsedMatchData] = useState(undefined)
 
     useEffect(() => {
         if (!selectedMatchDetails?.matches.length) {
@@ -42,6 +45,11 @@ function MatchSetCard({
             setDetailsOpen(true)
         }
     }, [selectedMatchDetails])
+
+    const getParsedData = (raw: string) => {
+        const parsedData = parseMatchData(raw)
+        setParsedMatchData(parsedData)
+    }
 
     const VersusCount = () => {
         return (
@@ -163,6 +171,8 @@ function MatchSetCard({
                                     {detailsOpen &&
                                         selectedMatchDetails?.matches?.length > 0 &&
                                         selectedMatchDetails.matches.map((match, index) => {
+                                            const parsedData = parseMatchData(match?.matchData?.raw)
+                                            console.log(parsedMatchData)
                                             return (
                                                 <Collapsible.Root>
                                                     <Collapsible.Trigger width={'100%'}>
@@ -223,9 +233,89 @@ function MatchSetCard({
                                                         </Box>
                                                     </Collapsible.Trigger>
                                                     <Collapsible.Content>
-                                                        <Box padding="4">
-                                                            {JSON.stringify(match.matchData)}
+                                                        <Box
+                                                            color={
+                                                                theme.colors.main.actionSecondary
+                                                            }
+                                                            display="flex"
+                                                            gap="12px"
+                                                            padding={'12px'}
+                                                        >
+                                                            <Construction />
+                                                            Under Construction
+                                                            <Text
+                                                                flex="1"
+                                                                textStyle="xs"
+                                                                padding="8px"
+                                                                color={
+                                                                    theme.colors.main.textSubdued
+                                                                }
+                                                            >
+                                                                The data here may be incomplete and
+                                                                or highly innaccurate, Thank you for
+                                                                understanding.
+                                                            </Text>
                                                         </Box>
+                                                        {parsedData ? (
+                                                            <Box padding="4">
+                                                                <Text
+                                                                    flex="1"
+                                                                    textStyle="md"
+                                                                    padding="8px"
+                                                                    color={
+                                                                        theme.colors.main
+                                                                            .textSubdued
+                                                                    }
+                                                                >
+                                                                    P1 Total Meter Gained:{' '}
+                                                                    {(parsedData[
+                                                                        'p1-total-meter-gained'
+                                                                    ] &&
+                                                                        parsedData[
+                                                                            'p1-total-meter-gained'
+                                                                        ][
+                                                                            parsedData[
+                                                                                'p1-total-meter-gained'
+                                                                            ]?.length - 1
+                                                                        ]) ||
+                                                                        0}
+                                                                </Text>
+                                                                <Text
+                                                                    flex="1"
+                                                                    textStyle="md"
+                                                                    padding="8px"
+                                                                    color={
+                                                                        theme.colors.main
+                                                                            .textSubdued
+                                                                    }
+                                                                >
+                                                                    P2 Total Meter Gained:{' '}
+                                                                    {(parsedData[
+                                                                        'p2-total-meter-gained'
+                                                                    ] &&
+                                                                        parsedData[
+                                                                            'p2-total-meter-gained'
+                                                                        ][
+                                                                            parsedData[
+                                                                                'p2-total-meter-gained'
+                                                                            ]?.length - 1
+                                                                        ]) ||
+                                                                        0}
+                                                                </Text>
+                                                                <Text
+                                                                    flex="1"
+                                                                    textStyle="xs"
+                                                                    padding="8px"
+                                                                    color={
+                                                                        theme.colors.main
+                                                                            .textSubdued
+                                                                    }
+                                                                >
+                                                                    RAW DATA:{' '}
+                                                                    {JSON.stringify(parsedData)}
+                                                                </Text>
+                                                            </Box>
+                                                        ) : null}
                                                     </Collapsible.Content>
                                                 </Collapsible.Root>
                                             )

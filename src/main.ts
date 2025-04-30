@@ -920,7 +920,7 @@ async function handleReadAndUploadMatch() {
     if (!data) return
     // remove below code
     if (!currentMatchId) {
-        currentMatchId = 'dev-test-matches'
+        currentMatchId = 'dev-test-matches3'
     }
     if (data && data.length && currentMatchId) {
         //send match data to back end
