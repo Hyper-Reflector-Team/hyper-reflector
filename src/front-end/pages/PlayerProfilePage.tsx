@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
+import { BarList, Chart, type BarListData, useChart } from '@chakra-ui/charts'
+import { Cell, Pie, PieChart, Tooltip } from 'recharts'
 import {
     IconButton,
     ButtonGroup,
@@ -238,6 +240,83 @@ export default function PlayerProfilePage() {
         setNameInvalid(true)
     }, [editedUserName])
 
+    const getCharacterData = () => {
+        if (!userData?.playerStatSet?.characters) return
+        const charKeys = Object.keys(userData?.playerStatSet?.characters)
+        const data = charKeys.map((char) => {
+            return {
+                name: char,
+                value: userData?.playerStatSet?.characters[char].picks,
+                test: 'poo',
+            }
+        })
+        return data
+    }
+
+    const chart = useChart<BarListData>({
+        sort: { by: 'value', direction: 'desc' },
+        data: getCharacterData() || [{ name: 'unknown', value: 0, test: 'poop' }],
+        series: [{ name: 'name', color: theme.colors.main.actionSecondary }],
+    })
+
+    const getPercent = (value: number) => chart.getValuePercent('value', value).toFixed(2)
+
+    const getWinRate = (): number => {
+        console.log(userData)
+        if (userData?.playerStatSet?.totalWins > 0) {
+            return (
+                (userData?.playerStatSet?.totalWins / userData?.playerStatSet?.totalGames) *
+                100
+            ).toFixed(2)
+        } else return 0
+    }
+
+    const GeneratedCharacterDonut = ({ characterName }) => {
+        if (!userData?.playerStatSet?.characters) return null
+        const character = userData?.playerStatSet?.characters[characterName]
+        if (!character) return null
+        console.log(character)
+        const sa1Picks = character?.superChoice[0]?.wins + character?.superChoice[0]?.losses || 0
+        const sa2Picks = character?.superChoice[1]?.wins + character?.superChoice[1]?.losses || 0
+        const sa3Picks = character?.superChoice[2]?.wins + character?.superChoice[2]?.losses || 0
+        console.log('making a donut', sa1Picks, sa2Picks, sa3Picks)
+        const superDonut = useChart({
+            data: [
+                { name: 'SA I', value: sa1Picks, color: theme.colors.main.sa1 },
+                { name: 'SA II', value: sa2Picks, color: theme.colors.main.sa2 },
+                { name: 'SA III', value: sa3Picks, color: theme.colors.main.sa3 },
+            ],
+        })
+
+        return (
+            <Chart.Root boxSize="20px" chart={superDonut} mx="-2">
+                <PieChart>
+                    <Tooltip
+                        cursor={false}
+                        animationDuration={100}
+                        content={<Chart.Tooltip hideLabel />}
+                    />
+                    <Pie
+                        innerRadius={10}
+                        outerRadius={22}
+                        isAnimationActive={false}
+                        data={superDonut.data}
+                        dataKey={superDonut.key('value')}
+                    >
+                        {superDonut.data.map((item) => (
+                            <Cell key={item.name} fill={superDonut.color(item.color)} />
+                        ))}
+                    </Pie>
+                </PieChart>
+            </Chart.Root>
+        )
+    }
+
+    const getSortedObjectData = (data) => {
+        const sorted = Object.entries(data).sort(([, a], [, b]) => b.picks - a.picks)
+        return sorted
+    }
+
     return (
         <Box display="flex" gap="12px">
             <SideBar width="160px">
@@ -291,9 +370,9 @@ export default function PlayerProfilePage() {
             <Stack minH="100%" maxWidth={'600px'} flex={1}>
                 {currentTab === 0 && (
                     <Box>
-                        {/* <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
-                            <Construction />
-                        </Box> */}
+                        <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
+                            <Construction /> Under Construction
+                        </Box>
                         {/* <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             {JSON.stringify(userData)}
                         </Text> */}
@@ -302,23 +381,80 @@ export default function PlayerProfilePage() {
                             <TitleBadge title={userState?.userTitle || userData?.userTitle} />
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Current Win Streak: 10
+                            Overall win rate: {getWinRate()}%
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Total Games: 10
+                            Current Win Streak: {userData?.playerStatSet?.winStreak}
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Wins: 10
+                            Total Games: {userData?.playerStatSet?.totalGames}
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Losses: 3
+                            Wins: {userData?.playerStatSet?.totalWins}
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Win rate 70%
+                            Losses: {userData?.playerStatSet?.totalLosses}
                         </Text>
-                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            Character: Elena
-                        </Text>
+
+                        <Box display="flex" width={'100%'}>
+                            {Object.keys(userData?.playerStatSet?.characters || {}).length && (
+                                <BarList.Root
+                                    chart={chart}
+                                    bg="none"
+                                    pointerEvents={'none'}
+                                    flex="1"
+                                >
+                                    <BarList.Content>
+                                        <Box display="flex" width={'100%'}>
+                                            <BarList.Label title="Character Choice" flex="1">
+                                                <BarList.Bar
+                                                    bg={'none'}
+                                                    color={theme.colors.main.text}
+                                                />
+                                            </BarList.Label>
+                                            <BarList.Label
+                                                title="Pick Rate"
+                                                minW="16"
+                                                titleAlignment="end"
+                                            >
+                                                <BarList.Value color={theme.colors.main.text} />
+                                            </BarList.Label>
+
+                                            <BarList.Label
+                                                title="Overall %"
+                                                minW="16"
+                                                titleAlignment="end"
+                                            >
+                                                <BarList.Value
+                                                    color={theme.colors.main.text}
+                                                    valueFormatter={(value) =>
+                                                        `${getPercent(value)}%`
+                                                    }
+                                                />
+                                            </BarList.Label>
+                                            <BarList.Label
+                                                title=""
+                                                minW="16"
+                                                titleAlignment="end"
+                                            ></BarList.Label>
+                                        </Box>
+                                    </BarList.Content>
+                                </BarList.Root>
+                            )}
+                            <Stack gap="28px" marginTop={'34px'}>
+                                {userData?.playerStatSet
+                                    ? getSortedObjectData(userData?.playerStatSet?.characters)?.map(
+                                          (char) => {
+                                              return (
+                                                  <GeneratedCharacterDonut
+                                                      characterName={char[0]}
+                                                  />
+                                              )
+                                          }
+                                      )
+                                    : null}
+                            </Stack>
+                        </Box>
                     </Box>
                 )}
 

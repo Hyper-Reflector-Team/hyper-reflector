@@ -1,8 +1,8 @@
 import keys from '../private/keys'
 import { firebaseConfig } from '../private/firebase'
 
-const SERVER = keys.COTURN_IP
-// const SERVER = '127.0.0.1' // -- used for testing the backend locally
+// const SERVER = keys.COTURN_IP
+const SERVER = '127.0.0.1' // -- used for testing the backend locally
 
 function checkCurrentAuthState(auth) {
     if (auth.currentUser != null) {
@@ -10,26 +10,6 @@ function checkCurrentAuthState(auth) {
     }
     console.log('--- access denied ---')
     return false
-}
-
-async function externalApiDoSomething(auth) {
-    if (checkCurrentAuthState(auth)) {
-        const idToken = await auth.currentUser.getIdToken().then((res) => res)
-        try {
-            // ${keys.COTURN_IP}
-            // works but maybe we should move to an ssl cert for https
-            fetch(`http://${SERVER}:${keys.API_PORT}/test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ idToken: idToken || 'not real' }),
-            })
-        } catch (error) {
-            console.log(error)
-            console.error(error.message)
-        }
-    }
 }
 
 async function addLoggedInUser(auth) {
@@ -350,7 +330,67 @@ async function getGlobalSet(auth, userId, matchId = null) {
     }
 }
 
-async function getAllTitles(auth, userId, matchId = null) {
+async function getGLobalStats(auth, userId) {
+    console.log('trying to fetch global stats')
+    if (checkCurrentAuthState(auth)) {
+        const idToken = await auth.currentUser.getIdToken().then((res) => res)
+        try {
+            const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-global-stats`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    userUID: userId,
+                }),
+            })
+
+            if (!response.ok) {
+                console.log(response)
+                return false
+            }
+
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.log(error)
+            console.error(error.message)
+        }
+    }
+}
+
+async function getPlayerStats(auth, userId) {
+    console.log('trying to fetch player stats')
+    if (checkCurrentAuthState(auth)) {
+        const idToken = await auth.currentUser.getIdToken().then((res) => res)
+        try {
+            const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-player-stats`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    userUID: userId,
+                }),
+            })
+
+            if (!response.ok) {
+                console.log(response)
+                return false
+            }
+
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.log(error)
+            console.error(error.message)
+        }
+    }
+}
+
+async function getAllTitles(auth, userId) {
     console.log('trying to fetch titles')
     if (checkCurrentAuthState(auth)) {
         const idToken = await auth.currentUser.getIdToken().then((res) => res)
@@ -381,7 +421,6 @@ async function getAllTitles(auth, userId, matchId = null) {
 }
 
 export default {
-    externalApiDoSomething,
     addLoggedInUser,
     getLoggedInUser,
     removeLoggedInUser,
@@ -393,8 +432,10 @@ export default {
     getUserByAuth,
     getUserData,
     getAllTitles,
+    getPlayerStats,
     //matches
     uploadMatchData,
     getUserMatches,
     getGlobalSet,
+    getGLobalStats,
 }

@@ -1,6 +1,7 @@
 import { Bleed, Box, Heading, Stack, Text, Flex } from '@chakra-ui/react'
 import BlogPost from '../components/BlogPost'
 import { useLayoutStore } from '../state/store'
+import { useEffect } from 'react'
 
 const blogsArray = [
     {
@@ -44,6 +45,21 @@ const blogsArray = [
 
 export default function NewsPage() {
     const theme = useLayoutStore((state) => state.appTheme)
+
+    const handleFillGlobalStats = (stats) => {
+        console.log('stats', stats)
+    }
+
+    useEffect(() => {
+        window.api.getGlobalStats() // get all the stats from be
+        window.api.removeExtraListeners('fillGlobalStats', handleFillGlobalStats)
+        window.api.on('fillGlobalStats', handleFillGlobalStats)
+
+        return () => {
+            window.api.removeListener('fillGlobalStats', handleFillGlobalStats)
+        }
+    }, [])
+
     return (
         <Stack gap="2">
             <Heading size="md" color={theme.colors.main.textSubdued}>

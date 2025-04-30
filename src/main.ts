@@ -420,12 +420,6 @@ const createWindow = () => {
         readStatFile(mainWindow)
     })
 
-    ipcMain.on('send-command', (event, command) => {
-        sendCommand(command)
-        // external api testing delete me later
-        api.externalApiDoSomething(auth)
-    })
-
     ipcMain.on('serveMatch', async (event, data) => {})
 
     let keepAliveInterval = null
@@ -826,8 +820,15 @@ const createWindow = () => {
 
     ipcMain.on('getUserData', async (event, userId) => {
         const userData = await api.getUserData(auth, userId).catch((err) => console.log(err))
-        console.log('user data', userData)
-        mainWindow.webContents.send('getUserData', userData)
+        const playerStats = await api.getPlayerStats(auth, userId).catch((err) => console.log(err))
+        console.log('user data', { ...userData, ...playerStats })
+        mainWindow.webContents.send('getUserData', { ...userData, ...playerStats })
+    })
+
+    ipcMain.on('getGlobalStats', async (event, userId) => {
+        const globalStats = await api.getGLobalStats(auth, userId).catch((err) => console.log(err))
+        console.log('global stats', globalStats)
+        mainWindow.webContents.send('fillGlobalStats', globalStats)
     })
 
     // matchmaking

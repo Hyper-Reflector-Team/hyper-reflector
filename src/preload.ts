@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('api', {
     getGlobalSet: (matches: any) => ipcRenderer.send('getGlobalSet', matches),
     getAllTitles: (titles: any) => ipcRenderer.send('getAllTitles', titles),
     getUserData: (user: any) => ipcRenderer.send('getUserData', user),
+    getGlobalStats: (stats: any) => ipcRenderer.send('getGlobalStats', stats),
     changeUserData: (userData: any) => ipcRenderer.send('changeUserData', userData),
     // match
     setEmulatorPath: () => ipcRenderer.send('setEmulatorPath'),

@@ -22,6 +22,9 @@ const hrTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -50,6 +53,9 @@ const slimeTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -78,6 +84,9 @@ const orangeTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -106,6 +115,9 @@ const pinkTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -134,6 +146,9 @@ const purpleTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -162,6 +177,9 @@ const greenTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -190,6 +208,9 @@ const greenTheme2 = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
@@ -218,6 +239,9 @@ const evilTheme = {
             warning: 'red.700',
             caution: 'yellow.600',
             success: 'green.500',
+            sa1: 'yellow.500',
+            sa2: 'orange.500',
+            sa3: 'blue.500',
         },
     },
 }
