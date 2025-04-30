@@ -920,7 +920,7 @@ async function handleReadAndUploadMatch() {
     if (!data) return
     // remove below code
     if (!currentMatchId) {
-        currentMatchId = 'dev-test-matches3'
+        currentMatchId = 'dev-matches-and-bugs'
     }
     if (data && data.length && currentMatchId) {
         //send match data to back end
@@ -933,7 +933,6 @@ async function handleReadAndUploadMatch() {
             player1: lastKnownPlayerSlot == 0 ? userUID : opponentUID || 'fake-user',
             player2: lastKnownPlayerSlot == 1 ? userUID : opponentUID || 'fake-user',
         }
-        console.log(matchData)
         await api.uploadMatchData(auth, matchData)
     }
 }
