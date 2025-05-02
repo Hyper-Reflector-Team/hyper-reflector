@@ -214,6 +214,7 @@ export class PeerManager {
             if (msg.type === 'ping') {
                 const latency = Date.now() - msg.ts
                 this.handlers?.onPing?.(uid, latency)
+                console.log('latency, ', latency)
             } else {
                 this.handlers.onData(uid, msg)
             }
@@ -245,6 +246,7 @@ export class PeerManager {
 
     public pingAll() {
         for (const uid in this.peers) {
+            console.log('pinging, ', uid)
             this.sendTo(uid, { type: 'ping', ts: Date.now() })
         }
     }
