@@ -213,6 +213,7 @@ export class PeerManager {
         channel.onmessage = (e) => {
             const msg = JSON.parse(e.data)
             if (msg.type === 'ping') {
+                console.log('recieved a ping, sending a pong')
                 this.sendTo(uid, {
                     type: 'pong',
                     pingId: msg.pingId,
@@ -221,6 +222,7 @@ export class PeerManager {
                 const sent = this.pendingPings[msg.pingId]
                 if (sent) {
                     const rtt = Date.now() - sent
+                    console.log('ping to users is: ', rtt)
                     delete this.pendingPings[msg.pingId]
                     this.handlers?.onPing?.(uid, rtt)
                 }
@@ -256,6 +258,7 @@ export class PeerManager {
     public pingAll() {
         const now = Date.now()
         for (const uid in this.peers) {
+            console.log('pinging ', uid)
             const pingId = Math.random().toString(36).slice(2)
             this.pendingPings[pingId] = now
             this.sendTo(uid, {
