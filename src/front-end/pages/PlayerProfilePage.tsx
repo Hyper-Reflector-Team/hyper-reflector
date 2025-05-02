@@ -262,7 +262,6 @@ export default function PlayerProfilePage() {
     const getPercent = (value: number) => chart.getValuePercent('value', value).toFixed(2)
 
     const getWinRate = (): number => {
-        console.log(userData)
         if (userData?.playerStatSet?.totalWins > 0) {
             return (
                 (userData?.playerStatSet?.totalWins / userData?.playerStatSet?.totalGames) *
@@ -275,11 +274,9 @@ export default function PlayerProfilePage() {
         if (!userData?.playerStatSet?.characters) return null
         const character = userData?.playerStatSet?.characters[characterName]
         if (!character) return null
-        console.log(character)
         const sa1Picks = character?.superChoice[0]?.wins + character?.superChoice[0]?.losses || 0
         const sa2Picks = character?.superChoice[1]?.wins + character?.superChoice[1]?.losses || 0
         const sa3Picks = character?.superChoice[2]?.wins + character?.superChoice[2]?.losses || 0
-        console.log('making a donut', sa1Picks, sa2Picks, sa3Picks)
         const superDonut = useChart({
             data: [
                 { name: 'SA I', value: sa1Picks, color: theme.colors.main.sa1 },
@@ -378,7 +375,7 @@ export default function PlayerProfilePage() {
                         </Text> */}
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             {userData?.userName || 'Unknown User'}
-                            <TitleBadge title={userState?.userTitle || userData?.userTitle} />
+                            <TitleBadge title={userData?.userTitle} />
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             Overall win rate: {getWinRate()}%

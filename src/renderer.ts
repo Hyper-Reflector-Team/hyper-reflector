@@ -31,6 +31,7 @@ const googleStuns = [
 const peerConnections: Record<string, RTCPeerConnection> = {}
 
 async function createNewPeerConnection(userUID: string, isInitiator: boolean) {
+    console.log('creating a new peer connection')
     const peerConnection = new RTCPeerConnection({
         iceServers: [
             {

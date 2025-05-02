@@ -90,11 +90,9 @@ export default function NewsPage() {
         if (!globalStats.globalCharacterChoice) return null
         const character = globalStats.globalCharacterChoice[characterName]
         if (!character) return null
-        console.log(character)
         const sa1Picks = character?.superChoice[0]?.wins + character?.superChoice[0]?.losses || 0
         const sa2Picks = character?.superChoice[1]?.wins + character?.superChoice[1]?.losses || 0
         const sa3Picks = character?.superChoice[2]?.wins + character?.superChoice[2]?.losses || 0
-        console.log('making a donut', sa1Picks, sa2Picks, sa3Picks)
         const superDonut = useChart({
             data: [
                 { name: 'SA I', value: sa1Picks, color: theme.colors.main.sa1 },
@@ -142,7 +140,7 @@ export default function NewsPage() {
                 { name: 'Player 1 Losses', value: p2Wins, color: theme.colors.main.actionDark },
                 { name: 'Player 2 Wins', value: p2Wins, color: theme.colors.main.actionSecondary },
                 {
-                    name: 'Player 1 Losses',
+                    name: 'Player 2 Losses',
                     value: p1Wins,
                     color: theme.colors.main.actionSecondaryDark,
                 },
