@@ -5,7 +5,10 @@ type PeerEventHandlers = {
 }
 
 export class PeerManager {
-    private peers: Record<string, { conn: RTCPeerConnection; channel: RTCDataChannel }> = {}
+    private peers: Record<
+        string,
+        { conn: RTCPeerConnection; channel: RTCDataChannel; pendingCandidates?: RTCIceCandidate[] }
+    > = {}
     private localUID: string
     private handlers: PeerEventHandlers
     private signalingSocket: WebSocket
@@ -24,22 +27,41 @@ export class PeerManager {
             const { type, ...data } = msg
 
             if (type === 'incomingCall') {
-                console.log(msg)
                 console.log('peer manager, incoming call', data)
                 const { callerId, offer: localDescription } = data
-                const peer = this.createPeer(callerId, false)
-                console.log(peer)
-                await peer.conn.setRemoteDescription(new RTCSessionDescription(localDescription))
-                const answer = await peer.conn.createAnswer()
-                await peer.conn.setLocalDescription(answer)
 
-                // send call to websockets
-                this.signalingSocket.send(
-                    JSON.stringify({
-                        type: 'answerCall',
-                        data: { answer, callerId, answererId: this.localUID },
-                    })
-                )
+                const peer = this.createPeer(callerId, false)
+
+                try {
+                    await peer.conn.setRemoteDescription(
+                        new RTCSessionDescription(localDescription)
+                    )
+
+                    // Apply buffered ICE candidates
+                    if (peer.pendingCandidates?.length) {
+                        for (const candidate of peer.pendingCandidates) {
+                            try {
+                                await peer.conn.addIceCandidate(candidate)
+                            } catch (err) {
+                                console.log('Error applying buffered candidate', err)
+                            }
+                        }
+                        peer.pendingCandidates = []
+                    }
+
+                    const answer = await peer.conn.createAnswer()
+                    await peer.conn.setLocalDescription(answer)
+
+                    // send call to websockets
+                    this.signalingSocket.send(
+                        JSON.stringify({
+                            type: 'answerCall',
+                            data: { answer, callerId, answererId: this.localUID },
+                        })
+                    )
+                } catch (err) {
+                    console.error('Error handling incoming call:', err)
+                }
             }
 
             if (type === 'callAnswered') {
@@ -48,20 +70,31 @@ export class PeerManager {
                 const peer = this.peers[answererId]
                 console.log('answer peer', peer)
                 if (peer) {
-                    await peer.conn
-                        .setRemoteDescription(new RTCSessionDescription(answer))
-                        .catch((err) => console.log(err))
-                    console.log('setting remote desc after answering')
+                    if (peer.conn.signalingState !== 'stable') {
+                        await peer.conn
+                            .setRemoteDescription(new RTCSessionDescription(answer))
+                            .catch((err) => console.log(err))
+                    }
                 }
             }
 
             if (type === 'iceCandidate') {
                 const { candidate, fromUID } = data
+                console.log(candidate, '   --- from ', fromUID)
                 const peer = this.peers[fromUID]
+
                 if (peer && candidate) {
-                    await peer.conn
-                        .addIceCandidate(new RTCIceCandidate(candidate))
-                        .catch((err) => console.log(err))
+                    const rtcCandidate = new RTCIceCandidate(candidate)
+                    if (peer.conn.remoteDescription) {
+                        try {
+                            await peer.conn.addIceCandidate(rtcCandidate)
+                        } catch (err) {
+                            console.log('error adding ICE candidate', err)
+                        }
+                    } else {
+                        peer.pendingCandidates = peer.pendingCandidates || []
+                        peer.pendingCandidates.push(rtcCandidate)
+                    }
                 }
             }
         })
@@ -104,7 +137,7 @@ export class PeerManager {
         })
 
         // Pre-fill so setupDataChannel has access
-        this.peers[uid] = { conn, channel: null as any } // channel will be set later
+        this.peers[uid] = { conn, channel: null as any, pendingCandidates: [] as RTCIceCandidate[] } // channel will be set later
 
         if (isInitiator) {
             console.log('attempting to create data channel')
@@ -119,6 +152,7 @@ export class PeerManager {
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log(event.candidate, '   --- sending to ', uid)
                 this.signalingSocket.send(
                     JSON.stringify({
                         type: 'iceCandidate',
@@ -148,6 +182,15 @@ export class PeerManager {
         conn.oniceconnectionstatechange = () => {
             console.log(`[${uid}] ICE state:`, conn.iceConnectionState)
         }
+
+        conn.ondatachannel = (event) => {
+            this.setupDataChannel(uid, event.channel)
+        }
+
+        setInterval(() => {
+            console.log(`[${uid}] ConnectionState:`, conn.connectionState)
+            console.log(`[${uid}] ICE State:`, conn.iceConnectionState)
+        }, 1000)
 
         return this.peers[uid]
     }
