@@ -53,10 +53,11 @@ export class PeerManager {
             }
 
             if (type === 'iceCandidate') {
+                console.log('peer manager, ice candidate')
                 const { candidate, fromUID } = data
                 const peer = this.peers[fromUID]
                 if (peer && candidate) {
-                    console.log('peer manager, ice candidate')
+                    console.log('peer manager, ice candidate 2')
                     await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
                 }
             }
@@ -155,7 +156,7 @@ export class PeerManager {
         const msg = JSON.stringify(data)
         for (const peer of Object.values(this.peers)) {
             console.log(peer)
-            if (peer.channel.readyState === 'open') {
+            if (peer?.channel?.readyState === 'open') {
                 console.log('data channel is open sending a message')
                 peer.channel.send(msg)
             }
