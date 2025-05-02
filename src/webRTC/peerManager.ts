@@ -1,3 +1,5 @@
+import keys from '../private/keys' // for stun server
+
 type PeerEventHandlers = {
     onData: (fromUID: string, data: any) => void
     onDisconnect?: (uid: string) => void
@@ -135,6 +137,7 @@ export class PeerManager {
 
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
+            `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}`,
             'stun:stun.l.google.com:19302',
             'stun:stun.l.google.com:5349',
             'stun:stun1.l.google.com:3478',
@@ -244,8 +247,8 @@ export class PeerManager {
 
     public pingAll() {
         for (const uid in this.peers) {
-            console.log('pinging, ', uid)
             this.sendTo(uid, { type: 'ping', ts: Date.now() })
+            console.log('pinging, ', uid)
         }
     }
 
