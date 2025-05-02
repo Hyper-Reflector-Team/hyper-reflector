@@ -44,8 +44,8 @@ export class PeerManager {
 
             if (type === 'callAnswered') {
                 console.log('peer manager, call Answered')
-                const { callerId, answer } = data
-                const peer = this.peers[callerId]
+                const { answererId, answer } = data
+                const peer = this.peers[answererId]
                 console.log('answer peer', peer)
                 if (peer) {
                     await peer.conn.setRemoteDescription(new RTCSessionDescription(answer))
