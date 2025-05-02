@@ -80,13 +80,16 @@ export class PeerManager {
             iceServers: [{ urls: 'stun:stun.1.google.com:19302' }],
         })
 
-        let channel: RTCDataChannel
+        // Pre-fill so setupDataChannel has access
+        this.peers[uid] = { conn, channel: null as any } // channel will be set later
 
         if (isInitiator) {
-            channel = conn.createDataChannel('data')
+            console.log('creating a peer')
+            const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
         } else {
             conn.ondatachannel = (event) => {
+                console.log('other user channel being set')
                 this.setupDataChannel(uid, event.channel)
             }
         }
@@ -113,7 +116,6 @@ export class PeerManager {
             }
         }
 
-        this.peers[uid] = { conn, channel: channel! } // what does this actually do
         return this.peers[uid]
     }
 
@@ -128,8 +130,9 @@ export class PeerManager {
                 this.handlers.onData(uid, msg)
             }
         }
-        // set the data channel for the peer
+
         this.peers[uid].channel = channel
+        console.log('starting data channel', channel)
     }
 
     public sendTo(uid: string, data: any) {
@@ -141,9 +144,12 @@ export class PeerManager {
     }
 
     public broadcast(data: any) {
+        console.log('broadcasted some data')
         const msg = JSON.stringify(data)
         for (const peer of Object.values(this.peers)) {
+            console.log(peer)
             if (peer.channel.readyState === 'open') {
+                console.log('data channel is open sending a message')
                 peer.channel.send(msg)
             }
         }
