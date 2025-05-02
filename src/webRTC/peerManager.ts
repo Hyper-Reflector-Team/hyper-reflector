@@ -14,6 +14,7 @@ export class PeerManager {
     private localUID: string
     private handlers: PeerEventHandlers
     private signalingSocket: WebSocket
+    private pendingPings: number[]
 
     constructor(localUID: string, signalingSocket: WebSocket, handlers: PeerEventHandlers) {
         this.localUID = localUID
@@ -87,6 +88,16 @@ export class PeerManager {
                                 )
                             )
                     }
+                    if (peer.pendingCandidates?.length) {
+                        for (const candidate of peer.pendingCandidates) {
+                            try {
+                                await peer.conn.addIceCandidate(candidate)
+                            } catch (err) {
+                                console.log('Error applying buffered candidate', err)
+                            }
+                        }
+                        peer.pendingCandidates = []
+                    }
                 }
             }
 
@@ -122,7 +133,7 @@ export class PeerManager {
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
         console.log('peer manager, calling users')
-        if (this.peers[uid]) return
+        // if (this.peers[uid]) return
         this.signalingSocket.send(
             JSON.stringify({
                 type: 'callUser',
@@ -137,7 +148,6 @@ export class PeerManager {
 
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
-            `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}`,
             'stun:stun.l.google.com:19302',
             'stun:stun.l.google.com:5349',
             'stun:stun1.l.google.com:3478',
@@ -148,6 +158,7 @@ export class PeerManager {
             'stun:stun3.l.google.com:5349',
             'stun:stun4.l.google.com:19302',
             'stun:stun4.l.google.com:5349',
+            `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}`,
         ]
 
         const conn = new RTCPeerConnection({
@@ -216,6 +227,18 @@ export class PeerManager {
             if (msg.type === 'ping') {
                 const latency = Date.now() - msg.ts
                 this.handlers.onPing?.(uid, latency)
+            } else if (msg.type === 'ping-rt') {
+                this.sendTo(uid, {
+                    type: 'pong',
+                    pingId: msg.pingId,
+                })
+            } else if (msg.type === 'pong') {
+                const sent = this.pendingPings[msg.pingId]
+                if (sent) {
+                    const rtt = Date.now() - sent
+                    delete this.pendingPings[msg.pingId]
+                    this.handlers?.onPing?.(uid, rtt)
+                }
             } else {
                 this.handlers.onData(uid, msg)
             }
@@ -249,6 +272,19 @@ export class PeerManager {
         for (const uid in this.peers) {
             this.sendTo(uid, { type: 'ping', ts: Date.now() })
             console.log('pinging, ', uid)
+        }
+    }
+
+    public pingRoundTrip() {
+        const now = Date.now()
+        for (const uid in this.peers) {
+            const pingId = Math.random().toString(36).slice(2)
+            this.pendingPings[pingId] = now
+            this.sendTo(uid, {
+                type: 'ping-rt',
+                ts: now,
+                pingId,
+            })
         }
     }
 

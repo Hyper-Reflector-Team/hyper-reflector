@@ -104,6 +104,7 @@ function connectWebSocket(user) {
 
         // Ping everyone
         manager.pingAll()
+        manager.pingRoundTrip()
         manager.debugPeers()
         // sends a message over to another user
         // probably need more validation
