@@ -10,6 +10,7 @@ export class PeerManager {
         { conn: RTCPeerConnection; channel: RTCDataChannel; pendingCandidates?: RTCIceCandidate[] }
     > = {}
     private localUID: string
+    private pendingPings: number[]
     private handlers: PeerEventHandlers
     private signalingSocket: WebSocket
 
@@ -17,7 +18,7 @@ export class PeerManager {
         this.localUID = localUID
         this.signalingSocket = signalingSocket
         this.handlers = handlers
-
+        this.pendingPings = []
         this.setupSignalingHandlers()
     }
 
@@ -70,10 +71,21 @@ export class PeerManager {
                 const peer = this.peers[answererId]
                 console.log('answer peer', peer)
                 if (peer) {
+                    console.log(
+                        `[${answererId}] Setting remote description with signaling state: ${peer.conn.signalingState}`
+                    )
                     if (peer.conn.signalingState !== 'stable') {
                         await peer.conn
                             .setRemoteDescription(new RTCSessionDescription(answer))
-                            .catch((err) => console.log(err))
+                            .then(() =>
+                                console.log(`[${answererId}] Remote description set successfully.`)
+                            )
+                            .catch((err) =>
+                                console.error(
+                                    `[${answererId}] Error setting remote description:`,
+                                    err
+                                )
+                            )
                     }
                 }
             }
@@ -83,17 +95,21 @@ export class PeerManager {
                 // console.log(candidate, '   --- from ', fromUID)
                 const peer = this.peers[fromUID]
 
+                // In the 'iceCandidate' handler:
                 if (peer && candidate) {
                     const rtcCandidate = new RTCIceCandidate(candidate)
                     if (peer.conn.remoteDescription) {
                         try {
                             await peer.conn.addIceCandidate(rtcCandidate)
                         } catch (err) {
-                            console.log('error adding ICE candidate', err)
+                            console.error('Error adding ICE candidate:', err) // Use console.error for errors
                         }
                     } else {
                         peer.pendingCandidates = peer.pendingCandidates || []
                         peer.pendingCandidates.push(rtcCandidate)
+                        console.log(
+                            `[${fromUID}] Received ICE candidate before remote description, buffering.`
+                        )
                     }
                 }
             }
@@ -106,6 +122,7 @@ export class PeerManager {
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
         console.log('peer manager, calling users')
+        if (this.peers[uid]) return
         this.signalingSocket.send(
             JSON.stringify({
                 type: 'callUser',
@@ -121,26 +138,19 @@ export class PeerManager {
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
             'stun:stun.l.google.com:19302',
-            // 'stun:stun.l.google.com:5349',
-            // 'stun:stun1.l.google.com:3478',
-            // 'stun:stun1.l.google.com:5349',
-            // 'stun:stun2.l.google.com:19302',
-            // 'stun:stun2.l.google.com:5349',
-            // 'stun:stun3.l.google.com:3478',
-            // 'stun:stun3.l.google.com:5349',
-            // 'stun:stun4.l.google.com:19302',
-            // 'stun:stun4.l.google.com:5349',
+            'stun:stun.l.google.com:5349',
+            'stun:stun1.l.google.com:3478',
+            'stun:stun1.l.google.com:5349',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun2.l.google.com:5349',
+            'stun:stun3.l.google.com:3478',
+            'stun:stun3.l.google.com:5349',
+            'stun:stun4.l.google.com:19302',
+            'stun:stun4.l.google.com:5349',
         ]
 
         const conn = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                {
-                    urls: 'turn:relay1.expressturn.com:3478',
-                    username: 'efwe_user',
-                    credential: 'efwe_pass',
-                },
-            ],
+            iceServers: [{ urls: googleStuns }],
         })
 
         // Pre-fill so setupDataChannel has access
@@ -159,7 +169,7 @@ export class PeerManager {
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('Candidate Type:', event.candidate.candidate)
+                // console.log('Candidate Type:', event.candidate.candidate)
                 // console.log(event.candidate, '   --- sending to ', uid)
                 this.signalingSocket.send(
                     JSON.stringify({
@@ -203,8 +213,17 @@ export class PeerManager {
         channel.onmessage = (e) => {
             const msg = JSON.parse(e.data)
             if (msg.type === 'ping') {
-                const latency = Date.now() - msg.ts
-                this.handlers?.onPing?.(uid, latency)
+                this.sendTo(uid, {
+                    type: 'pong',
+                    pingId: msg.pingId,
+                })
+            } else if (msg.type === 'pong') {
+                const sent = this.pendingPings[msg.pingId]
+                if (sent) {
+                    const rtt = Date.now() - sent
+                    delete this.pendingPings[msg.pingId]
+                    this.handlers?.onPing?.(uid, rtt)
+                }
             } else {
                 this.handlers.onData(uid, msg)
             }
@@ -235,8 +254,15 @@ export class PeerManager {
     }
 
     public pingAll() {
+        const now = Date.now()
         for (const uid in this.peers) {
-            this.sendTo(uid, { type: 'ping', ts: Date.now() })
+            const pingId = Math.random().toString(36).slice(2)
+            this.pendingPings[pingId] = now
+            this.sendTo(uid, {
+                type: 'ping',
+                ts: now,
+                pingId,
+            })
         }
     }
 
@@ -252,5 +278,9 @@ export class PeerManager {
         console.log('removing user from list')
         this.peers[uid].conn.close()
         delete this.peers[uid]
+    }
+
+    public debugPeers() {
+        console.log('Current peer connections:', this.peers)
     }
 }
