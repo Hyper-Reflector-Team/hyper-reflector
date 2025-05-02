@@ -14,12 +14,13 @@ export class PeerManager {
     private localUID: string
     private handlers: PeerEventHandlers
     private signalingSocket: WebSocket
-    private pendingPings: number[]
+    private pendingPings: any[]
 
     constructor(localUID: string, signalingSocket: WebSocket, handlers: PeerEventHandlers) {
         this.localUID = localUID
         this.signalingSocket = signalingSocket
         this.handlers = handlers
+        this.pendingPings = []
         this.setupSignalingHandlers()
     }
 
@@ -279,6 +280,7 @@ export class PeerManager {
         const now = Date.now()
         for (const uid in this.peers) {
             const pingId = Math.random().toString(36).slice(2)
+            console.log(pingId)
             this.pendingPings[pingId] = now
             this.sendTo(uid, {
                 type: 'ping-rt',
