@@ -20,7 +20,6 @@ export class PeerManager {
 
     private setupSignalingHandlers() {
         this.signalingSocket.addEventListener('message', async (e) => {
-            console.log('am i getting any messages at all?')
             const msg = JSON.parse(e.data)
             const { type, ...data } = msg
 
@@ -44,8 +43,8 @@ export class PeerManager {
                 )
             }
 
-            if (type === 'callAccepted') {
-                console.log('peer manager, call accepted')
+            if (type === 'callAnswered') {
+                console.log('peer manager, call Answered')
                 const { callerId, answer } = data
                 const peer = this.peers[callerId]
                 if (peer) {
