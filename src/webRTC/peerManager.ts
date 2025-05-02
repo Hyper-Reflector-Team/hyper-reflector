@@ -10,7 +10,6 @@ export class PeerManager {
         { conn: RTCPeerConnection; channel: RTCDataChannel; pendingCandidates?: RTCIceCandidate[] }
     > = {}
     private localUID: string
-    private pendingPings: number[]
     private handlers: PeerEventHandlers
     private signalingSocket: WebSocket
 
@@ -213,8 +212,7 @@ export class PeerManager {
             const msg = JSON.parse(e.data)
             if (msg.type === 'ping') {
                 const latency = Date.now() - msg.ts
-                this.handlers?.onPing?.(uid, latency)
-                console.log('latency, ', latency)
+                this.handlers.onPing?.(uid, latency)
             } else {
                 this.handlers.onData(uid, msg)
             }
@@ -245,12 +243,12 @@ export class PeerManager {
     }
 
     public pingAll() {
-        const now = Date.now()
         for (const uid in this.peers) {
             console.log('pinging, ', uid)
             this.sendTo(uid, { type: 'ping', ts: Date.now() })
         }
     }
+
     public closeAll() {
         for (const uid in this.peers) {
             this.peers[uid].conn.close()
