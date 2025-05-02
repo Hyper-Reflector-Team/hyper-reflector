@@ -130,11 +130,11 @@ export class PeerManager {
 
     // A
     public async connectTo(uid: string) {
+        if (this.peers[uid]) return
+        console.log('peer manager, calling users')
         const peer = this.createPeer(uid, true)
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
-        console.log('peer manager, calling users')
-        if (this.peers[uid]) return
         this.signalingSocket.send(
             JSON.stringify({
                 type: 'callUser',
@@ -150,20 +150,22 @@ export class PeerManager {
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
             'stun:stun.l.google.com:19302',
-            'stun:stun.l.google.com:5349',
-            'stun:stun1.l.google.com:3478',
-            'stun:stun1.l.google.com:5349',
-            'stun:stun2.l.google.com:19302',
-            'stun:stun2.l.google.com:5349',
-            'stun:stun3.l.google.com:3478',
-            'stun:stun3.l.google.com:5349',
-            'stun:stun4.l.google.com:19302',
-            'stun:stun4.l.google.com:5349',
-            `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}`,
+            // 'stun:stun.l.google.com:5349',
+            // 'stun:stun1.l.google.com:3478',
+            // 'stun:stun1.l.google.com:5349',
+            // 'stun:stun2.l.google.com:19302',
+            // 'stun:stun2.l.google.com:5349',
+            // 'stun:stun3.l.google.com:3478',
+            // 'stun:stun3.l.google.com:5349',
+            // 'stun:stun4.l.google.com:19302',
+            // 'stun:stun4.l.google.com:5349',
         ]
 
         const conn = new RTCPeerConnection({
-            iceServers: [{ urls: googleStuns }],
+            iceServers: [
+                { urls: googleStuns },
+                { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
+            ],
         })
 
         // Pre-fill so setupDataChannel has access
@@ -173,12 +175,13 @@ export class PeerManager {
             console.log('attempting to create data channel')
             const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
-        } else {
-            conn.ondatachannel = (event) => {
-                console.log('other user channel being set')
-                this.setupDataChannel(uid, event.channel)
-            }
         }
+        // else {
+        //     conn.ondatachannel = (event) => {
+        //         console.log('other user channel being set')
+        //         this.setupDataChannel(uid, event.channel)
+        //     }
+        // }
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
@@ -214,6 +217,8 @@ export class PeerManager {
             console.log(`[${uid}] ICE state:`, conn.iceConnectionState)
             if (conn.iceConnectionState === 'connected') {
                 console.log('ICE is connected — we have a network path')
+            } else if (conn.iceConnectionState === 'completed') {
+                console.log('ICE is fully completed — all candidates connected')
             }
         }
 
