@@ -28,6 +28,7 @@ export class PeerManager {
                 console.log('peer manager, incoming call', data)
                 const { callerId, offer: localDescription } = data
                 const peer = this.createPeer(callerId, false)
+                console.log(peer)
                 await peer.conn.setRemoteDescription(new RTCSessionDescription(localDescription))
                 const answer = await peer.conn.createAnswer()
                 await peer.conn.setLocalDescription(answer)
@@ -45,14 +46,17 @@ export class PeerManager {
                 console.log('peer manager, call Answered')
                 const { callerId, answer } = data
                 const peer = this.peers[callerId]
+                console.log('answer peer', peer)
                 if (peer) {
                     await peer.conn.setRemoteDescription(new RTCSessionDescription(answer))
+                    console.log('setting remote desc after answering')
                 }
             }
 
             if (type === 'iceCandidate') {
                 const { candidate, fromUID } = data
                 const peer = this.peers[fromUID]
+                console.log('ice peer', peer)
                 if (peer && candidate) {
                     console.log('peer manager, ice candidate')
                     await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
@@ -101,6 +105,7 @@ export class PeerManager {
         this.peers[uid] = { conn, channel: null as any } // channel will be set later
 
         if (isInitiator) {
+            console.log('attempting to create data channel')
             const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
         } else {
