@@ -19,16 +19,21 @@ export class PeerManager {
     }
 
     private setupSignalingHandlers() {
-        this.signalingSocket.onmessage = async (e) => {
+        this.signalingSocket.addEventListener('message', async (e) => {
+            console.log('am i getting any messages at all?')
             const msg = JSON.parse(e.data)
-            const { type, data } = msg
+            const { type, ...data } = msg
 
-            if (type === 'callUser') {
-                const { callerId, localDescription } = data
+            if (type === 'incomingCall') {
+                console.log(msg)
+                console.log('peer manager, incoming call', data)
+                const { callerId, offer: localDescription } = data
                 const peer = this.createPeer(callerId, false)
                 await peer.conn.setRemoteDescription(new RTCSessionDescription(localDescription))
+                console.log('peer manager, setting remote description')
                 const answer = await peer.conn.createAnswer()
                 await peer.conn.setLocalDescription(answer)
+                console.log('peer manager, setting local description')
 
                 // send call to websockets
                 this.signalingSocket.send(
@@ -40,6 +45,7 @@ export class PeerManager {
             }
 
             if (type === 'callAccepted') {
+                console.log('peer manager, call accepted')
                 const { callerId, answer } = data
                 const peer = this.peers[callerId]
                 if (peer) {
@@ -51,10 +57,11 @@ export class PeerManager {
                 const { candidate, fromUID } = data
                 const peer = this.peers[fromUID]
                 if (peer && candidate) {
+                    console.log('peer manager, ice candidate')
                     await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
                 }
             }
-        }
+        })
     }
 
     public async connectTo(uid: string) {
@@ -62,7 +69,7 @@ export class PeerManager {
         const peer = this.createPeer(uid, true)
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
-
+        console.log('peer manager, calling users')
         this.signalingSocket.send(
             JSON.stringify({
                 type: 'callUser',
@@ -96,6 +103,7 @@ export class PeerManager {
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log('got a candidate')
                 this.signalingSocket.send(
                     JSON.stringify({
                         type: 'iceCandidate',
@@ -166,5 +174,12 @@ export class PeerManager {
             this.peers[uid].conn.close()
             delete this.peers[uid]
         }
+    }
+
+    public closeByID(uid: string) {
+        if (!uid) return
+        console.log('removing user from list')
+        this.peers[uid].conn.close()
+        delete this.peers[uid]
     }
 }
