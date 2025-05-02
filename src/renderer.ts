@@ -69,7 +69,6 @@ function connectWebSocket(user) {
     signalServerSocket = new WebSocket(SOCKET_ADDRESS)
     signalServerSocket.onopen = () => {
         signalServerSocket.send(JSON.stringify({ type: 'join', user }))
-        signalServerSocket.send(JSON.stringify({ type: 'user-connect', user }))
     }
 
     signalServerSocket.onclose = async (user) => {
@@ -105,6 +104,7 @@ function connectWebSocket(user) {
 
         // Ping everyone
         manager.pingAll()
+        manager.debugPeers()
         // sends a message over to another user
         // probably need more validation
         if (messageObject.text.length) {
@@ -177,11 +177,6 @@ function connectWebSocket(user) {
                 })
                 window.api.addUserGroupToRoom(data.users)
             }
-        }
-
-        if (data.type === 'user-connect') {
-            console.log('user-connect')
-            signalServerSocket.send(JSON.stringify({ type: 'join', user }))
         }
 
         if (data.type === 'userDisconnect') {
