@@ -212,6 +212,9 @@ export class PeerManager {
 
         conn.oniceconnectionstatechange = () => {
             console.log(`[${uid}] ICE state:`, conn.iceConnectionState)
+            if (conn.iceConnectionState === 'connected') {
+                console.log('ICE is connected — we have a network path')
+            }
         }
 
         conn.ondatachannel = (event) => {
@@ -223,6 +226,9 @@ export class PeerManager {
 
     private setupDataChannel(uid: string, channel: RTCDataChannel) {
         channel.onopen = () => console.log('data channel open with: ', uid)
+        channel.onerror = (e) => {
+            console.error('Data channel error:', e)
+        }
         channel.onmessage = (e) => {
             const msg = JSON.parse(e.data)
             if (msg.type === 'ping') {
