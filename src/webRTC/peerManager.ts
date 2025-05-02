@@ -150,15 +150,15 @@ export class PeerManager {
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
             'stun:stun.l.google.com:19302',
-            // 'stun:stun.l.google.com:5349',
-            // 'stun:stun1.l.google.com:3478',
-            // 'stun:stun1.l.google.com:5349',
-            // 'stun:stun2.l.google.com:19302',
-            // 'stun:stun2.l.google.com:5349',
-            // 'stun:stun3.l.google.com:3478',
-            // 'stun:stun3.l.google.com:5349',
-            // 'stun:stun4.l.google.com:19302',
-            // 'stun:stun4.l.google.com:5349',
+            'stun:stun.l.google.com:5349',
+            'stun:stun1.l.google.com:3478',
+            'stun:stun1.l.google.com:5349',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun2.l.google.com:5349',
+            'stun:stun3.l.google.com:3478',
+            'stun:stun3.l.google.com:5349',
+            'stun:stun4.l.google.com:19302',
+            'stun:stun4.l.google.com:5349',
         ]
 
         const conn = new RTCPeerConnection({
@@ -175,13 +175,12 @@ export class PeerManager {
             console.log('attempting to create data channel')
             const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
+        } else {
+            conn.ondatachannel = (event) => {
+                console.log('other user channel being set')
+                this.setupDataChannel(uid, event.channel)
+            }
         }
-        // else {
-        //     conn.ondatachannel = (event) => {
-        //         console.log('other user channel being set')
-        //         this.setupDataChannel(uid, event.channel)
-        //     }
-        // }
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
@@ -222,9 +221,9 @@ export class PeerManager {
             }
         }
 
-        conn.ondatachannel = (event) => {
-            this.setupDataChannel(uid, event.channel)
-        }
+        // conn.ondatachannel = (event) => {
+        //     this.setupDataChannel(uid, event.channel)
+        // }
 
         return this.peers[uid]
     }
