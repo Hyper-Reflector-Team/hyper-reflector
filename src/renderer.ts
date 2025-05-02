@@ -212,39 +212,9 @@ function connectWebSocket(user) {
             window.api.sendRoomMessage(data)
         }
 
-        // if (data.type === 'incomingCall') {
-        //     // await createNewPeerConnection(data.callerId, false)
-        //     // await peerConnections[data.callerId]
-        //     //     .setRemoteDescription(new RTCSessionDescription(data.offer))
-        //     //     .catch((err) => console.warn(err))
-        //     // console.log(data)
-        //     // window.api.receivedCall(data)
-        // }
-
-        // if (data.type === 'callAnswered') {
-        //     // await peerConnections[data.data.answererId].setRemoteDescription(
-        //     //     new RTCSessionDescription(data.data.answer)
-        //     // )
-        //     opponentUID = data.data.answererId // set the current opponent so we can get them from the peer list.
-        //     signalServerSocket.send(
-        //         JSON.stringify({
-        //             type: 'iceCandidate',
-        //             data: { targetId: data.data.answererId, candidate: candidateList[0] },
-        //         })
-        //     )
-        //     playerNum = 0 // if our call is answered we are always player 0
-        //     // window.api.startGameOnline(opponentUID, playerNum)
-        // }
-
         if (data.type === 'callDeclined') {
             // closePeerConnection(data.data.answererId)
             window.api.callDeclined(data.data.answererId)
-        }
-
-        if (data.type === 'iceCandidate') {
-            console.info(
-                'made a connection with someone, probably need to initialize some data channel stuff'
-            )
         }
     }
 }

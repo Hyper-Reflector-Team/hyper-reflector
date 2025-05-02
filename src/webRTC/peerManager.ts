@@ -48,7 +48,9 @@ export class PeerManager {
                 const peer = this.peers[answererId]
                 console.log('answer peer', peer)
                 if (peer) {
-                    await peer.conn.setRemoteDescription(new RTCSessionDescription(answer))
+                    await peer.conn
+                        .setRemoteDescription(new RTCSessionDescription(answer))
+                        .catch((err) => console.log(err))
                     console.log('setting remote desc after answering')
                 }
             }
@@ -56,10 +58,10 @@ export class PeerManager {
             if (type === 'iceCandidate') {
                 const { candidate, fromUID } = data
                 const peer = this.peers[fromUID]
-                console.log('ice peer', peer)
                 if (peer && candidate) {
-                    console.log('peer manager, ice candidate')
-                    await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
+                    await peer.conn
+                        .addIceCandidate(new RTCIceCandidate(candidate))
+                        .catch((err) => console.log(err))
                 }
             }
         })
@@ -86,15 +88,15 @@ export class PeerManager {
     private createPeer(uid: string, isInitiator: boolean) {
         const googleStuns = [
             'stun:stun.l.google.com:19302',
-            'stun:stun.l.google.com:5349',
-            'stun:stun1.l.google.com:3478',
-            'stun:stun1.l.google.com:5349',
-            'stun:stun2.l.google.com:19302',
-            'stun:stun2.l.google.com:5349',
-            'stun:stun3.l.google.com:3478',
-            'stun:stun3.l.google.com:5349',
-            'stun:stun4.l.google.com:19302',
-            'stun:stun4.l.google.com:5349',
+            // 'stun:stun.l.google.com:5349',
+            // 'stun:stun1.l.google.com:3478',
+            // 'stun:stun1.l.google.com:5349',
+            // 'stun:stun2.l.google.com:19302',
+            // 'stun:stun2.l.google.com:5349',
+            // 'stun:stun3.l.google.com:3478',
+            // 'stun:stun3.l.google.com:5349',
+            // 'stun:stun4.l.google.com:19302',
+            // 'stun:stun4.l.google.com:5349',
         ]
 
         const conn = new RTCPeerConnection({
@@ -127,6 +129,8 @@ export class PeerManager {
                         },
                     })
                 )
+            } else {
+                console.log('All ICE candidates have been sent')
             }
         }
 
@@ -135,6 +139,14 @@ export class PeerManager {
                 this.handlers.onDisconnect?.(uid)
                 delete this.peers[uid]
             }
+        }
+
+        conn.onsignalingstatechange = () => {
+            console.log(`[${uid}] Signaling state:`, conn.signalingState)
+        }
+
+        conn.oniceconnectionstatechange = () => {
+            console.log(`[${uid}] ICE state:`, conn.iceConnectionState)
         }
 
         return this.peers[uid]
