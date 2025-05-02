@@ -245,6 +245,7 @@ export class PeerManager {
     }
 
     public pingAll() {
+        const now = Date.now()
         for (const uid in this.peers) {
             console.log('pinging, ', uid)
             this.sendTo(uid, { type: 'ping', ts: Date.now() })
