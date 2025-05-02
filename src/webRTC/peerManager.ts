@@ -163,8 +163,8 @@ export class PeerManager {
 
         const conn = new RTCPeerConnection({
             iceServers: [
-                { urls: googleStuns },
                 { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
+                { urls: googleStuns },
             ],
         })
 
@@ -175,12 +175,13 @@ export class PeerManager {
             console.log('attempting to create data channel')
             const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
-        } else {
-            conn.ondatachannel = (event) => {
-                console.log('other user channel being set')
-                this.setupDataChannel(uid, event.channel)
-            }
         }
+        // else {
+        //     conn.ondatachannel = (event) => {
+        //         console.log('other user channel being set')
+        //         this.setupDataChannel(uid, event.channel)
+        //     }
+        // }
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
@@ -221,9 +222,9 @@ export class PeerManager {
             }
         }
 
-        // conn.ondatachannel = (event) => {
-        //     this.setupDataChannel(uid, event.channel)
-        // }
+        conn.ondatachannel = (event) => {
+            this.setupDataChannel(uid, event.channel)
+        }
 
         return this.peers[uid]
     }
@@ -256,7 +257,6 @@ export class PeerManager {
         }
 
         this.peers[uid].channel = channel
-        console.log('starting data channel', channel)
     }
 
     public sendTo(uid: string, data: any) {
