@@ -29,10 +29,8 @@ export class PeerManager {
                 const { callerId, offer: localDescription } = data
                 const peer = this.createPeer(callerId, false)
                 await peer.conn.setRemoteDescription(new RTCSessionDescription(localDescription))
-                console.log('peer manager, setting remote description')
                 const answer = await peer.conn.createAnswer()
                 await peer.conn.setLocalDescription(answer)
-                console.log('peer manager, setting local description')
 
                 // send call to websockets
                 this.signalingSocket.send(
@@ -53,11 +51,10 @@ export class PeerManager {
             }
 
             if (type === 'iceCandidate') {
-                console.log('peer manager, ice candidate')
                 const { candidate, fromUID } = data
                 const peer = this.peers[fromUID]
                 if (peer && candidate) {
-                    console.log('peer manager, ice candidate 2')
+                    console.log('peer manager, ice candidate')
                     await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
                 }
             }
@@ -83,15 +80,27 @@ export class PeerManager {
     }
 
     private createPeer(uid: string, isInitiator: boolean) {
+        const googleStuns = [
+            'stun:stun.l.google.com:19302',
+            'stun:stun.l.google.com:5349',
+            'stun:stun1.l.google.com:3478',
+            'stun:stun1.l.google.com:5349',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun2.l.google.com:5349',
+            'stun:stun3.l.google.com:3478',
+            'stun:stun3.l.google.com:5349',
+            'stun:stun4.l.google.com:19302',
+            'stun:stun4.l.google.com:5349',
+        ]
+
         const conn = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.1.google.com:19302' }],
+            iceServers: [{ urls: googleStuns }],
         })
 
         // Pre-fill so setupDataChannel has access
         this.peers[uid] = { conn, channel: null as any } // channel will be set later
 
         if (isInitiator) {
-            console.log('creating a peer')
             const channel = conn.createDataChannel('data')
             this.setupDataChannel(uid, channel)
         } else {
@@ -103,7 +112,6 @@ export class PeerManager {
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log('got a candidate')
                 this.signalingSocket.send(
                     JSON.stringify({
                         type: 'iceCandidate',
