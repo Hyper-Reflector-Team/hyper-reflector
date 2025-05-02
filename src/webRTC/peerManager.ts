@@ -89,16 +89,16 @@ export class PeerManager {
                                 )
                             )
                     }
-                    if (peer.pendingCandidates?.length) {
-                        for (const candidate of peer.pendingCandidates) {
-                            try {
-                                await peer.conn.addIceCandidate(candidate)
-                            } catch (err) {
-                                console.log('Error applying buffered candidate', err)
-                            }
-                        }
-                        peer.pendingCandidates = []
-                    }
+                    // if (peer.pendingCandidates?.length) {
+                    //     for (const candidate of peer.pendingCandidates) {
+                    //         try {
+                    //             await peer.conn.addIceCandidate(candidate)
+                    //         } catch (err) {
+                    //             console.log('Error applying buffered candidate', err)
+                    //         }
+                    //     }
+                    //     peer.pendingCandidates = []
+                    // }
                 }
             }
 
@@ -134,7 +134,7 @@ export class PeerManager {
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
         console.log('peer manager, calling users')
-        // if (this.peers[uid]) return
+        if (this.peers[uid]) return
         this.signalingSocket.send(
             JSON.stringify({
                 type: 'callUser',
