@@ -2,6 +2,7 @@ import keys from './private/keys'
 import './index.css'
 // Load the react application
 import './front-end/app'
+import { PeerManager } from './webRTC/peerManager'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -196,6 +197,34 @@ function connectWebSocket(user) {
     signalServerSocket.onerror = (error) => {
         console.error('WebSocket Error:', error)
     }
+
+    /// testing peer manager
+
+    const manager = new PeerManager(myUID, signalServerSocket, {
+        onData: (from, data) => {
+            console.log(`Received from ${from}:`, data)
+        },
+        onPing: (from, latency) => {
+            console.log(`Ping from ${from}: ${latency}ms`)
+        },
+        onDisconnect: (uid) => {
+            console.log(`${uid} disconnected`)
+        },
+    })
+
+    // // When new users join the lobby
+    // lobbyUsers.forEach((user) => {
+    //     if (user.uid !== myUID) {
+    //         manager.connectTo(user.uid)
+    //     }
+    // })
+
+    // Send message to all
+    manager.broadcast({ type: 'chat', text: 'Hello everyone!' })
+
+    // Ping everyone
+    manager.pingAll()
+    ///
 
     // handle matchmaking
     // handle send call to specific user

@@ -1,0 +1,164 @@
+type PeerEventHandlers = {
+    onData: (fromUID: string, data: any) => void
+    onDisconnect?: (uid: string) => void
+    onPing?: (uid: string, latencyMS: number) => void
+}
+
+export class PeerManager {
+    private peers: Record<string, { conn: RTCPeerConnection; channel: RTCDataChannel }> = {}
+    private localUID: string
+    private handlers: PeerEventHandlers
+    private signalingSocket: WebSocket
+
+    constructor(localUID: string, signalingSocket: WebSocket, handlers: PeerEventHandlers) {
+        this.localUID = localUID
+        this.signalingSocket = signalingSocket
+        this.handlers = handlers
+
+        this.setupSignalingHandlers()
+    }
+
+    private setupSignalingHandlers() {
+        this.signalingSocket.onmessage = async (e) => {
+            const msg = JSON.parse(e.data)
+            const { type, data } = msg
+
+            if (type === 'callUser') {
+                const { callerId, localDescription } = data
+                const peer = this.createPeer(callerId, false)
+                await peer.conn.setRemoteDescription(new RTCSessionDescription(localDescription))
+                const answer = await peer.conn.createAnswer()
+                await peer.conn.setLocalDescription(answer)
+
+                // send call to websockets
+                this.signalingSocket.send(
+                    JSON.stringify({
+                        type: 'answerCall',
+                        data: { answer, callerId, answererId: this.localUID },
+                    })
+                )
+            }
+
+            if (type === 'callAccepted') {
+                const { callerId, answer } = data
+                const peer = this.peers[callerId]
+                if (peer) {
+                    await peer.conn.setRemoteDescription(new RTCSessionDescription(answer))
+                }
+            }
+
+            if (type === 'iceCandidate') {
+                const { candidate, fromUID } = data
+                const peer = this.peers[fromUID]
+                if (peer && candidate) {
+                    await peer.conn.addIceCandidate(new RTCIceCandidate(candidate))
+                }
+            }
+        }
+    }
+
+    public async connectTo(uid: string) {
+        if (this.peers[uid]) return
+        const peer = this.createPeer(uid, true)
+        const offer = await peer.conn.createOffer()
+        await peer.conn.setLocalDescription(offer)
+
+        this.signalingSocket.send(
+            JSON.stringify({
+                type: 'callUser',
+                data: {
+                    callerId: this.localUID,
+                    calleeId: uid,
+                    localDescription: offer,
+                },
+            })
+        )
+    }
+
+    private createPeer(uid: string, isInitiator: boolean) {
+        const conn = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.1.google.com:19302' }],
+        })
+
+        let channel: RTCDataChannel
+
+        if (isInitiator) {
+            channel = conn.createDataChannel('data')
+            this.setupDataChannel(uid, channel)
+        } else {
+            conn.ondatachannel = (event) => {
+                this.setupDataChannel(uid, event.channel)
+            }
+        }
+
+        conn.onicecandidate = (event) => {
+            if (event.candidate) {
+                this.signalingSocket.send(
+                    JSON.stringify({
+                        type: 'iceCandidate',
+                        data: {
+                            fromUID: this.localUID,
+                            toUID: uid,
+                            candidate: event.candidate,
+                        },
+                    })
+                )
+            }
+        }
+
+        conn.onconnectionstatechange = () => {
+            if (conn.connectionState === 'disconnected' || conn.connectionState === 'failed') {
+                this.handlers.onDisconnect?.(uid)
+                delete this.peers[uid]
+            }
+        }
+
+        this.peers[uid] = { conn, channel: channel! } // what does this actually do
+        return this.peers[uid]
+    }
+
+    private setupDataChannel(uid: string, channel: RTCDataChannel) {
+        channel.onopen = () => console.log('data channel open with: ', uid)
+        channel.onmessage = (e) => {
+            const msg = JSON.parse(e.data)
+            if (msg.type === 'ping') {
+                const latency = Date.now() - msg.ts
+                this.handlers?.onPing?.(uid, latency)
+            } else {
+                this.handlers.onData(uid, msg)
+            }
+        }
+        // set the data channel for the peer
+        this.peers[uid].channel = channel
+    }
+
+    public sendTo(uid: string, data: any) {
+        const msg = JSON.stringify(data)
+        const channel = this.peers[uid]?.channel
+        if (channel?.readyState === 'open') {
+            channel.send(msg)
+        }
+    }
+
+    public broadcast(data: any) {
+        const msg = JSON.stringify(data)
+        for (const peer of Object.values(this.peers)) {
+            if (peer.channel.readyState === 'open') {
+                peer.channel.send(msg)
+            }
+        }
+    }
+
+    public pingAll() {
+        for (const uid in this.peers) {
+            this.sendTo(uid, { type: 'ping', ts: Date.now() })
+        }
+    }
+
+    public closeAll() {
+        for (const uid in this.peers) {
+            this.peers[uid].conn.close()
+            delete this.peers[uid]
+        }
+    }
+}
