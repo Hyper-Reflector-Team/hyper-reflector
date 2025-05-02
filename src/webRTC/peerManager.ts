@@ -80,7 +80,7 @@ export class PeerManager {
 
             if (type === 'iceCandidate') {
                 const { candidate, fromUID } = data
-                console.log(candidate, '   --- from ', fromUID)
+                // console.log(candidate, '   --- from ', fromUID)
                 const peer = this.peers[fromUID]
 
                 if (peer && candidate) {
@@ -133,7 +133,14 @@ export class PeerManager {
         ]
 
         const conn = new RTCPeerConnection({
-            iceServers: [{ urls: googleStuns }],
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: 'turn:relay1.expressturn.com:3478',
+                    username: 'efwe_user',
+                    credential: 'efwe_pass',
+                },
+            ],
         })
 
         // Pre-fill so setupDataChannel has access
@@ -152,7 +159,8 @@ export class PeerManager {
 
         conn.onicecandidate = (event) => {
             if (event.candidate) {
-                console.log(event.candidate, '   --- sending to ', uid)
+                console.log('Candidate Type:', event.candidate.candidate)
+                // console.log(event.candidate, '   --- sending to ', uid)
                 this.signalingSocket.send(
                     JSON.stringify({
                         type: 'iceCandidate',
@@ -186,11 +194,6 @@ export class PeerManager {
         conn.ondatachannel = (event) => {
             this.setupDataChannel(uid, event.channel)
         }
-
-        setInterval(() => {
-            console.log(`[${uid}] ConnectionState:`, conn.connectionState)
-            console.log(`[${uid}] ICE State:`, conn.iceConnectionState)
-        }, 1000)
 
         return this.peers[uid]
     }
