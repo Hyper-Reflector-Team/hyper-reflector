@@ -65,8 +65,8 @@ export class PeerManager {
         })
     }
 
+    // A
     public async connectTo(uid: string) {
-        if (this.peers[uid]) return
         const peer = this.createPeer(uid, true)
         const offer = await peer.conn.createOffer()
         await peer.conn.setLocalDescription(offer)
