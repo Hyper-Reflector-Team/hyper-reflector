@@ -76,7 +76,7 @@ export class PingManager {
                         type: 'webrtc-ping-candidate',
                         to: peerId,
                         from: this.localId,
-                        candidate: event.candidate,
+                        candidate: event.candidate.toJSON(),
                     })
                 )
             }
@@ -110,7 +110,9 @@ export class PingManager {
 
     // Called when a peer sends you an offer
     static async handleOffer(from: string, offer: RTCSessionDescriptionInit) {
-        const conn = new RTCPeerConnection()
+        const conn = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        })
         this.pendingConnections[from] = conn
 
         conn.onicecandidate = (event) => {
@@ -157,13 +159,6 @@ export class PingManager {
             await conn.setRemoteDescription(new RTCSessionDescription(answer))
         }
     }
-
-    // static async handleCandidate(from: string, candidate: RTCIceCandidateInit) {
-    //     const conn = this.pendingConnections[from]
-    //     if (conn) {
-    //         await conn.addIceCandidate(new RTCIceCandidate(candidate))
-    //     }
-    // }
 
     private static async handleCandidate(from: string, candidateData: any) {
         const conn = this.pendingConnections[from]
