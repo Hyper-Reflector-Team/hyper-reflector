@@ -1,4 +1,4 @@
-// utils/PingManager.ts
+import keys from '../private/keys'
 
 type PeerInfo = {
     uid: string
@@ -55,7 +55,14 @@ export class PingManager {
         console.log('attempting ping in pingPeer')
         this.activeCount++
         const conn = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
+                    username: 'turn',
+                    credential: 'turn',
+                },
+            ],
         })
         const channel = conn.createDataChannel('ping')
         console.log('created data channel', channel)
@@ -120,7 +127,14 @@ export class PingManager {
         }
 
         const conn = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                {
+                    urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
+                    username: 'turn',
+                    credential: 'turn',
+                },
+            ],
         })
         this.pendingConnections[from] = conn
 
@@ -135,6 +149,10 @@ export class PingManager {
                     })
                 )
             }
+        }
+
+        conn.oniceconnectionstatechange = () => {
+            console.log('ICE state:', conn.iceConnectionState)
         }
 
         conn.ondatachannel = (event) => {
