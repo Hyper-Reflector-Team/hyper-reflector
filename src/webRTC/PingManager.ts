@@ -53,7 +53,9 @@ export class PingManager {
 
     static async pingPeer(peerId: string) {
         this.activeCount++
-        const conn = new RTCPeerConnection()
+        const conn = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        })
         const channel = conn.createDataChannel('ping')
         const start = performance.now()
 
