@@ -4,6 +4,7 @@ import './index.css'
 import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
 import { PingManager } from './webRTC/PingManager'
+import { WebRTCPeer } from './webRTC/WebRTCPeer'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -84,7 +85,17 @@ function connectWebSocket(user) {
     }
 
     // test ping manager PingManager.init(socket, localId);
-    const pingManager = PingManager.init(signalServerSocket, myUID)
+    // const pingManager = PingManager.init(signalServerSocket, myUID)
+    const iceServers = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
+        {
+            urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
+            username: 'turn',
+            credential: 'turn',
+        },
+    ]
+    const webrtc = new WebRTCPeer(signalServerSocket, iceServers)
     /// testing peer manager
 
     // const manager = new PeerManager(myUID, signalServerSocket, {
@@ -176,11 +187,12 @@ function connectWebSocket(user) {
             console.log('testing connetion')
             if (data.users.length) {
                 console.log(data.users)
-                PingManager.addPeers(data.users)
+                // PingManager.addPeers(data.users)
                 // The timing issue is here.
                 data.users.forEach((user) => {
                     if (user.uid !== myUID) {
                         // manager.connectTo(user.uid)
+                        webrtc.connect(user.uid)
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
