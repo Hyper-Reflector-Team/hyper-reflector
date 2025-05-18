@@ -86,6 +86,25 @@ export async function startCall(
     )
 }
 
+export async function asnwerCall(
+    peerConnection: RTCPeerConnection,
+    signalingSocket: WebSocket,
+    to: string,
+    from: string
+) {
+    createDataChannel(peerConnection, to, from)
+    const answer = await peerConnection.createAnswer()
+    await peerConnection.setLocalDescription(offer)
+    signalingSocket.send(
+        JSON.stringify({
+            type: 'webrtc-ping-offer',
+            to,
+            from,
+            offer,
+        })
+    )
+}
+
 function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
     console.log('attempting data channel')
     dataChannels[0].channel = peerConnection.createDataChannel('ping', { reliable: true })

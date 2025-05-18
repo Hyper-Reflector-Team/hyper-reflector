@@ -230,7 +230,7 @@ function connectWebSocket(user) {
         }
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
-            peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
+            peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
             const answer = await peerConnection.createAnswer()
             await peerConnection.setLocalDescription(answer)
