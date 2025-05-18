@@ -210,6 +210,12 @@ export class PingManager {
 
     static async handleAnswer(from: string, answer: RTCSessionDescriptionInit) {
         const conn = this.pendingConnections[from]
+        // make sure we don't get answer twice
+        if (conn.remoteDescription && conn.remoteDescription.type === 'answer') {
+            console.warn('Already have remote answer, skipping duplicate.')
+            return
+        }
+
         if (conn) {
             console.log(conn.signalingState)
             // Only apply if we are in the right state to receive an answer
@@ -218,6 +224,15 @@ export class PingManager {
                 conn.signalingState === 'have-local-offer'
             ) {
                 await conn.setRemoteDescription(new RTCSessionDescription(answer))
+
+                // Apply any queued candidates
+                const queued = this.pendingCandidates[from] || []
+                for (const cand of queued) {
+                    await conn.addIceCandidate(cand).catch((err) => {
+                        console.warn('Failed to apply queued ICE candidate:', err)
+                    })
+                }
+                delete this.pendingCandidates[from]
             } else {
                 console.warn(`Cannot set remote answer SDP in state: ${conn.signalingState}`)
             }
