@@ -26,11 +26,14 @@ export class PingManager {
         socket.addEventListener('message', (event) => {
             const msg = JSON.parse(event.data)
             if (msg.type === 'webrtc-ping-offer') {
+                console.log('got an offer, ', msg.from)
                 this.handleOffer(msg.from, msg.offer)
             } else if (msg.type === 'webrtc-ping-answer') {
+                console.log('got an answer from, ', msg.from)
                 this.handleAnswer(msg.from, msg.answer)
             } else if (msg.type === 'webrtc-ping-candidate') {
                 this.handleCandidate(msg.from, msg.candidate)
+                console.log('got an ice candidate, ', msg.from)
             }
         })
     }
