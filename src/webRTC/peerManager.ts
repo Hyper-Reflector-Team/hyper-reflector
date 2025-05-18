@@ -128,7 +128,6 @@ export class PeerManager {
         })
     }
 
-    // A
     public async connectTo(uid: string) {
         if (this.peers[uid]) return
         console.log('peer manager, calling users')

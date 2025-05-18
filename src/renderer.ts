@@ -3,6 +3,7 @@ import './index.css'
 // Load the react application
 import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
+import { PingManager } from './webRTC/PingManager'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -12,8 +13,8 @@ let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
 
-// const SOCKET_ADDRESS = `ws://127.0.0.1:3001` // debug
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
+// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
 function resetState() {
     candidateList = []
@@ -82,6 +83,8 @@ function connectWebSocket(user) {
         console.error('WebSocket Error:', error)
     }
 
+    // test ping manager PingManager.init(socket, localId);
+    const pingManager = PingManager.init(signalServerSocket, myUID)
     /// testing peer manager
 
     const manager = new PeerManager(myUID, signalServerSocket, {
@@ -169,8 +172,12 @@ function connectWebSocket(user) {
     signalServerSocket.onmessage = async (message) => {
         const data = await convertBlob(message).then((res) => res)
         if (data.type === 'connected-users') {
+            console.log('data from websocket server', data)
+            console.log('testing connetion')
             if (data.users.length) {
                 console.log(data.users)
+                PingManager.addPeers(data.users)
+                // The timing issue is here.
                 data.users.forEach((user) => {
                     if (user.uid !== myUID) {
                         manager.connectTo(user.uid)
