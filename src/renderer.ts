@@ -86,7 +86,7 @@ function connectWebSocket(user) {
     }
 
     // should make this into a setter and getter
-    let peerConnection
+    let peerConnection: RTCPeerConnection
 
     // test ping manager PingManager.init(socket, localId);
     // const pingManager = PingManager.init(signalServerSocket, myUID)
@@ -184,9 +184,9 @@ function connectWebSocket(user) {
                 console.log(data.users)
                 // PingManager.addPeers(data.users)
                 // The timing issue is here.
-                data.users.forEach((user) => {
+                data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
-                        peerConnection = initWebRTC(myUID, user.uid, signalServerSocket)
+                        peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                         startCall(peerConnection, signalServerSocket, user.uid, myUID)
                     }
                 })
@@ -228,6 +228,7 @@ function connectWebSocket(user) {
         }
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
+            peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
             const answer = await peerConnection.createAnswer()
             await peerConnection.setLocalDescription(answer)
@@ -244,10 +245,18 @@ function connectWebSocket(user) {
             console.log('hey we got offer')
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+            } catch (error) {
+                console.warn(error)
+            }
         } else if (data.type === 'webrtc-ping-candidate') {
             console.log('hey we got candidate ', data)
-            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
+            } catch (error) {
+                console.warn(error)
+            }
         }
     }
 }

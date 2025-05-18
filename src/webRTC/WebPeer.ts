@@ -13,11 +13,11 @@ const iceServers = [
 var clients = []
 var dataChannels: { to: string; from: string; channel: RTCDataChannel }[] = []
 
-export function initWebRTC(
+export async function initWebRTC(
     myUID: string,
     toUID: string,
     signalingSocket: WebSocket
-): RTCPeerConnection {
+): Promise<RTCPeerConnection> {
     let dataChannel
     const peer = new RTCPeerConnection({
         iceServers: [
