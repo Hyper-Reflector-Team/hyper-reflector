@@ -57,6 +57,7 @@ export class PingManager {
         const conn = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
+                { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
                 {
                     urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
                     username: 'turn',
@@ -129,6 +130,7 @@ export class PingManager {
         const conn = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
+                { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
                 {
                     urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
                     username: 'turn',
