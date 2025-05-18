@@ -64,6 +64,7 @@ export class PingManager {
                     credential: 'turn',
                 },
             ],
+            iceTransportPolicy: 'relay',
         })
         const channel = conn.createDataChannel('ping')
         console.log('created data channel', channel)
@@ -137,6 +138,7 @@ export class PingManager {
                     credential: 'turn',
                 },
             ],
+            iceTransportPolicy: 'relay',
         })
         this.pendingConnections[from] = conn
 
