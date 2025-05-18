@@ -104,6 +104,10 @@ export class PingManager {
             this.processQueue()
         }
 
+        channel.onerror = (e) => {
+            console.error('Data channel error', e)
+        }
+
         const offer = await conn.createOffer()
         await conn.setLocalDescription(offer)
 
@@ -159,6 +163,10 @@ export class PingManager {
             console.log('ICE state:', conn.iceConnectionState)
         }
 
+        conn.onconnectionstatechange = () => {
+            console.log('Peer connection state:', conn.connectionState)
+        }
+
         conn.ondatachannel = (event) => {
             console.log('data init')
             const start = performance.now()
@@ -169,6 +177,10 @@ export class PingManager {
                 const rtt = Math.round(performance.now() - start)
                 this.pingResults[from] = rtt
                 conn.close()
+            }
+
+            channel.onerror = (e) => {
+                console.error('Data channel error', e)
             }
         }
 
