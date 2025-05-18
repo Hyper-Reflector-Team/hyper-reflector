@@ -95,7 +95,7 @@ function connectWebSocket(user) {
             credential: 'turn',
         },
     ]
-    const webrtc = new WebRTCPeer(signalServerSocket, iceServers)
+    const webrtc = new WebRTCPeer(signalServerSocket, iceServers, myUID)
     /// testing peer manager
 
     // const manager = new PeerManager(myUID, signalServerSocket, {

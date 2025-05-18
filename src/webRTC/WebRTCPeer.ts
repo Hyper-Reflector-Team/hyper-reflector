@@ -1,34 +1,49 @@
 export class WebRTCPeer {
-    constructor(signalingServer, iceServers) {
+    constructor(signalingServer, iceServers, localId) {
         this.signalingServer = signalingServer
         this.iceServers = iceServers
         this.localPeerConnection = null
         this.dataChannel = null
-        this.localId = Math.random().toString(36).substring(2, 15) // Simple local ID
+        this.localId = localId // Simple local ID
         this.onDataChannelOpen = null
         this.onDataChannelMessage = null
         this.onIceCandidate = null
         this.onRemoteHangup = null
 
-        this.signalingServer.onmessage = async (event) => {
-            try {
-                const message = JSON.parse(event.data)
-                console.log('Received signaling message:', message)
-                switch (message.type) {
-                    case 'webrtc-ping-offer':
-                        this._handleOffer(message)
-                        break
-                    case 'webrtc-ping-answer':
-                        this._handleAnswer(message)
-                        break
-                    case 'webrtc-ping-candidate':
-                        this._handleCandidate(message)
-                        break
-                }
-            } catch (error) {
-                console.error('Error processing signaling message:', error)
+        this.signalingServer.addEventListener('message', (event) => {
+            const msg = JSON.parse(event.data)
+            if (msg.type === 'webrtc-ping-offer') {
+                console.log('got an offer, ', msg.from)
+                this._handleOffer(msg)
+            } else if (msg.type === 'webrtc-ping-answer') {
+                console.log('got an answer from, ', msg.from)
+                this._handleAnswer(msg)
+            } else if (msg.type === 'webrtc-ping-candidate') {
+                this._handleCandidate(msg)
+                console.log('got an ice candidate, ', msg.from)
             }
-        }
+        })
+        // this.signalingServer.onmessage = async (event) => {
+        //     try {
+        //         const message = JSON.parse(event.data)
+        //         console.log('Received signaling message:', message)
+        //         switch (message.type) {
+        //             case 'webrtc-ping-offer':
+        //                 console.log('offer get')
+        //                 this._handleOffer(message)
+        //                 break
+        //             case 'webrtc-ping-answer':
+        //                 console.log('answer get')
+        //                 this._handleAnswer(message)
+        //                 break
+        //             case 'webrtc-ping-candidate':
+        //                 this._handleCandidate(message)
+        //                 break
+        //         }
+        //     } catch (error) {
+        //         console.error('Error processing signaling message:', error)
+        //     }
+        // }
     }
 
     async connect(remotePeerId) {
