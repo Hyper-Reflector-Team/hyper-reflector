@@ -37,7 +37,7 @@ export class PingManager {
 
     static addPeers(peers: PeerInfo[]) {
         console.log('ping manager adding peers')
-        this.queue.push(...peers.filter((p) => p.id !== this.localId))
+        this.queue.push(...peers.filter((p) => p.uid !== this.localId))
         this.processQueue()
     }
 
@@ -163,7 +163,7 @@ export class PingManager {
     //     }
     // }
 
-    private static handleCandidate(from: string, candidateData: any) {
+    private static async handleCandidate(from: string, candidateData: any) {
         const conn = this.pendingConnections[from]
         if (!conn) return
 
@@ -182,12 +182,26 @@ export class PingManager {
             sdpMLineIndex: candidateData.sdpMLineIndex,
         })
 
-        conn.addIceCandidate(candidate).catch((err) => {
-            console.warn('Failed to add ICE candidate:', err)
-        })
+        if (!conn.remoteDescription || !conn.remoteDescription.type) {
+            // Queue candidate
+            if (!this.pendingCandidates[from]) {
+                this.pendingCandidates[from] = []
+            }
+            this.pendingCandidates[from].push(candidate)
+            return
+        }
+        // After setting remote description...
+        const queued = this.pendingCandidates[from] || []
+        for (const cand of queued) {
+            await conn.addIceCandidate(cand).catch((err) => {
+                console.warn('Failed to apply queued ICE candidate:', err)
+            })
+        }
+        delete this.pendingCandidates[from]
     }
 
     static pendingConnections: Record<string, RTCPeerConnection> = {}
+    static pendingCandidates: Record<string, RTCIceCandidate[]> = {}
 
     static getPingResult(peerId: string): number | null {
         return this.pingResults[peerId] ?? null
