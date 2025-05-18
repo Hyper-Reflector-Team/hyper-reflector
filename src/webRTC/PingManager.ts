@@ -52,11 +52,13 @@ export class PingManager {
     }
 
     static async pingPeer(peerId: string) {
+        console.log('attempting ping in pingPeer')
         this.activeCount++
         const conn = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         })
         const channel = conn.createDataChannel('ping')
+        console.log('created data channel', channel)
         const start = performance.now()
 
         let timeout = setTimeout(() => {
@@ -83,6 +85,7 @@ export class PingManager {
         }
 
         channel.onopen = () => {
+            console.log('data channel trying to open?')
             const rtt = Math.round(performance.now() - start)
             this.pingResults[peerId] = rtt
             console.log(rtt)
@@ -110,6 +113,12 @@ export class PingManager {
 
     // Called when a peer sends you an offer
     static async handleOffer(from: string, offer: RTCSessionDescriptionInit) {
+        if (this.pendingConnections[from]) {
+            console.warn(`Already have connection from ${from}, closing old one`)
+            this.pendingConnections[from].close()
+            delete this.pendingConnections[from]
+        }
+
         const conn = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         })
@@ -129,10 +138,12 @@ export class PingManager {
         }
 
         conn.ondatachannel = (event) => {
+            console.log('data init')
             const start = performance.now()
             const channel = event.channel
 
             channel.onopen = () => {
+                console.log('data channel open')
                 const rtt = Math.round(performance.now() - start)
                 this.pingResults[from] = rtt
                 conn.close()
@@ -158,7 +169,10 @@ export class PingManager {
         if (conn) {
             console.log(conn.signalingState)
             // Only apply if we are in the right state to receive an answer
-            if (conn.signalingState === 'have-local-offer') {
+            if (
+                conn.signalingState === 'have-remote-offer' ||
+                conn.signalingState === 'have-local-offer'
+            ) {
                 await conn.setRemoteDescription(new RTCSessionDescription(answer))
             } else {
                 console.warn(`Cannot set remote answer SDP in state: ${conn.signalingState}`)
