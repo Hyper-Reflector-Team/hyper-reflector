@@ -93,6 +93,14 @@ export class PingManager {
             }
         }
 
+        conn.oniceconnectionstatechange = () => {
+            console.log(`[${peerId}] ICE state:`, conn.iceConnectionState)
+        }
+
+        conn.onconnectionstatechange = () => {
+            console.log(`[${peerId}] Connection state:`, conn.connectionState)
+        }
+
         channel.onopen = () => {
             console.log('data channel trying to open?')
             const rtt = Math.round(performance.now() - start)
@@ -160,13 +168,12 @@ export class PingManager {
         }
 
         conn.oniceconnectionstatechange = () => {
-            console.log('ICE state:', conn.iceConnectionState)
+            console.log(`[${from}] ICE state:`, conn.iceConnectionState)
         }
 
         conn.onconnectionstatechange = () => {
-            console.log('Peer connection state:', conn.connectionState)
+            console.log(`[${from}] Connection state:`, conn.connectionState)
         }
-
         conn.ondatachannel = (event) => {
             console.log('data init')
             const start = performance.now()
