@@ -87,28 +87,28 @@ function connectWebSocket(user) {
     const pingManager = PingManager.init(signalServerSocket, myUID)
     /// testing peer manager
 
-    const manager = new PeerManager(myUID, signalServerSocket, {
-        onData: (from, data) => {
-            console.log(`Received from ${from}:`, data)
-        },
-        onPing: (from, latency) => {
-            console.log(`Ping from ${from}: ${latency}ms`)
-        },
-        onDisconnect: (uid) => {
-            console.log(`${uid} disconnected`)
-        },
-    })
+    // const manager = new PeerManager(myUID, signalServerSocket, {
+    //     onData: (from, data) => {
+    //         console.log(`Received from ${from}:`, data)
+    //     },
+    //     onPing: (from, latency) => {
+    //         console.log(`Ping from ${from}: ${latency}ms`)
+    //     },
+    //     onDisconnect: (uid) => {
+    //         console.log(`${uid} disconnected`)
+    //     },
+    // })
     ///
 
     // allow users to chat
     window.api.on('sendMessage', (messageObject: { text: string; user: any }) => {
         // Send message to all
-        manager.broadcast({ type: 'chat', text: 'Hello everyone!' })
+        // manager.broadcast({ type: 'chat', text: 'Hello everyone!' })
 
-        // Ping everyone
-        manager.pingAll()
-        manager.pingRoundTrip()
-        manager.debugPeers()
+        // // Ping everyone
+        // manager.pingAll()
+        // manager.pingRoundTrip()
+        // manager.debugPeers()
         // sends a message over to another user
         // probably need more validation
         if (messageObject.text.length) {
@@ -180,7 +180,7 @@ function connectWebSocket(user) {
                 // The timing issue is here.
                 data.users.forEach((user) => {
                     if (user.uid !== myUID) {
-                        manager.connectTo(user.uid)
+                        // manager.connectTo(user.uid)
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
@@ -191,7 +191,7 @@ function connectWebSocket(user) {
             // Here we want to close the Peer connection if a user leaves if the connection already exists.
             // closePeerConnection(data.userUID)
             console.log('user DCed from socket server')
-            manager.closeByID(data.userUID)
+            // manager.closeByID(data.userUID)
         }
 
         if (data.type === 'lobby-user-counts') {
