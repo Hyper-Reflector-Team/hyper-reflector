@@ -235,14 +235,12 @@ function connectWebSocket(user) {
             const answer = await peerConnection.createAnswer()
             await peerConnection.setLocalDescription(answer)
             signalServerSocket.send(
-                JSON.stringify(
-                    JSON.stringify({
-                        type: 'webrtc-ping-answer',
-                        to: data.from,
-                        from: myUID,
-                        answer,
-                    })
-                )
+                JSON.stringify({
+                    type: 'webrtc-ping-answer',
+                    to: data.from,
+                    from: myUID,
+                    answer,
+                })
             )
             console.log('hey we got offer')
             // flush candidates
