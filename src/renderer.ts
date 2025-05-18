@@ -66,6 +66,9 @@ window.api.on('loggedOutSuccess', async (user) => {
 //     }
 // })
 
+const pendingCandidates: { [uid: string]: RTCIceCandidate[] } = {}
+let peerConnection: RTCPeerConnection
+
 function connectWebSocket(user) {
     if (signalServerSocket) return // Prevent duplicate ws connections from same client
     // signalServerSocket = new WebSocket(`ws://127.0.0.1:3000`) // for testing server
@@ -86,7 +89,6 @@ function connectWebSocket(user) {
     }
 
     // should make this into a setter and getter
-    let peerConnection: RTCPeerConnection
 
     // test ping manager PingManager.init(socket, localId);
     // const pingManager = PingManager.init(signalServerSocket, myUID)
@@ -243,6 +245,18 @@ function connectWebSocket(user) {
                 )
             )
             console.log('hey we got offer')
+            // flush candidates
+            if (pendingCandidates[data.from]) {
+                for (const candidate of pendingCandidates[data.from]) {
+                    try {
+                        await peerConnection.addIceCandidate(candidate)
+                        console.log('Buffered candidate added.')
+                    } catch (error) {
+                        console.warn('Failed to add buffered candidate:', error)
+                    }
+                }
+                delete pendingCandidates[data.from]
+            }
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')
             try {
@@ -250,12 +264,33 @@ function connectWebSocket(user) {
             } catch (error) {
                 console.warn(error)
             }
+            // flush candidates
+            if (pendingCandidates[data.from]) {
+                for (const candidate of pendingCandidates[data.from]) {
+                    try {
+                        await peerConnection.addIceCandidate(candidate)
+                        console.log('Buffered candidate added.')
+                    } catch (error) {
+                        console.warn('Failed to add buffered candidate:', error)
+                    }
+                }
+                delete pendingCandidates[data.from]
+            }
         } else if (data.type === 'webrtc-ping-candidate') {
-            console.log('hey we got candidate ', data)
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
-            } catch (error) {
-                console.warn(error)
+            const candidate = new RTCIceCandidate(data.candidate)
+            console.log('Received ICE candidate:', candidate)
+
+            if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                try {
+                    await peerConnection.addIceCandidate(candidate)
+                    console.log('ICE candidate added immediately.')
+                } catch (error) {
+                    console.warn('Failed to add ICE candidate:', error)
+                }
+            } else {
+                console.log('Remote description not set yet, buffering candidate...')
+                if (!pendingCandidates[data.from]) pendingCandidates[data.from] = []
+                pendingCandidates[data.from].push(candidate)
             }
         }
     }
