@@ -3,11 +3,12 @@ import keys from '../private/keys' // for stun server
 const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
-    {
-        urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
-        username: 'turn',
-        credential: 'turn',
-    },
+    // {
+    //     urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}?transport=udp`],
+    //     username: 'turn',
+    //     credential: 'turn',
+    //     credentialType: 'password',
+    // },
 ]
 
 var clients = []
@@ -20,16 +21,8 @@ export async function initWebRTC(
 ): Promise<RTCPeerConnection> {
     let dataChannel
     const peer = new RTCPeerConnection({
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
-            {
-                urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
-                username: 'turn',
-                credential: 'turn',
-            },
-        ],
-        iceTransportPolicy: 'relay',
+        iceServers,
+        //iceTransportPolicy: 'relay',
     })
 
     peer.ondatachannel = (event) => {
@@ -63,6 +56,13 @@ export async function initWebRTC(
         }
     }
 
+    peer.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', peer.iceConnectionState)
+        if (peer.iceConnectionState === 'connected') {
+            console.log('🎉 Peer connection established!')
+        }
+    }
+
     dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
     return peer
 }
@@ -75,25 +75,6 @@ export async function startCall(
 ) {
     createDataChannel(peerConnection, to, from)
     const offer = await peerConnection.createOffer()
-    await peerConnection.setLocalDescription(offer)
-    signalingSocket.send(
-        JSON.stringify({
-            type: 'webrtc-ping-offer',
-            to,
-            from,
-            offer,
-        })
-    )
-}
-
-export async function asnwerCall(
-    peerConnection: RTCPeerConnection,
-    signalingSocket: WebSocket,
-    to: string,
-    from: string
-) {
-    createDataChannel(peerConnection, to, from)
-    const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(offer)
     signalingSocket.send(
         JSON.stringify({
