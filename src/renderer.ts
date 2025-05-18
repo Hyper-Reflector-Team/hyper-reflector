@@ -5,6 +5,7 @@ import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
 import { PingManager } from './webRTC/PingManager'
 import { WebRTCPeer } from './webRTC/WebRTCPeer'
+import { initWebRTC, startCall } from './webRTC/WebPeer'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -84,18 +85,12 @@ function connectWebSocket(user) {
         console.error('WebSocket Error:', error)
     }
 
+    // should make this into a setter and getter
+    let peerConnection
+
     // test ping manager PingManager.init(socket, localId);
     // const pingManager = PingManager.init(signalServerSocket, myUID)
-    const iceServers = [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: `stun:${keys.COTURN_IP}:${keys.COTURN_PORT}` },
-        {
-            urls: [`turn:${keys.COTURN_IP}:${keys.COTURN_PORT}`],
-            username: 'turn',
-            credential: 'turn',
-        },
-    ]
-    const webrtc = new WebRTCPeer(signalServerSocket, iceServers, myUID)
+
     /// testing peer manager
 
     // const manager = new PeerManager(myUID, signalServerSocket, {
@@ -191,8 +186,8 @@ function connectWebSocket(user) {
                 // The timing issue is here.
                 data.users.forEach((user) => {
                     if (user.uid !== myUID) {
-                        // manager.connectTo(user.uid)
-                        webrtc.connect(user.uid)
+                        peerConnection = initWebRTC(myUID, user.uid, signalServerSocket)
+                        startCall(peerConnection, signalServerSocket, user.uid, myUID)
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
@@ -230,6 +225,29 @@ function connectWebSocket(user) {
         if (data.type === 'callDeclined') {
             // closePeerConnection(data.data.answererId)
             window.api.callDeclined(data.data.answererId)
+        }
+        // new web rtc
+        if (data.type === 'webrtc-ping-offer') {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+            const answer = await peerConnection.createAnswer()
+            await peerConnection.setLocalDescription(answer)
+            signalServerSocket.send(
+                JSON.stringify(
+                    JSON.stringify({
+                        type: 'webrtc-ping-answer',
+                        to: data.from,
+                        from: myUID,
+                        answer,
+                    })
+                )
+            )
+            console.log('hey we got offer')
+        } else if (data.type === 'webrtc-ping-answer') {
+            console.log('hey we got answer')
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+        } else if (data.type === 'webrtc-ping-candidate') {
+            console.log('hey we got candidate ', data)
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate))
         }
     }
 }
