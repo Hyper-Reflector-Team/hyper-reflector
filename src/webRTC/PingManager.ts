@@ -156,7 +156,13 @@ export class PingManager {
     static async handleAnswer(from: string, answer: RTCSessionDescriptionInit) {
         const conn = this.pendingConnections[from]
         if (conn) {
-            await conn.setRemoteDescription(new RTCSessionDescription(answer))
+            console.log(conn.signalingState)
+            // Only apply if we are in the right state to receive an answer
+            if (conn.signalingState === 'have-local-offer') {
+                await conn.setRemoteDescription(new RTCSessionDescription(answer))
+            } else {
+                console.warn(`Cannot set remote answer SDP in state: ${conn.signalingState}`)
+            }
         }
     }
 
