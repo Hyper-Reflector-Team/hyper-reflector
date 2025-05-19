@@ -96,7 +96,6 @@ export async function answerCall(
     from: string
 ) {
     console.log('answering call')
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
     const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
     signalingSocket.send(
