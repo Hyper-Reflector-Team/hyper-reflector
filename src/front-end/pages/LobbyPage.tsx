@@ -251,7 +251,7 @@ export default function LobbyPage() {
                 <Dialog.Root open={open}>
                     {currentLobbiesState.map((lobby, index) => {
                         return (
-                            <Dialog.Trigger asChild>
+                            <Dialog.Trigger asChild key={index}>
                                 <Button
                                     display={'flex'}
                                     disabled={currentLobbyState.name === lobby.name}
