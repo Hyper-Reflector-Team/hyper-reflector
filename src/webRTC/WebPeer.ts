@@ -134,9 +134,11 @@ export function webCheckData(peerConnection: RTCPeerConnection) {
     console.log('ice connection state', peerConnection.iceConnectionState)
     console.log('remote state', peerConnection.currentRemoteDescription)
     console.log('local state', peerConnection.currentLocalDescription)
-    console.log('data channel id? ', dataChannels[0].channel.id)
-    console.log('data channel is ready? ', dataChannels[0].channel.readyState)
-    console.log('data channels ', dataChannels)
+    if (dataChannels.length) {
+        console.log('data channel id? ', dataChannels[0]?.channel?.id || 'no id')
+        console.log('data channel is ready? ', dataChannels[0]?.channel?.readyState || 'no channel')
+        console.log('data channels ', dataChannels)
+    }
     console.log('peer connections ', peerConnection)
 }
 

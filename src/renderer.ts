@@ -188,7 +188,9 @@ function connectWebSocket(user) {
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
+                        console.log(user)
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
+                        console.log('pre call stat', webCheckData(peerConnection))
                         if (peerConnection.signalingState !== 'have-local-offer') {
                             console.log(user, myUID)
                             // only call once
