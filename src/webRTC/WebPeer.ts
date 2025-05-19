@@ -117,42 +117,78 @@ export async function answerCall(
     )
 }
 
+// async function addDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
+//     // TODO remove duplication here.
+//     if (!dataChannels.find((channel) => channel.to === to)) {
+//         console.log('hey opening here1')
+//         const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
+//         channel.onopen = (event) => {
+//             channel.send('Hi!')
+//         }
+//         channel.onmessage = (event) => {
+//             console.log('data message --------------------------------------------> ', event.data)
+//         }
+//         dataChannels.push({ to, from, channel })
+//     } else {
+//         console.log('hey opening here2')
+//         const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
+//         channel.onopen = (event) => {
+//             channel.send('Hi!')
+//         }
+//         channel.onmessage = (event) => {
+//             console.log('data message --------------------------------------------> ', event.data)
+//         }
+//         await dataChannels.filter((channel) => channel.to !== to)
+//         dataChannels.push({ to, from, channel })
+//     }
+// }
+
 async function addDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-    if (!dataChannels.find((channel) => channel.to === to)) {
-        const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
-        channel.onopen = (event) => {
-            channel.send('Hi!')
-        }
-        channel.onmessage = (event) => {
-            console.log('data message --------------------------------------------> ', event.data)
-        }
-        await dataChannels.filter((channel) => channel.to !== to)
-        dataChannels.push({ to, from, channel })
+    // Remove any existing channel to this user (optional depending on your intent)
+    dataChannels = dataChannels.filter((entry) => entry.to !== to)
+
+    const channel = peerConnection.createDataChannel('chat', {
+        negotiated: true,
+        id: 0, // Make sure this ID is unique per connection if needed
+    })
+
+    channel.onopen = () => {
+        console.log('Data channel opened to', to)
+        channel.send('Hi!')
     }
+
+    channel.onmessage = (event) => {
+        console.log('Data message from', to, '=>', event.data)
+    }
+
+    dataChannels.push({ to, from, channel })
 }
 
 export function webCheckData(peerConnection: RTCPeerConnection) {
-    if (peerConnection) {
-        console.log('signalling state', peerConnection.signalingState)
-        console.log('ice gathering state', peerConnection.iceGatheringState)
-        console.log('ice connection state', peerConnection.iceConnectionState)
-        console.log('remote state', peerConnection.currentRemoteDescription)
-        console.log('local state', peerConnection.currentLocalDescription)
-        if (dataChannels && dataChannels.length) {
-            console.log('data channel id? ', dataChannels[0]?.channel?.id || 'no id')
-            console.log(
-                'data channel is ready? ',
-                dataChannels[0]?.channel?.readyState || 'no channel'
-            )
-            console.log('data channels ', dataChannels)
-        }
-        console.log('peer connections ', peerConnection)
-    }
+    // This is for debug purposes
+    // if (peerConnection) {
+    //     console.log('signalling state', peerConnection.signalingState)
+    //     console.log('ice gathering state', peerConnection.iceGatheringState)
+    //     console.log('ice connection state', peerConnection.iceConnectionState)
+    //     console.log('remote state', peerConnection.currentRemoteDescription)
+    //     console.log('local state', peerConnection.currentLocalDescription)
+    //     if (dataChannels && dataChannels.length) {
+    //         console.log('data channel id? ', dataChannels[0]?.channel?.id || 'no id')
+    //         console.log(
+    //             'data channel is ready? ',
+    //             dataChannels[0]?.channel?.readyState || 'no channel'
+    //         )
+    //         console.log('data channels ', dataChannels)
+    //     }
+    //     console.log('peer connections ', peerConnection)
+    // }
 }
 
 export function sendDataChannelMessage(message: string) {
+    console.log('attempting to send a data channel message', dataChannels)
     if (dataChannels.length && dataChannels[0]?.channel?.readyState === 'open') {
-        dataChannels[0]?.channel?.send(message)
+        console.log('sending message along')
+        dataChannels[0].channel.send(message)
     } else {
         console.log('no channel to send on, state: ', dataChannels[0]?.channel || 'null channel')
     }
