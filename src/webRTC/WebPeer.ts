@@ -73,22 +73,49 @@ export async function startCall(
     to: string,
     from: string
 ) {
-    createDataChannel(peerConnection, to, from)
-    const offer = await peerConnection.createOffer()
-    await peerConnection.setLocalDescription(offer)
+    console.log('starting call')
+    if (peerConnection) {
+        createDataChannel(peerConnection, to, from)
+        const offer = await peerConnection.createOffer()
+        await peerConnection.setLocalDescription(offer)
+        signalingSocket.send(
+            JSON.stringify({
+                type: 'webrtc-ping-offer',
+                to,
+                from,
+                offer,
+            })
+        )
+    }
+}
+
+export async function answerCall(
+    peerConnection: RTCPeerConnection,
+    signalingSocket: WebSocket,
+    to: string,
+    from: string
+) {
+    console.log('answering call')
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+    const answer = await peerConnection.createAnswer()
+    await peerConnection.setLocalDescription(answer)
     signalingSocket.send(
         JSON.stringify({
-            type: 'webrtc-ping-offer',
+            type: 'webrtc-ping-answer',
             to,
             from,
-            offer,
+            answer,
         })
     )
 }
 
 function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
     console.log('attempting data channel')
-    dataChannels[0].channel = peerConnection.createDataChannel('ping', { reliable: true })
-    dataChannels[0].channel.onopen = () => console.log('Data Channel Open!')
-    dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
+    if (dataChannels.length) {
+        dataChannels[0].channel = peerConnection.createDataChannel('ping', { reliable: true })
+        dataChannels[0].channel.onopen = () => console.log('Data Channel Open!')
+        dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
+    } else {
+        console.log('no channel')
+    }
 }

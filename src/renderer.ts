@@ -5,7 +5,7 @@ import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
 import { PingManager } from './webRTC/PingManager'
 import { WebRTCPeer } from './webRTC/WebRTCPeer'
-import { initWebRTC, startCall } from './webRTC/WebPeer'
+import { answerCall, initWebRTC, startCall } from './webRTC/WebPeer'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -189,7 +189,6 @@ function connectWebSocket(user) {
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
-                        startCall(peerConnection, signalServerSocket, user.uid, myUID)
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
@@ -222,6 +221,7 @@ function connectWebSocket(user) {
 
         if (data.type === 'getRoomMessage') {
             window.api.sendRoomMessage(data)
+            startCall(peerConnection, signalServerSocket, user.uid, myUID)
         }
 
         if (data.type === 'callDeclined') {
@@ -231,17 +231,7 @@ function connectWebSocket(user) {
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
             peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
-            const answer = await peerConnection.createAnswer()
-            await peerConnection.setLocalDescription(answer)
-            signalServerSocket.send(
-                JSON.stringify({
-                    type: 'webrtc-ping-answer',
-                    to: data.from,
-                    from: myUID,
-                    answer,
-                })
-            )
+            answerCall(peerConnection, signalServerSocket, data.from, myUID)
             console.log('hey we got offer')
             // flush candidates
             if (pendingCandidates[data.from]) {
@@ -275,6 +265,11 @@ function connectWebSocket(user) {
                 delete pendingCandidates[data.from]
             }
         } else if (data.type === 'webrtc-ping-candidate') {
+            if (!peerConnection.remoteDescription) {
+                console.warn('Remote description not set yet. Delaying candidate...')
+                // You could queue these in a buffer and apply after remote description is set
+                return
+            }
             const candidate = new RTCIceCandidate(data.candidate)
             console.log('Received ICE candidate:', candidate)
 
