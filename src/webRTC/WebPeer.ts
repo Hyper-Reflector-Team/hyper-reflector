@@ -117,15 +117,20 @@ export async function answerCall(
     )
 }
 
-function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
+async function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
     const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
     channel.onopen = (event) => {
         channel.send('Hi!')
     }
     channel.onmessage = (event) => {
-        console.log(event.data)
+        console.log('data message --------------------------------------------> ', event.data)
     }
-    dataChannels.push({ to, from, channel })
+    if (!dataChannels.find((channel) => channel.to === to)) {
+        dataChannels.push({ to, from, channel })
+    } else {
+        await dataChannels.filter((channel) => channel.to !== to)
+        dataChannels.push({ to, from, channel })
+    }
 }
 
 export function webCheckData(peerConnection: RTCPeerConnection) {
