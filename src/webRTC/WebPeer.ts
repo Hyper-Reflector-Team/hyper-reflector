@@ -26,7 +26,7 @@ export async function initWebRTC(
         //iceTransportPolicy: 'relay',
     })
 
-    createDataChannel(peer, toUID, myUID)
+    addDataChannel(peer, toUID, myUID)
 
     // send new ice candidates from the coturn server
     peer.onicecandidate = (event) => {
@@ -117,18 +117,8 @@ export async function answerCall(
     )
 }
 
-async function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-    // TODO remove duplication here.
+async function addDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
     if (!dataChannels.find((channel) => channel.to === to)) {
-        const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
-        channel.onopen = (event) => {
-            channel.send('Hi!')
-        }
-        channel.onmessage = (event) => {
-            console.log('data message --------------------------------------------> ', event.data)
-        }
-        dataChannels.push({ to, from, channel })
-    } else {
         const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
         channel.onopen = (event) => {
             channel.send('Hi!')
