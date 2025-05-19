@@ -192,7 +192,7 @@ export async function closeAllPeers(peerConnection: RTCPeerConnection) {
 }
 
 export function pingUser(toUID: string) {
-    const entry = dataChannels.find((entry) => entry.to === toUID)
+    const entry = dataChannels[0] // todo update this to search
     if (!entry || entry.channel.readyState !== 'open') {
         console.warn(`No open data channel to ${toUID} to ping.`)
         return
