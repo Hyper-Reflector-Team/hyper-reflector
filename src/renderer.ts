@@ -103,12 +103,7 @@ function connectWebSocket(user) {
         // probably need more validation
         if (messageObject.text.length) {
             // Below is debug code for starting web rtc stuff
-            if (messageObject.text === 'close' && peerConnection) {
-                await closeAllPeers(peerConnection) // TODO fix this we will have an array
-                peerConnection = null
-            }
             if (messageObject.text === 'open' && user.uid === myUID) {
-                peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                 if (peerConnection?.signalingState !== 'have-local-offer' && currentUsers.length) {
                     console.log('peer state', peerConnection.signalingState)
                     currentUsers.forEach((user) => {
@@ -117,6 +112,10 @@ function connectWebSocket(user) {
                         }
                     })
                 }
+            }
+            if (messageObject.text === 'close' && peerConnection) {
+                await closeAllPeers(peerConnection) // TODO fix this we will have an array
+                peerConnection = null
             }
             signalServerSocket.send(
                 JSON.stringify({
@@ -186,6 +185,7 @@ function connectWebSocket(user) {
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
+                        peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                         // todo  add some checks here
                     }
                 })

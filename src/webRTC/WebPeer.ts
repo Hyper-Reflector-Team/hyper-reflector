@@ -27,9 +27,11 @@ export async function initWebRTC(
     console.log('starting init peer connection')
 
     peer.ondatachannel = (event) => {
-        dataChannel = event.channel
-        dataChannel.onopen = () => console.log('Data Channel Open!')
-        dataChannel.onmessage = (event) => console.log('Received:', event.data)
+        if (event?.channel) {
+            dataChannel = event.channel
+            dataChannel.onopen = () => console.log('Data Channel Open!')
+            dataChannel.onmessage = (event) => console.log('Received:', event.data)
+        }
     }
 
     // send new ice candidates from the coturn server
@@ -155,10 +157,10 @@ export function webCheckData(peerConnection: RTCPeerConnection) {
 }
 
 export function sendDataChannelMessage(message: string) {
-    if (dataChannels.length && dataChannels[0].channel.readyState === 'open') {
-        dataChannels[0].channel.send(message)
+    if (dataChannels.length && dataChannels[0]?.channel?.readyState === 'open') {
+        dataChannels[0]?.channel?.send(message)
     } else {
-        console.log('no channel to send on, state: ', dataChannels[0].channel.readyState)
+        console.log('no channel to send on, state: ', dataChannels[0]?.channel || 'null channel')
     }
 }
 
