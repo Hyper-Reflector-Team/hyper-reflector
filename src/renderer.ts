@@ -235,7 +235,7 @@ function connectWebSocket(user) {
             peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
             answerCall(peerConnection, signalServerSocket, data.from, myUID)
-            console.log('hey we got offer')
+            console.log('hey we got offer from ', data.from)
             // flush candidates
             if (pendingCandidates[data.from]) {
                 for (const candidate of pendingCandidates[data.from]) {
