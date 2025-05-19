@@ -111,13 +111,10 @@ function connectWebSocket(user) {
     // allow users to chat
     window.api.on('sendMessage', (messageObject: { text: string; user: any }) => {
         // Send message to all
-        // manager.broadcast({ type: 'chat', text: 'Hello everyone!' })
-
-        // // Ping everyone
-        // manager.pingAll()
-        // manager.pingRoundTrip()
-        // manager.debugPeers()
-        // sends a message over to another user
+        if (peerConnection.signalingState !== 'have-local-offer') {
+            // only call once
+            startCall(peerConnection, signalServerSocket, user.uid, myUID)
+        }
         // probably need more validation
         if (messageObject.text.length) {
             signalServerSocket.send(
@@ -219,10 +216,6 @@ function connectWebSocket(user) {
 
         if (data.type === 'getRoomMessage') {
             window.api.sendRoomMessage(data)
-            if (peerConnection.signalingState !== 'have-local-offer') {
-                // only call once
-                startCall(peerConnection, signalServerSocket, user.uid, myUID)
-            }
             webCheckData(peerConnection)
         }
 
