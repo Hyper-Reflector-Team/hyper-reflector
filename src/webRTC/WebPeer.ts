@@ -17,7 +17,9 @@ var dataChannels: { to: string; from: string; channel: RTCDataChannel }[] = []
 export async function initWebRTC(
     myUID: string,
     toUID: string,
-    signalingSocket: WebSocket
+    signalingSocket: WebSocket,
+    isAnswer?: boolean,
+    offer?: any
 ): Promise<RTCPeerConnection> {
     let dataChannel
     const peer = new RTCPeerConnection({
@@ -71,6 +73,10 @@ export async function initWebRTC(
         dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
     }
 
+    if (isAnswer) {
+        await peer.setRemoteDescription(new RTCSessionDescription(offer))
+        answerCall(peer, signalingSocket, toUID, myUID)
+    }
     return peer
 }
 

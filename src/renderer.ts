@@ -228,10 +228,15 @@ function connectWebSocket(user) {
         if (data.type === 'webrtc-ping-offer') {
             // im pretty sure we need a local description for both off and answer before we set remote.
             // there is a timing issue here that nees to be fixed.
-            peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
-            answerCall(peerConnection, signalServerSocket, data.from, myUID)
             console.log('hey we got offer from ', data.from)
+            // call init with answer params
+            peerConnection = await initWebRTC(
+                myUID,
+                data.from,
+                signalServerSocket,
+                true,
+                data.offer
+            )
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')
             try {
