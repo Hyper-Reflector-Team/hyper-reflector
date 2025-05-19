@@ -219,7 +219,7 @@ function connectWebSocket(user) {
 
         if (data.type === 'getRoomMessage') {
             window.api.sendRoomMessage(data)
-            if (peerConnection.signalingState === 'have-local-offer') {
+            if (peerConnection.signalingState !== 'have-local-offer') {
                 // only call once
                 startCall(peerConnection, signalServerSocket, user.uid, myUID)
             }

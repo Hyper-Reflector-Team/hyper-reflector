@@ -24,6 +24,7 @@ export async function initWebRTC(
         iceServers,
         //iceTransportPolicy: 'relay',
     })
+    console.log('starting init peer connection')
 
     peer.ondatachannel = (event) => {
         dataChannel = event.channel
