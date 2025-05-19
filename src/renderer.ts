@@ -22,6 +22,9 @@ let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
 
+let peerConnection: RTCPeerConnection = null
+let currentUsers: any[] = [] // we use this to map through all users in a room
+
 // const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
 const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
@@ -65,6 +68,7 @@ window.api.on('loggedOutSuccess', async (user) => {
 // below code causes some app hanging
 window.api.on('closingApp', async (user) => {
     closeAllPeers(peerConnection)
+    peerConnection = null
     // kill the socket connection
     // if (signalServerSocket) {
     //     console.log('we are killing the socket user')
@@ -73,9 +77,6 @@ window.api.on('closingApp', async (user) => {
     //     signalServerSocket = null
     // }
 })
-
-const pendingCandidates: { [uid: string]: RTCIceCandidate[] } = {}
-let peerConnection: RTCPeerConnection
 
 function connectWebSocket(user) {
     if (signalServerSocket) return // Prevent duplicate ws connections from same client
@@ -96,31 +97,27 @@ function connectWebSocket(user) {
         console.error('WebSocket Error:', error)
     }
 
-    // should make this into a setter and getter
-
-    // test ping manager PingManager.init(socket, localId);
-    // const pingManager = PingManager.init(signalServerSocket, myUID)
-
-    /// testing peer manager
-
-    // const manager = new PeerManager(myUID, signalServerSocket, {
-    //     onData: (from, data) => {
-    //         console.log(`Received from ${from}:`, data)
-    //     },
-    //     onPing: (from, latency) => {
-    //         console.log(`Ping from ${from}: ${latency}ms`)
-    //     },
-    //     onDisconnect: (uid) => {
-    //         console.log(`${uid} disconnected`)
-    //     },
-    // })
-    ///
-
     // allow users to chat
-    window.api.on('sendMessage', (messageObject: { text: string; user: any }) => {
+    window.api.on('sendMessage', async (messageObject: { text: string; user: any }) => {
         // Send message to all
         // probably need more validation
         if (messageObject.text.length) {
+            // Below is debug code for starting web rtc stuff
+            if (messageObject.text === 'close' && peerConnection) {
+                await closeAllPeers(peerConnection) // TODO fix this we will have an array
+                peerConnection = null
+            }
+            if (messageObject.text === 'open' && user.uid === myUID) {
+                peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
+                if (peerConnection?.signalingState !== 'have-local-offer' && currentUsers.length) {
+                    console.log('peer state', peerConnection.signalingState)
+                    currentUsers.forEach((user) => {
+                        if (user.id !== myUID) {
+                            startCall(peerConnection, signalServerSocket, user.uid, myUID, true) // last boolean is for debug purposes to prevent every one calling
+                        }
+                    })
+                }
+            }
             signalServerSocket.send(
                 JSON.stringify({
                     type: 'sendMessage',
@@ -184,18 +181,12 @@ function connectWebSocket(user) {
         if (data.type === 'connected-users') {
             if (data.users.length) {
                 console.log(data.users)
+                currentUsers = data.users
                 // PingManager.addPeers(data.users)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
-                        console.log(user)
-                        peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
-                        console.log('pre call stat', webCheckData(peerConnection))
-                        if (peerConnection.signalingState !== 'have-local-offer') {
-                            console.log(user, myUID)
-                            // only call once
-                            startCall(peerConnection, signalServerSocket, user.uid, myUID) // last boolean is for debug purposes to prevent every one calling
-                        }
+                        // todo  add some checks here
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
@@ -203,10 +194,9 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'userDisconnect') {
+            // TODO this isn't actually being used anymore?
             // Here we want to close the Peer connection if a user leaves if the connection already exists.
-            // closePeerConnection(data.userUID)
             console.log('user DCed from socket server')
-            // manager.closeByID(data.userUID)
         }
 
         if (data.type === 'lobby-user-counts') {
@@ -217,7 +207,6 @@ function connectWebSocket(user) {
         if (data.type === 'matchEndedClose') {
             //user the userUID and close all matches.
             if (opponentUID === data.userUID) {
-                // closePeerConnection(data.userUID)
                 window.api.killEmulator()
                 resetState()
             }
@@ -237,62 +226,29 @@ function connectWebSocket(user) {
         }
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
+            // im pretty sure we need a local description for both off and answer before we set remote.
+            // there is a timing issue here that nees to be fixed.
             peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
             answerCall(peerConnection, signalServerSocket, data.from, myUID)
             console.log('hey we got offer from ', data.from)
-            // flush candidates
-            if (pendingCandidates[data.from]) {
-                for (const candidate of pendingCandidates[data.from]) {
-                    try {
-                        await peerConnection.addIceCandidate(candidate)
-                        console.log('Buffered candidate added.')
-                    } catch (error) {
-                        console.warn('Failed to add buffered candidate:', error)
-                    }
-                }
-                delete pendingCandidates[data.from]
-            }
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')
             try {
+                // there is a timing issue here that nees to be fixed.
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
             } catch (error) {
                 console.warn(error)
             }
-            // flush candidates
-            if (pendingCandidates[data.from]) {
-                for (const candidate of pendingCandidates[data.from]) {
-                    try {
-                        await peerConnection.addIceCandidate(candidate)
-                        console.log('Buffered candidate added.')
-                    } catch (error) {
-                        console.warn('Failed to add buffered candidate:', error)
-                    }
-                }
-                delete pendingCandidates[data.from]
-            }
         } else if (data.type === 'webrtc-ping-candidate') {
-            // if (!peerConnection.remoteDescription) {
-            //     console.warn('Remote description not set yet. Delaying candidate...')
-            //     // You could queue these in a buffer and apply after remote description is set
-            //     return
-            // }
             const candidate = new RTCIceCandidate(data.candidate)
             //console.log('Received ICE candidate:', candidate)
-
-            // if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
             try {
                 await peerConnection.addIceCandidate(candidate)
                 console.log('ICE candidate added immediately.')
             } catch (error) {
                 console.warn('Failed to add ICE candidate:', error)
             }
-            // } else {
-            //     console.log('Remote description not set yet, buffering candidate...')
-            //     if (!pendingCandidates[data.from]) pendingCandidates[data.from] = []
-            //     pendingCandidates[data.from].push(candidate)
-            // }
         }
     }
 }

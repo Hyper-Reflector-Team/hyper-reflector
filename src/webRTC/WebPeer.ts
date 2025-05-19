@@ -11,7 +11,7 @@ const iceServers = [
     // },
 ]
 
-var clients = []
+var clients: { to: string; peer: RTCPeerConnection }[] = []
 var dataChannels: { to: string; from: string; channel: RTCDataChannel }[] = []
 
 export async function initWebRTC(
@@ -80,8 +80,15 @@ export async function startCall(
     isCaller?: boolean // debug feature
 ) {
     if (!isCaller) return
-    console.log('starting call')
+
+    if (clients.find((client) => client.to === to)) {
+        console.log('peer client exists skipping call')
+        return
+    }
+    console.log('starting call with: ', to)
     if (peerConnection) {
+        clients.push({ to: to, peer: peerConnection })
+        console.log('current clients after push', clients)
         createDataChannel(peerConnection, to, from)
         const offer = await peerConnection.createOffer()
         await peerConnection.setLocalDescription(offer)
@@ -129,17 +136,22 @@ function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: 
 }
 
 export function webCheckData(peerConnection: RTCPeerConnection) {
-    console.log('signalling state', peerConnection.signalingState)
-    console.log('ice gathering state', peerConnection.iceGatheringState)
-    console.log('ice connection state', peerConnection.iceConnectionState)
-    console.log('remote state', peerConnection.currentRemoteDescription)
-    console.log('local state', peerConnection.currentLocalDescription)
-    if (dataChannels.length) {
-        console.log('data channel id? ', dataChannels[0]?.channel?.id || 'no id')
-        console.log('data channel is ready? ', dataChannels[0]?.channel?.readyState || 'no channel')
-        console.log('data channels ', dataChannels)
+    if (peerConnection) {
+        console.log('signalling state', peerConnection.signalingState)
+        console.log('ice gathering state', peerConnection.iceGatheringState)
+        console.log('ice connection state', peerConnection.iceConnectionState)
+        console.log('remote state', peerConnection.currentRemoteDescription)
+        console.log('local state', peerConnection.currentLocalDescription)
+        if (dataChannels && dataChannels.length) {
+            console.log('data channel id? ', dataChannels[0]?.channel?.id || 'no id')
+            console.log(
+                'data channel is ready? ',
+                dataChannels[0]?.channel?.readyState || 'no channel'
+            )
+            console.log('data channels ', dataChannels)
+        }
+        console.log('peer connections ', peerConnection)
     }
-    console.log('peer connections ', peerConnection)
 }
 
 export function sendDataChannelMessage(message: string) {
@@ -150,7 +162,9 @@ export function sendDataChannelMessage(message: string) {
     }
 }
 
-export function closeAllPeers(peerConnection: RTCPeerConnection) {
+export async function closeAllPeers(peerConnection: RTCPeerConnection) {
     console.log('closing peers')
     peerConnection.close()
+    clients = [] // todo replace this with actual logic
+    dataChannels = []
 }
