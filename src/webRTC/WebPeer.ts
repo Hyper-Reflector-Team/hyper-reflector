@@ -72,8 +72,10 @@ export async function startCall(
     peerConnection: RTCPeerConnection,
     signalingSocket: WebSocket,
     to: string,
-    from: string
+    from: string,
+    isCaller?: boolean // debug feature
 ) {
+    if (!isCaller) return
     console.log('starting call')
     if (peerConnection) {
         createDataChannel(peerConnection, to, from)
@@ -127,4 +129,14 @@ export function webCheckData(peerConnection: RTCPeerConnection) {
     console.log('ice connection state', peerConnection.iceConnectionState)
     console.log('remote state', peerConnection.currentRemoteDescription)
     console.log('local state', peerConnection.currentLocalDescription)
+    console.log('data channel id? ', dataChannels[0].channel.id)
+    console.log('data channel is ready? ', dataChannels[0].channel.readyState)
+}
+
+export function sendDataChannelMessage(message: string) {
+    if (dataChannels.length) {
+        dataChannels[0].channel.send(message)
+    } else {
+        console.log('no channel to send on')
+    }
 }

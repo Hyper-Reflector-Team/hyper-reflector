@@ -5,7 +5,13 @@ import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
 import { PingManager } from './webRTC/PingManager'
 import { WebRTCPeer } from './webRTC/WebRTCPeer'
-import { answerCall, initWebRTC, startCall, webCheckData } from './webRTC/WebPeer'
+import {
+    answerCall,
+    initWebRTC,
+    sendDataChannelMessage,
+    startCall,
+    webCheckData,
+} from './webRTC/WebPeer'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -111,10 +117,6 @@ function connectWebSocket(user) {
     // allow users to chat
     window.api.on('sendMessage', (messageObject: { text: string; user: any }) => {
         // Send message to all
-        if (peerConnection.signalingState !== 'have-local-offer') {
-            // only call once
-            startCall(peerConnection, signalServerSocket, user.uid, myUID)
-        }
         // probably need more validation
         if (messageObject.text.length) {
             signalServerSocket.send(
@@ -129,6 +131,7 @@ function connectWebSocket(user) {
                 })
             )
         }
+        sendDataChannelMessage('Hey transmitting on data channel whats up')
     })
 
     window.api.on('createNewLobby', (lobbyInfo) => {
@@ -184,6 +187,11 @@ function connectWebSocket(user) {
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
+                        if (peerConnection.signalingState !== 'have-local-offer') {
+                            console.log(user, myUID)
+                            // only call once
+                            startCall(peerConnection, signalServerSocket, user.uid, myUID, true) // last boolean is for debug purposes to prevent every one calling
+                        }
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
