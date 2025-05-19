@@ -95,7 +95,7 @@ export async function answerCall(
     to: string,
     from: string
 ) {
-    console.log('answering call')
+    console.log('answering call', to, from)
     const answer = await peerConnection.createAnswer()
     await peerConnection.setLocalDescription(answer)
     signalingSocket.send(
@@ -112,10 +112,18 @@ function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: 
     console.log('attempting data channel')
     if (dataChannels.length) {
         console.log('data channel start')
-        dataChannels[0].channel = peerConnection.createDataChannel('ping', { reliable: true })
+        dataChannels[0].channel = peerConnection.createDataChannel('ping')
         dataChannels[0].channel.onopen = () => console.log('Data Channel Open!')
         dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
     } else {
         console.log('no channel')
     }
+}
+
+export function webCheckData(peerConnection: RTCPeerConnection) {
+    console.log('signalling state', peerConnection.signalingState)
+    console.log('ice gathering state', peerConnection.iceGatheringState)
+    console.log('ice connection state', peerConnection.iceConnectionState)
+    console.log('remote state', peerConnection.currentRemoteDescription)
+    console.log('local state', peerConnection.currentLocalDescription)
 }

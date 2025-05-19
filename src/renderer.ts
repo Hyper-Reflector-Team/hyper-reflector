@@ -5,7 +5,7 @@ import './front-end/app'
 import { PeerManager } from './webRTC/peerManager'
 import { PingManager } from './webRTC/PingManager'
 import { WebRTCPeer } from './webRTC/WebRTCPeer'
-import { answerCall, initWebRTC, startCall } from './webRTC/WebPeer'
+import { answerCall, initWebRTC, startCall, webCheckData } from './webRTC/WebPeer'
 
 let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
@@ -180,8 +180,6 @@ function connectWebSocket(user) {
     signalServerSocket.onmessage = async (message) => {
         const data = await convertBlob(message).then((res) => res)
         if (data.type === 'connected-users') {
-            console.log('data from websocket server', data)
-            console.log('testing connetion')
             if (data.users.length) {
                 console.log(data.users)
                 // PingManager.addPeers(data.users)
@@ -221,7 +219,11 @@ function connectWebSocket(user) {
 
         if (data.type === 'getRoomMessage') {
             window.api.sendRoomMessage(data)
-            startCall(peerConnection, signalServerSocket, user.uid, myUID)
+            if (peerConnection.signalingState === 'have-local-offer') {
+                // only call once
+                startCall(peerConnection, signalServerSocket, user.uid, myUID)
+            }
+            webCheckData(peerConnection)
         }
 
         if (data.type === 'callDeclined') {
@@ -266,26 +268,26 @@ function connectWebSocket(user) {
                 delete pendingCandidates[data.from]
             }
         } else if (data.type === 'webrtc-ping-candidate') {
-            if (!peerConnection.remoteDescription) {
-                console.warn('Remote description not set yet. Delaying candidate...')
-                // You could queue these in a buffer and apply after remote description is set
-                return
-            }
+            // if (!peerConnection.remoteDescription) {
+            //     console.warn('Remote description not set yet. Delaying candidate...')
+            //     // You could queue these in a buffer and apply after remote description is set
+            //     return
+            // }
             const candidate = new RTCIceCandidate(data.candidate)
-            console.log('Received ICE candidate:', candidate)
+            //console.log('Received ICE candidate:', candidate)
 
-            if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
-                try {
-                    await peerConnection.addIceCandidate(candidate)
-                    console.log('ICE candidate added immediately.')
-                } catch (error) {
-                    console.warn('Failed to add ICE candidate:', error)
-                }
-            } else {
-                console.log('Remote description not set yet, buffering candidate...')
-                if (!pendingCandidates[data.from]) pendingCandidates[data.from] = []
-                pendingCandidates[data.from].push(candidate)
+            // if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+            try {
+                await peerConnection.addIceCandidate(candidate)
+                console.log('ICE candidate added immediately.')
+            } catch (error) {
+                console.warn('Failed to add ICE candidate:', error)
             }
+            // } else {
+            //     console.log('Remote description not set yet, buffering candidate...')
+            //     if (!pendingCandidates[data.from]) pendingCandidates[data.from] = []
+            //     pendingCandidates[data.from].push(candidate)
+            // }
         }
     }
 }
