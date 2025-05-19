@@ -60,11 +60,14 @@ export async function initWebRTC(
     peer.oniceconnectionstatechange = () => {
         console.log('ICE connection state:', peer.iceConnectionState)
         if (peer.iceConnectionState === 'connected') {
-            console.log('🎉 Peer connection established!')
+            console.log('-------------------------- > Peer connection established!')
         }
     }
 
-    dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
+    if (dataChannels.find((channel) => channel.to !== toUID)) {
+        dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
+    }
+
     return peer
 }
 
@@ -116,7 +119,8 @@ function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: 
     if (dataChannels.length) {
         console.log('data channel start')
         dataChannels[0].channel = peerConnection.createDataChannel('ping')
-        dataChannels[0].channel.onopen = () => console.log('Data Channel Open!')
+        dataChannels[0].channel.onopen = () =>
+            console.log('Data Channel Open! ---------------------------------&*&*&*&*&*&*&*&*&*&*')
         dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
     } else {
         console.log('no channel')
@@ -131,6 +135,8 @@ export function webCheckData(peerConnection: RTCPeerConnection) {
     console.log('local state', peerConnection.currentLocalDescription)
     console.log('data channel id? ', dataChannels[0].channel.id)
     console.log('data channel is ready? ', dataChannels[0].channel.readyState)
+    console.log('data channels ', dataChannels)
+    console.log('peer connections ', peerConnection)
 }
 
 export function sendDataChannelMessage(message: string) {
