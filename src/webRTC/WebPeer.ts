@@ -118,16 +118,24 @@ export async function answerCall(
 }
 
 async function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-    const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
-    channel.onopen = (event) => {
-        channel.send('Hi!')
-    }
-    channel.onmessage = (event) => {
-        console.log('data message --------------------------------------------> ', event.data)
-    }
+    // TODO remove duplication here.
     if (!dataChannels.find((channel) => channel.to === to)) {
+        const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
+        channel.onopen = (event) => {
+            channel.send('Hi!')
+        }
+        channel.onmessage = (event) => {
+            console.log('data message --------------------------------------------> ', event.data)
+        }
         dataChannels.push({ to, from, channel })
     } else {
+        const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
+        channel.onopen = (event) => {
+            channel.send('Hi!')
+        }
+        channel.onmessage = (event) => {
+            console.log('data message --------------------------------------------> ', event.data)
+        }
         await dataChannels.filter((channel) => channel.to !== to)
         dataChannels.push({ to, from, channel })
     }
