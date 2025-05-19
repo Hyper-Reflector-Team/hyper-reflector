@@ -134,9 +134,9 @@ export function webCheckData(peerConnection: RTCPeerConnection) {
 }
 
 export function sendDataChannelMessage(message: string) {
-    if (dataChannels.length) {
+    if (dataChannels.length && dataChannels[0].channel.readyState === 'open') {
         dataChannels[0].channel.send(message)
     } else {
-        console.log('no channel to send on')
+        console.log('no channel to send on, state: ', dataChannels[0].channel.readyState)
     }
 }
