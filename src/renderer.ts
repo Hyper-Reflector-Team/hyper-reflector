@@ -15,8 +15,8 @@ let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
 
-const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
-// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+// const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
+const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
 function resetState() {
     candidateList = []

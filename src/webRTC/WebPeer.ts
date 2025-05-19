@@ -111,6 +111,7 @@ export async function answerCall(
 function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
     console.log('attempting data channel')
     if (dataChannels.length) {
+        console.log('data channel start')
         dataChannels[0].channel = peerConnection.createDataChannel('ping', { reliable: true })
         dataChannels[0].channel.onopen = () => console.log('Data Channel Open!')
         dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
