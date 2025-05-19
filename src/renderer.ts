@@ -9,6 +9,7 @@ import {
     answerCall,
     closeAllPeers,
     initWebRTC,
+    pingUser,
     sendDataChannelMessage,
     startCall,
     webCheckData,
@@ -120,6 +121,9 @@ function connectWebSocket(user) {
             if (messageObject.text === 'close' && peerConnection) {
                 await closeAllPeers(peerConnection) // TODO fix this we will have an array
                 peerConnection = null
+            }
+            if (messageObject.text === 'ping' && peerConnection) {
+                pingUser(user.uid)
             }
             signalServerSocket.send(
                 JSON.stringify({

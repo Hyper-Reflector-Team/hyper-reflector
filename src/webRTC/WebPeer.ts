@@ -45,7 +45,6 @@ export async function initWebRTC(
             }
             // if the below is true it means we've successfully udp tunnelled to the candidate on the turn server
             if (event.candidate.type === 'relay') {
-                // we should be able use the below information on relayed players to connect via fbneo
                 console.log('TURN ICE Candidate:', event.candidate)
                 console.log(event.candidate.address, event.candidate.port)
                 console.log('UDP tunneled through TURN server!')
@@ -117,39 +116,12 @@ export async function answerCall(
     )
 }
 
-// async function addDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-//     // TODO remove duplication here.
-//     if (!dataChannels.find((channel) => channel.to === to)) {
-//         console.log('hey opening here1')
-//         const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
-//         channel.onopen = (event) => {
-//             channel.send('Hi!')
-//         }
-//         channel.onmessage = (event) => {
-//             console.log('data message --------------------------------------------> ', event.data)
-//         }
-//         dataChannels.push({ to, from, channel })
-//     } else {
-//         console.log('hey opening here2')
-//         const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
-//         channel.onopen = (event) => {
-//             channel.send('Hi!')
-//         }
-//         channel.onmessage = (event) => {
-//             console.log('data message --------------------------------------------> ', event.data)
-//         }
-//         await dataChannels.filter((channel) => channel.to !== to)
-//         dataChannels.push({ to, from, channel })
-//     }
-// }
-
 async function addDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-    // Remove any existing channel to this user (optional depending on your intent)
     dataChannels = dataChannels.filter((entry) => entry.to !== to)
 
     const channel = peerConnection.createDataChannel('chat', {
         negotiated: true,
-        id: 0, // Make sure this ID is unique per connection if needed
+        id: 0,
     })
 
     channel.onopen = () => {
@@ -157,8 +129,26 @@ async function addDataChannel(peerConnection: RTCPeerConnection, to: string, fro
         channel.send('Hi!')
     }
 
+    // channel.onmessage = (event) => {
+    //     console.log('Data message from', to, '=>', event.data)
+    // }
+
     channel.onmessage = (event) => {
-        console.log('Data message from', to, '=>', event.data)
+        try {
+            const data = JSON.parse(event.data)
+            if (data.type === 'ping') {
+                // Echo back the ping with type 'pong'
+                channel.send(JSON.stringify({ type: 'pong', time: data.time }))
+            } else if (data.type === 'pong') {
+                const now = Date.now()
+                const rtt = now - data.time
+                console.log(`Ping RTT from ${to}: ${rtt} ms`)
+            } else {
+                console.log('Data message from', to, '=>', data)
+            }
+        } catch (e) {
+            console.log('Raw message from', to, '=>', event.data)
+        }
     }
 
     dataChannels.push({ to, from, channel })
@@ -199,4 +189,21 @@ export async function closeAllPeers(peerConnection: RTCPeerConnection) {
     peerConnection.close()
     clients = [] // todo replace this with actual logic
     dataChannels = []
+}
+
+export function pingUser(toUID: string) {
+    const entry = dataChannels.find((entry) => entry.to === toUID)
+    if (!entry || entry.channel.readyState !== 'open') {
+        console.warn(`No open data channel to ${toUID} to ping.`)
+        return
+    }
+
+    const timestamp = Date.now()
+    const message = {
+        type: 'ping',
+        time: timestamp,
+    }
+
+    entry.channel.send(JSON.stringify(message))
+    console.log(`Sent ping to ${toUID} at ${timestamp}`)
 }
