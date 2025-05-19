@@ -21,20 +21,12 @@ export async function initWebRTC(
     isAnswer?: boolean,
     offer?: any
 ): Promise<RTCPeerConnection> {
-    let dataChannel
     const peer = new RTCPeerConnection({
         iceServers,
         //iceTransportPolicy: 'relay',
     })
-    console.log('starting init peer connection')
 
-    peer.ondatachannel = (event) => {
-        if (event?.channel) {
-            dataChannel = event.channel
-            dataChannel.onopen = () => console.log('Data Channel Open!')
-            dataChannel.onmessage = (event) => console.log('Received:', event.data)
-        }
-    }
+    createDataChannel(peer, toUID, myUID)
 
     // send new ice candidates from the coturn server
     peer.onicecandidate = (event) => {
@@ -68,15 +60,11 @@ export async function initWebRTC(
         }
     }
 
-    if (!dataChannels.find((channel) => channel.to === toUID)) {
-        console.log('what')
-        dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
-    }
-
     if (isAnswer) {
         await peer.setRemoteDescription(new RTCSessionDescription(offer))
         answerCall(peer, signalingSocket, toUID, myUID)
     }
+
     return peer
 }
 
@@ -97,7 +85,6 @@ export async function startCall(
     if (peerConnection) {
         clients.push({ to: to, peer: peerConnection })
         console.log('current clients after push', clients)
-        createDataChannel(peerConnection, to, from)
         const offer = await peerConnection.createOffer()
         await peerConnection.setLocalDescription(offer)
         signalingSocket.send(
@@ -131,16 +118,14 @@ export async function answerCall(
 }
 
 function createDataChannel(peerConnection: RTCPeerConnection, to: string, from: string) {
-    console.log('attempting data channel')
-    if (dataChannels.length) {
-        console.log('data channel start')
-        dataChannels[0].channel = peerConnection.createDataChannel('ping')
-        dataChannels[0].channel.onopen = () =>
-            console.log('Data Channel Open! ---------------------------------&*&*&*&*&*&*&*&*&*&*')
-        dataChannels[0].channel.onmessage = (event) => console.log('Received:', event.data)
-    } else {
-        console.log('no channel')
+    const channel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 })
+    channel.onopen = (event) => {
+        channel.send('Hi!')
     }
+    channel.onmessage = (event) => {
+        console.log(event.data)
+    }
+    dataChannels.push({ to, from, channel })
 }
 
 export function webCheckData(peerConnection: RTCPeerConnection) {

@@ -104,8 +104,12 @@ function connectWebSocket(user) {
         if (messageObject.text.length) {
             // Below is debug code for starting web rtc stuff
             if (messageObject.text === 'open' && user.uid === myUID) {
-                if (peerConnection?.signalingState !== 'have-local-offer' && currentUsers.length) {
-                    console.log('peer state', peerConnection.signalingState)
+                if (
+                    peerConnection &&
+                    peerConnection?.signalingState !== 'have-local-offer' &&
+                    currentUsers.length
+                ) {
+                    console.log('peer state', peerConnection?.signalingState)
                     currentUsers.forEach((user) => {
                         if (user.id !== myUID) {
                             startCall(peerConnection, signalServerSocket, user.uid, myUID, true) // last boolean is for debug purposes to prevent every one calling
