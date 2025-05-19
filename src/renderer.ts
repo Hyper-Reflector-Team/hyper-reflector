@@ -7,6 +7,7 @@ import { PingManager } from './webRTC/PingManager'
 import { WebRTCPeer } from './webRTC/WebRTCPeer'
 import {
     answerCall,
+    closeAllPeers,
     initWebRTC,
     sendDataChannelMessage,
     startCall,
@@ -62,15 +63,16 @@ window.api.on('loggedOutSuccess', async (user) => {
 })
 
 // below code causes some app hanging
-// window.api.on('closingApp', async (user) => {
-//     // kill the socket connection
-//     if (signalServerSocket) {
-//         console.log('we are killing the socket user')
-//         await signalServerSocket.send(JSON.stringify({ type: 'userDisconnect', user }))
-//         signalServerSocket.close()
-//         signalServerSocket = null
-//     }
-// })
+window.api.on('closingApp', async (user) => {
+    closeAllPeers(peerConnection)
+    // kill the socket connection
+    // if (signalServerSocket) {
+    //     console.log('we are killing the socket user')
+    //     await signalServerSocket.send(JSON.stringify({ type: 'userDisconnect', user }))
+    //     signalServerSocket.close()
+    //     signalServerSocket = null
+    // }
+})
 
 const pendingCandidates: { [uid: string]: RTCIceCandidate[] } = {}
 let peerConnection: RTCPeerConnection
@@ -190,7 +192,7 @@ function connectWebSocket(user) {
                         if (peerConnection.signalingState !== 'have-local-offer') {
                             console.log(user, myUID)
                             // only call once
-                            startCall(peerConnection, signalServerSocket, user.uid, myUID, true) // last boolean is for debug purposes to prevent every one calling
+                            startCall(peerConnection, signalServerSocket, user.uid, myUID) // last boolean is for debug purposes to prevent every one calling
                         }
                     }
                 })

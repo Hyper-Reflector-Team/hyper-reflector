@@ -64,7 +64,8 @@ export async function initWebRTC(
         }
     }
 
-    if (dataChannels.find((channel) => channel.to !== toUID)) {
+    if (!dataChannels.find((channel) => channel.to === toUID)) {
+        console.log('what')
         dataChannels.push({ to: toUID, from: myUID, channel: dataChannel }) // need some checks later
     }
 
@@ -145,4 +146,9 @@ export function sendDataChannelMessage(message: string) {
     } else {
         console.log('no channel to send on, state: ', dataChannels[0].channel.readyState)
     }
+}
+
+export function closeAllPeers(peerConnection: RTCPeerConnection) {
+    console.log('closing peers')
+    peerConnection.close()
 }
