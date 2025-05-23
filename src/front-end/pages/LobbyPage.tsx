@@ -116,6 +116,13 @@ export default function LobbyPage() {
     }
 
     useEffect(() => {
+        const connection =
+            navigator.connection || navigator.mozConnection || navigator.webkitConnection
+        if (connection) {
+            console.log('Effective Type:', connection.effectiveType) // e.g., '4g', 'wifi', 'ethernet', 'slow-2g'
+            console.log('Downlink speed (Mb/s):', connection.downlink)
+            console.log('rtt', connection.rtt)
+        }
         // checkVid()
         window.api.removeExtraListeners('updateUserData', handleUpdateUser)
         window.api.on('updateUserData', handleUpdateUser)
