@@ -92,7 +92,25 @@ export default function LobbyPage() {
         setCurrentLobbiesState(data)
     }
 
+    // const checkVid = () => {
+    //     const video = document.querySelector('video')
+    //     navigator.mediaDevices
+    //         .getDisplayMedia({
+    //             audio: true,
+    //             video: {
+    //                 width: 320,
+    //                 height: 240,
+    //                 frameRate: 60,
+    //             },
+    //         })
+    //         .then((stream) => {
+    //             video.srcObject = stream
+    //             video.onloadedmetadata = (e) => video.play()
+    //         })
+    //         .catch((e) => console.log(e))
+    // }
     useEffect(() => {
+        // checkVid()
         window.api.removeExtraListeners('updateLobbyStats', handleUpdateLobbies)
         window.api.on('updateLobbyStats', handleUpdateLobbies)
 
@@ -103,6 +121,7 @@ export default function LobbyPage() {
 
     return (
         <Box height="100%" display="flex" width="100%">
+            {/* <video width="320" height="240" autoPlay></video> */}
             <Dialog.Root open={openCreate}>
                 <Portal>
                     <Dialog.Backdrop />

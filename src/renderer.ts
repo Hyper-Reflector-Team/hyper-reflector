@@ -125,6 +125,12 @@ function connectWebSocket(user) {
             if (messageObject.text === 'ping' && peerConnection) {
                 pingUser(user.uid)
             }
+            if (messageObject.text === 'vid') {
+                try {
+                } catch (error) {
+                    console.log(error)
+                }
+            }
             signalServerSocket.send(
                 JSON.stringify({
                     type: 'sendMessage',

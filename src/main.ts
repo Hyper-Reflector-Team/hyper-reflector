@@ -1,4 +1,12 @@
-import { app, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
+import {
+    app,
+    BrowserWindow,
+    ipcMain,
+    dialog,
+    Notification,
+    desktopCapturer,
+    session,
+} from 'electron'
 const { exec } = require('child_process')
 import started from 'electron-squirrel-startup'
 import { sendCommand, readCommand, readStatFile, clearStatFile } from './sendHyperCommands'
@@ -100,6 +108,42 @@ const createWindow = () => {
         },
         autoHideMenuBar: true,
     })
+
+    const overlayWindow = new BrowserWindow({
+        width: 400,
+        height: 200,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        focusable: false,
+        skipTaskbar: true,
+        hasShadow: false,
+        resizable: false,
+        fullscreenable: false,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+        },
+    })
+
+    overlayWindow.setIgnoreMouseEvents(true) // Allows clicks to go through
+    overlayWindow.loadURL('file://' + __dirname + '/overlay.html')
+
+    // TODO this is for screen share, just for testing, but possible for other features in the future.
+    // session.defaultSession.setDisplayMediaRequestHandler(
+    //     (request, callback) => {
+    //         desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+    //             // Grant access to the first screen found.
+    //             // callback({ video: sources[0], audio: 'loopback' })
+    //             callback({ video: sources[0] })
+    //         })
+    //         // If true, use the system picker if available.
+    //         // Note: this is currently experimental. If the system picker
+    //         // is available, it will be used and the media request handler
+    //         // will not be invoked.
+    //     },
+    //     { useSystemPicker: true }
+    // )
 
     let config: Config
 
