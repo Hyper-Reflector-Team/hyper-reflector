@@ -178,7 +178,7 @@ export default function UserCard({ user }) {
                                     (userState?.lastKnownPings &&
                                         userState?.lastKnownPings?.find(
                                             (u: string) => u.id === user.uid
-                                        ).ping) ||
+                                        )?.ping) ||
                                     undefined
                                 }
                             />
