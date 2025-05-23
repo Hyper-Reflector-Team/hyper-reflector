@@ -800,6 +800,10 @@ const createWindow = () => {
         mainWindow.webContents.send('updateLobbyStats', lobbyArray)
     })
 
+    ipcMain.on('updateUserData', (event, data: any) => {
+        mainWindow.webContents.send('updateUserData', data)
+    })
+
     ipcMain.on(
         'userChangeLobby',
         (event, lobbyData: { newLobbyId: string; pass: string; user: any; private: boolean }) => {

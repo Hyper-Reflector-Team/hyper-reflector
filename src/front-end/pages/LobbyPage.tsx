@@ -111,7 +111,8 @@ export default function LobbyPage() {
     // }
 
     const handleUpdateUser = (data) => {
-        updateUserState({ ...userState, ...data.userData })
+        console.log('spreading user data', data)
+        updateUserState({ ...userState, ...data })
     }
 
     useEffect(() => {

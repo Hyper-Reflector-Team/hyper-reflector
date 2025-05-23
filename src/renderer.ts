@@ -248,7 +248,7 @@ function connectWebSocket(user) {
 
         if (data.type === 'update-user-pinged') {
             console.log('hey the user has a ping, lets update all that data----------------', data)
-            window.api.updateUserData(data)
+            window.api.updateUserData(data?.data)
         }
 
         if (data.type === 'userDisconnect') {

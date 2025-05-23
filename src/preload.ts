@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('api', {
         private: boolean
     }) => ipcRenderer.send('userChangeLobby', lobbyData),
     updateLobbyStats: (lobbyArray: any) => ipcRenderer.send('updateLobbyStats', lobbyArray),
+    updateUserData: (userData: any) => ipcRenderer.send('updateUserData', userData),
     // user profile
     getUserMatches: (matches: any) => ipcRenderer.send('getUserMatches', matches),
     getGlobalSet: (matches: any) => ipcRenderer.send('getGlobalSet', matches),
@@ -46,7 +47,7 @@ contextBridge.exposeInMainWorld('api', {
     getUserData: (user: any) => ipcRenderer.send('getUserData', user),
     getGlobalStats: (stats: any) => ipcRenderer.send('getGlobalStats', stats),
     changeUserData: (userData: any) => ipcRenderer.send('changeUserData', userData),
-    updateUserData: (userData: any) => ipcRenderer.send('updateUserData', userData),
+
     // match
     setEmulatorPath: () => ipcRenderer.send('setEmulatorPath'),
     getEmulatorPath: () => ipcRenderer.send('getEmulatorPath'),

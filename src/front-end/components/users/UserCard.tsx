@@ -175,8 +175,11 @@ export default function UserCard({ user }) {
                             </Tooltip>
                             <PingDisplay
                                 ping={
-                                    userState?.lastKnownPings.find((u: string) => u.id === user.uid)
-                                        .ping || undefined
+                                    (userState?.lastKnownPings &&
+                                        userState?.lastKnownPings?.find(
+                                            (u: string) => u.id === user.uid
+                                        ).ping) ||
+                                    undefined
                                 }
                             />
                         </Box>
