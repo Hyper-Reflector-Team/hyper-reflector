@@ -104,7 +104,7 @@ export default function UserCard({ user }) {
         }
         return (
             <Tooltip
-                content={`Esitmated Ping: ${ping || 'Unknown'} ms`}
+                content={`Estimated Ping: ${ping || 'Unknown'} ms`}
                 openDelay={200}
                 closeDelay={100}
             >

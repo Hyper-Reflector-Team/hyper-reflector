@@ -199,25 +199,6 @@ function connectWebSocket(user) {
                 // PingManager.addPeers(data.users)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
-                    console.log('user connected lets ping them', user, myUserData)
-                    signalServerSocket.send(
-                        JSON.stringify({
-                            type: 'estimate-ping-users',
-                            data: {
-                                userA: {
-                                    id: myUserData.uid,
-                                    lat: myUserData.pingLat,
-                                    lon: myUserData.pingLon,
-                                },
-                                userB: {
-                                    id: user.uid,
-                                    lat: user.pingLat,
-                                    lon: user.pingLon,
-                                },
-                            },
-                        })
-                    )
-
                     if (user.uid !== myUID) {
                         signalServerSocket.send(
                             JSON.stringify({
