@@ -18,8 +18,10 @@ import {
     Portal,
     Popover,
 } from '@chakra-ui/react'
-import { Crown } from 'lucide-react'
+import { Tooltip } from '../chakra/ui/tooltip'
+import { Crown, Wifi, WifiHigh, WifiLow, WifiOff, WifiZero } from 'lucide-react'
 import TitleBadge from './TitleBadge'
+import '/node_modules/flag-icons/css/flag-icons.min.css'
 
 export default function UserCard({ user }) {
     const theme = useLayoutStore((state) => state.appTheme)
@@ -87,6 +89,29 @@ export default function UserCard({ user }) {
         }
     }
 
+    function PingDisplay({ ping }: { ping: number | undefined }) {
+        console.log(ping)
+        const getWifiIcon = () => {
+            if (ping < 100) {
+                return <Wifi />
+            }
+            if (ping > 100 && ping > 200) {
+                return <WifiHigh />
+            }
+            if (ping > 200) {
+                return <WifiLow />
+            }
+            return <WifiOff />
+        }
+        return (
+            <Tooltip content={`Ping: ${ping || 'Unknown'} ms`} openDelay={200} closeDelay={100}>
+                <Icon size="md" color="gray.100">
+                    {getWifiIcon()}
+                </Icon>
+            </Tooltip>
+        )
+    }
+
     return (
         <Popover.Root
             open={userPopOpen}
@@ -136,7 +161,12 @@ export default function UserCard({ user }) {
                         <Box marginLeft={'12px'}>
                             <RankDisplay elo={user.elo} />
                         </Box>
-                        <Box>{/* eventually we will display ping here */}</Box>
+                        <Box display="flex" alignItems={'center'} gap="4px">
+                            {/* eventually we will display ping here */}
+
+                            <span class={`fi fi-${user.countryCode || 'xx'}`} />
+                            <PingDisplay ping={user.lastKnownPing || undefined} />
+                        </Box>
                     </Flex>
                 </Box>
             </Popover.Trigger>
