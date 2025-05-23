@@ -90,7 +90,6 @@ export default function UserCard({ user }) {
     }
 
     function PingDisplay({ ping }: { ping: number | undefined }) {
-        console.log(ping)
         const getWifiIcon = () => {
             if (ping < 100) {
                 return <Wifi />
@@ -163,9 +162,23 @@ export default function UserCard({ user }) {
                         </Box>
                         <Box display="flex" alignItems={'center'} gap="4px">
                             {/* eventually we will display ping here */}
-
-                            <span class={`fi fi-${user.countryCode || 'xx'}`} />
-                            <PingDisplay ping={user.lastKnownPing || undefined} />
+                            <Tooltip
+                                content={`${user.countryCode || 'Unknown'}`}
+                                openDelay={200}
+                                closeDelay={100}
+                            >
+                                <div>
+                                    <span
+                                        class={`fi fi-${user?.countryCode?.toLowerCase() || 'xx'}`}
+                                    />
+                                </div>
+                            </Tooltip>
+                            <PingDisplay
+                                ping={
+                                    userState?.lastKnownPings.find((u: string) => u.id === user.uid)
+                                        .ping || undefined
+                                }
+                            />
                         </Box>
                     </Flex>
                 </Box>

@@ -19,6 +19,7 @@ let signalServerSocket: WebSocket = null // socket reference
 let candidateList = []
 let callerIdState = null
 let userName: string | null = null
+let myUserData: any | null = null
 let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
@@ -26,8 +27,8 @@ let playerNum: number | null = null
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
-// const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
+// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
 function resetState() {
     candidateList = []
@@ -40,6 +41,7 @@ window.api.on('loginSuccess', (user) => {
     if (user) {
         myUID = user.uid
         userName = user.email
+        myUserData = user
         connectWebSocket(user)
     } else {
         if (signalServerSocket) {
@@ -193,18 +195,60 @@ function connectWebSocket(user) {
         const data = await convertBlob(message).then((res) => res)
         if (data.type === 'connected-users') {
             if (data.users.length) {
-                console.log(data.users)
                 currentUsers = data.users
                 // PingManager.addPeers(data.users)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
+                    console.log('user connected lets ping them', user, myUserData)
+                    signalServerSocket.send(
+                        JSON.stringify({
+                            type: 'estimate-ping-users',
+                            data: {
+                                userA: {
+                                    id: myUserData.uid,
+                                    lat: myUserData.pingLat,
+                                    lon: myUserData.pingLon,
+                                },
+                                userB: {
+                                    id: user.uid,
+                                    lat: user.pingLat,
+                                    lon: user.pingLon,
+                                },
+                            },
+                        })
+                    )
+
                     if (user.uid !== myUID) {
+                        signalServerSocket.send(
+                            JSON.stringify({
+                                type: 'estimate-ping-users',
+                                data: {
+                                    userA: {
+                                        id: myUserData.uid,
+                                        lat: myUserData.pingLat,
+                                        lon: myUserData.pingLon,
+                                    },
+                                    userB: {
+                                        id: user.uid,
+                                        lat: user.pingLat,
+                                        lon: user.pingLon,
+                                    },
+                                },
+                            })
+                        )
+                        // ;('estimate-ping-users') // call websockets here to update all the pings to different users.
+                        // make a call here to update everyones ping state.
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                         // todo  add some checks here
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
             }
+        }
+
+        if (data.type === 'update-user-pinged') {
+            console.log('hey the user has a ping, lets update all that data----------------', data)
+            window.api.updateUserData(data)
         }
 
         if (data.type === 'userDisconnect') {
@@ -238,6 +282,7 @@ function connectWebSocket(user) {
             // closePeerConnection(data.data.answererId)
             window.api.callDeclined(data.data.answererId)
         }
+
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
             // im pretty sure we need a local description for both off and answer before we set remote.

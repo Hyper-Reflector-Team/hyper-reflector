@@ -109,12 +109,21 @@ export default function LobbyPage() {
     //         })
     //         .catch((e) => console.log(e))
     // }
+
+    const handleUpdateUser = (data) => {
+        updateUserState({ ...userState, ...data.userData })
+    }
+
     useEffect(() => {
         // checkVid()
+        window.api.removeExtraListeners('updateUserData', handleUpdateUser)
+        window.api.on('updateUserData', handleUpdateUser)
+
         window.api.removeExtraListeners('updateLobbyStats', handleUpdateLobbies)
         window.api.on('updateLobbyStats', handleUpdateLobbies)
 
         return () => {
+            window.api.removeListener('updateUserData', handleUpdateUser)
             window.api.removeListener('updateLobbyStats', handleUpdateLobbies)
         }
     }, [])

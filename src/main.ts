@@ -56,6 +56,7 @@ let userUID: string | null = null
 let filePathBase = process.resourcesPath
 const tokenFilePath = path.join(app.getPath('userData'), 'auth_token.json')
 
+// USER LOGIN OBJECT GENERATION
 const getLoginObject = (user: any) => {
     return {
         name: user.userName,
@@ -64,6 +65,10 @@ const getLoginObject = (user: any) => {
         elo: user.accountELO || 0,
         profilePicture: user.profilePicture || 'test',
         userTitle: user.userTitle || null,
+        lastKnownPings: user.lastKnownPings || null,
+        pingLat: user.pingLat || null,
+        pingLon: user.pingLon || null,
+        countryCode: user.countryCode || null,
     }
 }
 
