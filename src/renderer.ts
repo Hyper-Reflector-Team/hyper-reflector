@@ -213,20 +213,17 @@ function connectWebSocket(user) {
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
+                        console.log(data.users)
                         signalServerSocket.send(
                             JSON.stringify({
                                 type: 'estimate-ping-users',
                                 data: {
                                     userA: {
                                         id: myUserData.uid,
-                                        lat: myUserData.pingLat,
-                                        lon: myUserData.pingLon,
                                         stability: checkConnectionStability(),
                                     },
                                     userB: {
                                         id: user.uid,
-                                        lat: user.pingLat,
-                                        lon: user.pingLon,
                                     },
                                 },
                             })

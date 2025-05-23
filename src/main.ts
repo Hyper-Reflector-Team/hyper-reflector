@@ -66,8 +66,6 @@ const getLoginObject = (user: any) => {
         profilePicture: user.profilePicture || 'test',
         userTitle: user.userTitle || null,
         lastKnownPings: user.lastKnownPings || null,
-        pingLat: user.pingLat || null,
-        pingLon: user.pingLon || null,
         countryCode: user.countryCode || null,
     }
 }
