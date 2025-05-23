@@ -191,6 +191,19 @@ function connectWebSocket(user) {
         }
     }
 
+    function checkConnectionStability() {
+        const connection =
+            navigator.connection || navigator.mozConnection || navigator.webkitConnection
+        if (connection) {
+            const isUnstable =
+                connection.effectiveType === '4g' &&
+                connection.rtt < 100 &&
+                connection.downlink > 10
+            return isUnstable
+        }
+        return false
+    }
+
     signalServerSocket.onmessage = async (message) => {
         const data = await convertBlob(message).then((res) => res)
         if (data.type === 'connected-users') {
@@ -208,6 +221,7 @@ function connectWebSocket(user) {
                                         id: myUserData.uid,
                                         lat: myUserData.pingLat,
                                         lon: myUserData.pingLon,
+                                        stability: checkConnectionStability(),
                                     },
                                     userB: {
                                         id: user.uid,

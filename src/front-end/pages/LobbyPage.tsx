@@ -116,19 +116,6 @@ export default function LobbyPage() {
     }
 
     useEffect(() => {
-        const connection =
-            navigator.connection || navigator.mozConnection || navigator.webkitConnection
-        if (connection) {
-            console.log('Type:', connection.type) // e.g., '4g', 'wifi', 'ethernet', 'slow-2g'
-            console.log('Effective Type:', connection.effectiveType) // e.g., '4g', 'wifi', 'ethernet', 'slow-2g'
-            console.log('Downlink speed (Mb/s):', connection.downlink)
-            console.log('rtt', connection.rtt)
-            const isLikelyWifi =
-                connection.effectiveType === '4g' &&
-                connection.rtt < 100 &&
-                connection.downlink > 10
-            console.log('Likely on WiFi:', isLikelyWifi)
-        }
         // checkVid()
         window.api.removeExtraListeners('updateUserData', handleUpdateUser)
         window.api.on('updateUserData', handleUpdateUser)
