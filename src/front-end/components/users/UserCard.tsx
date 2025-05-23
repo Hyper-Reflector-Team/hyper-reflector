@@ -103,7 +103,11 @@ export default function UserCard({ user }) {
             return <WifiOff />
         }
         return (
-            <Tooltip content={`Ping: ${ping || 'Unknown'} ms`} openDelay={200} closeDelay={100}>
+            <Tooltip
+                content={`Esitmated Ping: ${ping || 'Unknown'} ms`}
+                openDelay={200}
+                closeDelay={100}
+            >
                 <Icon size="md" color="gray.100">
                     {getWifiIcon()}
                 </Icon>
