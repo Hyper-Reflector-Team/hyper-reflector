@@ -136,11 +136,12 @@ export default function UserCard({ user }) {
                 >
                     <Flex gap="12px">
                         <Box>
-                            <Avatar.Root colorPalette="cyan" variant="solid">
+                            <Avatar.Root bg={theme.colors.main.bg} variant="solid">
                                 <Avatar.Fallback name={user.name} />
+                                <Avatar.Image src={user.profilePicture} />
                                 <Float placement="bottom-end" offsetX="1" offsetY="1">
                                     <Circle
-                                        bg="green.500" // offline online stuff
+                                        bg={theme.colors.main.active}
                                         size="8px"
                                         outline="0.2em solid"
                                         outlineColor={theme.colors.main.cardDark}

@@ -80,7 +80,7 @@ export default function NewsPage() {
 
     const chart = useChart<BarListData>({
         sort: { by: 'value', direction: 'desc' },
-        data: getCharacterData() || [{ name: 'unknown', value: 0, test: 'poop' }],
+        data: getCharacterData() || [{ name: 'unknown', value: 0, test: 'cool' }],
         series: [{ name: 'name', color: theme.colors.main.actionSecondary }],
     })
 
