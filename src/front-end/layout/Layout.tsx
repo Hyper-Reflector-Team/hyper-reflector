@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Stack, Tabs, Box, Text } from '@chakra-ui/react'
+import { Stack, Tabs, Box, Text, Image } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { toaster } from '../components/chakra/ui/toaster'
 import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
 import { Settings } from 'lucide-react'
 import { getThemeNameList } from '../utils/theme'
 import bgImage from './bgImage.svg'
+import hrLogo from './logo.svg'
 
 import soundBase64Data from '../components/sound/challenge.wav'
 
@@ -128,6 +129,7 @@ export default function Layout({ children }) {
                 px="4"
                 flexShrink={0}
             >
+                <Image src={hrLogo} height={'60px'} />
                 <Tabs.Root variant="enclosed" value={layoutTab} width="100%">
                     <Tabs.List bg={theme.colors.main.secondary} rounded="l3" minW="100%">
                         <Box display={'flex'} width="100%">
@@ -233,9 +235,28 @@ export default function Layout({ children }) {
                 px="4"
                 flexShrink={0}
             >
-                {/* <Text textStyle="xs" color={theme.colors.main.action}>
-                    https://discord.gg/T77dSXG7Re
-                </Text> */}
+                <Box display="flex" gap="8px">
+                    <a href="https://hyper-reflector.com/" target="_blank" rel="noreferrer">
+                        <Text textStyle="xs" color={theme.colors.main.action}>
+                            Hyper Reflector on:
+                        </Text>
+                    </a>
+                    <a href="https://discord.gg/fsQEVzXwbt" target="_blank" rel="noreferrer">
+                        <Text textStyle="xs" color={theme.colors.main.action}>
+                            Discord
+                        </Text>
+                    </a>
+                    <a
+                        href="https://github.com/Hyper-Reflector-Team"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <Text textStyle="xs" color={theme.colors.main.action}>
+                            Github
+                        </Text>
+                    </a>
+                </Box>
+
                 <Text textStyle="xs" color={theme.colors.main.action}>
                     Hyper Reflector version 0.3.0a 2025
                 </Text>
