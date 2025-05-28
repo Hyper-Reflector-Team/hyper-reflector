@@ -9,6 +9,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 
 const config: ForgeConfig = {
     packagerConfig: {
+        icon: './icons/favicon-32x32',
         asar: true,
         ignore: [/\/\.(?!vite)/],
         extraResource: [
