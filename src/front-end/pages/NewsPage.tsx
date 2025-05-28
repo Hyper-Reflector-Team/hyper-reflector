@@ -51,7 +51,6 @@ export default function NewsPage() {
     const [globalStats, setGlobalStats] = useState(undefined)
 
     const handleFillGlobalStats = (stats) => {
-        console.log('stats', stats)
         setGlobalStats(stats.globalStatSet)
     }
 
