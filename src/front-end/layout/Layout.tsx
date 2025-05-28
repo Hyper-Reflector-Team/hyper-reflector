@@ -129,7 +129,7 @@ export default function Layout({ children }) {
                 px="4"
                 flexShrink={0}
             >
-                <Image src={hrLogo} height={'60px'} />
+                <Image src={hrLogo} height={'80px'} />
                 <Tabs.Root variant="enclosed" value={layoutTab} width="100%">
                     <Tabs.List bg={theme.colors.main.secondary} rounded="l3" minW="100%">
                         <Box display={'flex'} width="100%">
