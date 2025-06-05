@@ -2,9 +2,6 @@ import keys from './private/keys'
 import './index.css'
 // Load the react application
 import './front-end/app'
-import { PeerManager } from './webRTC/peerManager'
-import { PingManager } from './webRTC/PingManager'
-import { WebRTCPeer } from './webRTC/WebRTCPeer'
 import {
     answerCall,
     closeAllPeers,
@@ -81,6 +78,54 @@ window.api.on('closingApp', async (user) => {
     // }
 })
 
+window.api.on(
+    'callUser',
+    async ({ callerId, calleeId }: { callerId: string; calleeId: string }) => {
+        startCall(peerConnection, signalServerSocket, calleeId, callerId, true)
+    }
+)
+
+// handle send answer to specific user
+window.api.on(
+    'answerCall',
+    async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
+        console.log('is this actually firing off?', callerId, answererId)
+        // let answer = await peerConnections[callerId]?.createAnswer()
+        // await peerConnections[callerId].setLocalDescription(answer)
+
+        // signalServerSocket.send(
+        //     JSON.stringify({
+        //         type: 'answerCall',
+        //         data: {
+        //             callerId,
+        //             answer,
+        //             answererId,
+        //         },
+        //     })
+        // )
+        callerIdState = callerId
+        opponentUID = callerId
+        playerNum = 1 // if we answer a call we are always player 1
+        window.api.startGameOnline(opponentUID, playerNum)
+    }
+)
+
+// window.api.on(
+//     'declineCall',
+//     async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
+//         await signalServerSocket.send(
+//             JSON.stringify({
+//                 type: 'declineCall',
+//                 data: {
+//                     callerId,
+//                     answererId,
+//                 },
+//             })
+//         )
+//         await closePeerConnection(callerId) // close the peer connection when we decline
+//     }
+// )
+
 function connectWebSocket(user) {
     if (signalServerSocket) return // Prevent duplicate ws connections from same client
     // signalServerSocket = new WebSocket(`ws://127.0.0.1:3000`) // for testing server
@@ -106,20 +151,6 @@ function connectWebSocket(user) {
         // probably need more validation
         if (messageObject.text.length) {
             // Below is debug code for starting web rtc stuff
-            if (messageObject.text === 'open' && user.uid === myUID) {
-                if (
-                    peerConnection &&
-                    peerConnection?.signalingState !== 'have-local-offer' &&
-                    currentUsers.length
-                ) {
-                    console.log('peer state', peerConnection?.signalingState)
-                    currentUsers.forEach((user) => {
-                        if (user.id !== myUID) {
-                            startCall(peerConnection, signalServerSocket, user.uid, myUID, true) // last boolean is for debug purposes to prevent every one calling
-                        }
-                    })
-                }
-            }
             if (messageObject.text === 'close' && peerConnection) {
                 await closeAllPeers(peerConnection) // TODO fix this we will have an array
                 peerConnection = null
@@ -278,6 +309,8 @@ function connectWebSocket(user) {
             // there is a timing issue here that nees to be fixed.
             console.log('hey we got offer from ', data.from)
             // call init with answer params
+
+            // push challenge message that can be accepted
             peerConnection = await initWebRTC(
                 myUID,
                 data.from,
@@ -285,6 +318,8 @@ function connectWebSocket(user) {
                 true,
                 data.offer
             )
+            // this may or may not fire
+            window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')
             try {

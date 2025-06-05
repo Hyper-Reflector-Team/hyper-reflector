@@ -148,7 +148,27 @@ export default function UserCard({ user }) {
                     borderWidth="2px"
                     borderColor={theme.colors.main.cardDark}
                     _hover={{ bg: theme.colors.main.cardLight, cursor: 'pointer' }}
+                    position={'relative'}
                 >
+                    <Float placement="middle-start" offsetX="-1" offsetY="0">
+                        <Tooltip content={`Win Streak`} openDelay={200} closeDelay={100}>
+                            <Box
+                                className={user.winStreak >= 5 && 'glow'}
+                                background={theme.colors.main.bg}
+                                width={'18px'}
+                                borderRadius={'8px'}
+                            >
+                                <Text
+                                    textStyle="sm"
+                                    fontWeight="bold"
+                                    color={theme.colors.main.text}
+                                    animation={'slide-from-bottom'}
+                                >
+                                    {user.winStreak || null}
+                                </Text>
+                            </Box>
+                        </Tooltip>
+                    </Float>
                     <Flex gap="12px">
                         <Box maxW="120px">
                             <Avatar.Root bg={theme.colors.main.bg} variant="solid">

@@ -67,6 +67,7 @@ const getLoginObject = (user: any) => {
         userTitle: user.userTitle || null,
         lastKnownPings: user.lastKnownPings || null,
         countryCode: user.countryCode || null,
+        winStreak: user.winStreak || 0,
     }
 }
 
