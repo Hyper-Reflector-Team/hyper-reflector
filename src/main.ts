@@ -4,8 +4,8 @@ import {
     ipcMain,
     dialog,
     Notification,
-    desktopCapturer,
-    session,
+    // desktopCapturer,
+    // session,
 } from 'electron'
 const { exec } = require('child_process')
 import started from 'electron-squirrel-startup'
@@ -63,7 +63,7 @@ const getLoginObject = (user: any) => {
         email: user.userEmail,
         uid: user.uid,
         elo: user.accountELO || 0,
-        profilePicture: user.profilePicture || 'test',
+        userProfilePic: user.userProfilePic || 'test',
         userTitle: user.userTitle || null,
         lastKnownPings: user.lastKnownPings || null,
         countryCode: user.countryCode || null,
@@ -110,27 +110,34 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
         },
         autoHideMenuBar: true,
+        icon: './icons/favicon-32x32.png',
     })
 
-    const overlayWindow = new BrowserWindow({
-        width: 400,
-        height: 200,
-        frame: false,
-        transparent: true,
-        alwaysOnTop: true,
-        focusable: false,
-        skipTaskbar: true,
-        hasShadow: false,
-        resizable: false,
-        fullscreenable: false,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-        },
+    // allow for external link opening
+    mainWindow.webContents.setWindowOpenHandler((details) => {
+        require('electron').shell.openExternal(details.url)
+        return { action: 'deny' }
     })
 
-    overlayWindow.setIgnoreMouseEvents(true) // Allows clicks to go through
-    overlayWindow.loadURL('file://' + __dirname + '/overlay.html')
+    // const overlayWindow = new BrowserWindow({
+    //     width: 400,
+    //     height: 200,
+    //     frame: false,
+    //     transparent: true,
+    //     alwaysOnTop: true,
+    //     focusable: false,
+    //     skipTaskbar: true,
+    //     hasShadow: false,
+    //     resizable: false,
+    //     fullscreenable: false,
+    //     webPreferences: {
+    //         nodeIntegration: true,
+    //         contextIsolation: false,
+    //     },
+    // })
+
+    // overlayWindow.setIgnoreMouseEvents(true) // Allows clicks to go through
+    // overlayWindow.loadURL('file://' + __dirname + '/overlay.html')
 
     // TODO this is for screen share, just for testing, but possible for other features in the future.
     // session.defaultSession.setDisplayMediaRequestHandler(

@@ -36,6 +36,7 @@ import {
     Construction,
     Joystick,
     Pencil,
+    RefreshCcw,
     UserRound,
     Wrench,
     X,
@@ -54,6 +55,7 @@ import {
 import SideBar from '../components/general/SideBar'
 import MatchSetCard from '../components/users/MatchSetCard'
 import TitleBadge from '../components/users/TitleBadge'
+import GravatarInput from '../components/profile/GravatarInput'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -70,10 +72,10 @@ export default function PlayerProfilePage() {
     const [editedUserName, setEditedUserName] = useState(undefined)
     const [editedGravEmail, setEditedGravEmail] = useState(undefined)
     const [isEditName, setIsEditName] = useState(false)
-    const [isEditGravEmail, setIsEditGravEmail] = useState(false)
     const [nameInvalid, setNameInvalid] = useState(false)
     const [emailInvalid, setEmailInvalid] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingUserData, setIsLoadingUserData] = useState(true)
     const [recentMatches, setRecentMatches] = useState([])
     const [userData, setUserData] = useState([])
     const [lastMatch, setLastMatch] = useState(null)
@@ -124,13 +126,15 @@ export default function PlayerProfilePage() {
         // use effects when we switch tabs
         // public profile
         if (currentTab === 0) {
+            setIsLoading(false)
             window.api.getAllTitles({ userId })
-            setIsLoading(true)
-            window.api.getUserData(userId)
+            if (!userData?.userName) {
+                window.api.getUserData(userId)
+            }
         }
         // recent matches
         if (currentTab === 1) {
-            setIsLoading(true)
+            // setIsLoading(true)
             // window.api.getUserMatches({ userId, lastMatchId: lastMatch })
             if (isBack) {
                 window.api.getUserMatches({ userId, firstMatchId: firstMatch })
@@ -142,14 +146,14 @@ export default function PlayerProfilePage() {
         }
         // public profile
         if (currentTab === 2) {
-            setIsLoading(true)
+            //setIsLoading(true)
             setIsLoading(false)
         }
     }, [currentTab, pageNumber])
 
     useEffect(() => {
         if (currentTab === 0 || currentTab === 3) {
-            setIsLoading(false)
+            setIsLoadingUserData(false)
         }
     }, [userData])
 
@@ -330,16 +334,27 @@ export default function PlayerProfilePage() {
     const UserProfileHeader = memo(function UserProfileHeader({ userData }) {
         return (
             <Flex alignItems="center">
-                <Box>
-                    <Avatar.Root bg={theme.colors.main.bg} variant="solid">
-                        <Avatar.Fallback name={userData.name} />
-                        <Avatar.Image src={userData.profilePicture} />
-                    </Avatar.Root>
+                <Box flex={1} display={'flex'} alignContent={'center'} verticalAlign={'center'}>
+                    <Box>
+                        <Avatar.Root bg={theme.colors.main.bg} variant="solid" size={'2xl'}>
+                            <Avatar.Fallback name={userData.name} />
+                            <Avatar.Image src={userData.userProfilePic} />
+                        </Avatar.Root>
+                    </Box>
+                    <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                        {userData?.userName || 'Unknown User'}
+                        <TitleBadge title={userData?.userTitle} />
+                    </Text>
                 </Box>
-                <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                    {userData?.userName || 'Unknown User'}
-                    <TitleBadge title={userData?.userTitle} />
-                </Text>
+                <Box flex={1} textAlign={'right'}>
+                    <Button
+                        justifyContent="flex-start"
+                        bg={theme.colors.main.secondary}
+                        onClick={() => window.api.getUserData(userData.uid)}
+                    >
+                        <RefreshCcw />
+                    </Button>
+                </Box>
             </Flex>
         )
     })
@@ -401,10 +416,6 @@ export default function PlayerProfilePage() {
                         <Box color={theme.colors.main.actionSecondary} display="flex" gap="12px">
                             <Construction /> Under Construction
                         </Box>
-                        {/* <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                            {JSON.stringify(userData)}
-                        </Text> */}
-
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             Overall win rate: {getWinRate()}%
                         </Text>
@@ -648,6 +659,14 @@ export default function PlayerProfilePage() {
                                 )}
                             </Editable.Root>
                         </Stack>
+                        <GravatarInput
+                            userData={userData}
+                            userState={userState}
+                            editedGravEmail={editedGravEmail}
+                            setEditedGravEmail={setEditedGravEmail}
+                            updateUserState={updateUserState}
+                            emailInvalid={emailInvalid}
+                        />
                         <Stack>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 User Flair
@@ -677,88 +696,6 @@ export default function PlayerProfilePage() {
                                     </SelectContent>
                                 </SelectRoot>
                             </Field>
-                        </Stack>
-                        <Stack>
-                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                                Gravatar Email
-                            </Text>
-                            <Editable.Root
-                                defaultValue={'demo@email.com'}
-                                maxLength={128}
-                                onEditChange={(e) => setIsEditGravEmail(e.edit)}
-                                onValueCommit={(e) => {
-                                    const censor = new TextCensor()
-                                    const textMatch = e.value
-                                    const matches = matcher.getAllMatches(textMatch)
-                                    const censoredMessage = censor.applyTo(textMatch, matches)
-                                    setEditedGravEmail(censoredMessage)
-                                    updateUserState({ ...userState, gravEmail: censoredMessage })
-                                    window.api.changeUserData({ gravEmail: censoredMessage })
-                                }}
-                                onValueChange={(e) => setEditedGravEmail(e.value)}
-                                onValueRevert={(e) => {
-                                    setEditedGravEmail(e.value)
-                                    updateUserState({ ...userState, gravEmail: e.value })
-                                }}
-                                value={editedGravEmail}
-                                invalid={
-                                    editedGravEmail && editedGravEmail.length <= 1 && emailInvalid
-                                }
-                            >
-                                {!isEditGravEmail && (
-                                    <Heading
-                                        flex="1"
-                                        size="lg"
-                                        color={theme.colors.main.actionSecondary}
-                                        width="100px"
-                                        height="36px"
-                                    >
-                                        {editedGravEmail || userData?.gravEmail || '' ? (
-                                            editedGravEmail || userData?.gravEmail || ''
-                                        ) : (
-                                            <Skeleton height="24px" />
-                                        )}
-                                    </Heading>
-                                )}
-
-                                <Editable.Input
-                                    id="test"
-                                    bg={theme.colors.main.textSubdued}
-                                    height="36px"
-                                    value={editedGravEmail}
-                                />
-                                {userData?.uid === userState.uid && (
-                                    <Editable.Control>
-                                        <Editable.EditTrigger asChild>
-                                            <IconButton
-                                                variant="ghost"
-                                                size="xs"
-                                                color={theme.colors.main.action}
-                                            >
-                                                <Pencil />
-                                            </IconButton>
-                                        </Editable.EditTrigger>
-                                        <Editable.CancelTrigger asChild>
-                                            <IconButton
-                                                variant="outline"
-                                                size="xs"
-                                                color={theme.colors.main.action}
-                                            >
-                                                <X />
-                                            </IconButton>
-                                        </Editable.CancelTrigger>
-                                        <Editable.SubmitTrigger asChild>
-                                            <IconButton
-                                                variant="outline"
-                                                size="xs"
-                                                color={theme.colors.main.action}
-                                            >
-                                                <Check />
-                                            </IconButton>
-                                        </Editable.SubmitTrigger>
-                                    </Editable.Control>
-                                )}
-                            </Editable.Root>
                         </Stack>
                     </Stack>
                 )}

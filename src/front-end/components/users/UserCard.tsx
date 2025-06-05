@@ -4,13 +4,9 @@ import { useLoginStore, useMessageStore, useLayoutStore } from '../../state/stor
 import {
     Button,
     Stack,
-    Input,
     Flex,
     Box,
     Avatar,
-    AvatarGroup,
-    Card,
-    Badge,
     Text,
     Icon,
     Float,
@@ -19,7 +15,7 @@ import {
     Popover,
 } from '@chakra-ui/react'
 import { Tooltip } from '../chakra/ui/tooltip'
-import { Crown, Wifi, WifiHigh, WifiLow, WifiOff, WifiZero } from 'lucide-react'
+import { Crown, Wifi, WifiHigh, WifiLow, WifiOff } from 'lucide-react'
 import TitleBadge from './TitleBadge'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 
@@ -72,6 +68,10 @@ export default function UserCard({ user }) {
             window.api.removeListener('callDeclined', handleCallDeclined)
         }
     }, [])
+
+    useEffect(() => {
+        console.log(userState)
+    }, [userState])
 
     function RankDisplay({ elo }) {
         if (!elo) return
@@ -138,7 +138,7 @@ export default function UserCard({ user }) {
                         <Box>
                             <Avatar.Root bg={theme.colors.main.bg} variant="solid">
                                 <Avatar.Fallback name={user.name} />
-                                <Avatar.Image src={user.profilePicture} />
+                                <Avatar.Image src={user.userProfilePic} />
                                 <Float placement="bottom-end" offsetX="1" offsetY="1">
                                     <Circle
                                         bg={theme.colors.main.active}
