@@ -76,10 +76,11 @@ export async function startCall(
 ) {
     if (!isCaller) return
 
-    if (clients.find((client) => client.to === to)) {
-        console.log('peer client exists skipping call')
-        return
-    }
+    // if (clients.find((client) => client.to === to)) {
+    //     console.log('peer client exists skipping call')
+    //     return
+    // }
+
     console.log('starting call with: ', to)
     if (peerConnection) {
         clients.push({ to: to, peer: peerConnection })

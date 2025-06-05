@@ -910,9 +910,10 @@ const createWindow = () => {
     })
 
     ipcMain.on('receivedCall', (event, data) => {
+        console.log(data)
         mainWindow.webContents.send('receivedCall', data)
         const challengeObject = {
-            sender: data.callerId,
+            sender: data,
             message: 'got a challenge',
             type: 'challenge',
             declined: false,
