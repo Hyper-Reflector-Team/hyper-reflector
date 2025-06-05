@@ -228,10 +228,7 @@ function connectWebSocket(user) {
                                 },
                             })
                         )
-                        // ;('estimate-ping-users') // call websockets here to update all the pings to different users.
-                        // make a call here to update everyones ping state.
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
-                        // todo  add some checks here
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)

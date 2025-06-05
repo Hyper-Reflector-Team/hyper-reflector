@@ -89,29 +89,46 @@ export default function UserCard({ user }) {
         }
     }
 
-    function PingDisplay({ ping }: { ping: number | undefined }) {
+    function PingDisplay({
+        peer,
+    }: {
+        peer: { uid: string; countryCode: string; ping: number } | undefined
+    }) {
+        console.log(peer)
         const getWifiIcon = () => {
-            if (ping < 100) {
+            if (peer?.ping < 100) {
                 return <Wifi />
             }
-            if (ping > 100 && ping > 200) {
+            if (peer?.ping > 100 && peer?.ping > 200) {
                 return <WifiHigh />
             }
-            if (ping > 200) {
+            if (peer?.ping > 200) {
                 return <WifiLow />
             }
             return <WifiOff />
         }
         return (
-            <Tooltip
-                content={`Estimated Ping: ${ping || 'Unknown'} ms`}
-                openDelay={200}
-                closeDelay={100}
-            >
-                <Icon size="md" color="gray.100">
-                    {getWifiIcon()}
-                </Icon>
-            </Tooltip>
+            <>
+                {/* eventually we will display ping here */}
+                <Tooltip
+                    content={`${peer?.countryCode || 'Unknown'}`}
+                    openDelay={200}
+                    closeDelay={100}
+                >
+                    <div>
+                        <span class={`fi fi-${peer?.countryCode?.toLowerCase() || 'xx'}`} />
+                    </div>
+                </Tooltip>
+                <Tooltip
+                    content={`Estimated Ping: ${peer?.ping || 'Unknown'} ms`}
+                    openDelay={200}
+                    closeDelay={100}
+                >
+                    <Icon size="md" color="gray.100">
+                        {getWifiIcon()}
+                    </Icon>
+                </Tooltip>
+            </>
         )
     }
 
@@ -166,24 +183,13 @@ export default function UserCard({ user }) {
                             <RankDisplay elo={user.elo} />
                         </Box>
                         <Box display="flex" alignItems={'center'} gap="4px">
-                            {/* eventually we will display ping here */}
-                            <Tooltip
-                                content={`${user.countryCode || 'Unknown'}`}
-                                openDelay={200}
-                                closeDelay={100}
-                            >
-                                <div>
-                                    <span
-                                        class={`fi fi-${user?.countryCode?.toLowerCase() || 'xx'}`}
-                                    />
-                                </div>
-                            </Tooltip>
                             <PingDisplay
-                                ping={
+                                peer={
                                     (userState?.lastKnownPings &&
                                         userState?.lastKnownPings?.find(
                                             (u: string) => u.id === user.uid
-                                        )?.ping) ||
+                                        )) ||
+                                    user ||
                                     undefined
                                 }
                             />

@@ -111,12 +111,24 @@ export default function LobbyPage() {
     // }
 
     const handleUpdateUser = (data) => {
-        console.log('spreading user data', data)
-        updateUserState({ ...userState, ...data })
+        if (data?.isNewPing) {
+            const updatedPings =
+                userState?.lastKnownPings?.filter((peer) => peer.id !== data.id) ?? []
+            updatedPings.push(data)
+
+            updateUserState({
+                ...userState,
+                lastKnownPings: updatedPings,
+            })
+        } else {
+            updateUserState({
+                ...userState,
+                ...data,
+            })
+        }
     }
 
     useEffect(() => {
-        // checkVid()
         window.api.removeExtraListeners('updateUserData', handleUpdateUser)
         window.api.on('updateUserData', handleUpdateUser)
 
