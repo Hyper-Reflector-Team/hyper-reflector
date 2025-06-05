@@ -69,10 +69,6 @@ export default function UserCard({ user }) {
         }
     }, [])
 
-    useEffect(() => {
-        console.log(userState)
-    }, [userState])
-
     function RankDisplay({ elo }) {
         if (!elo) return
         if (elo <= 1200) {
@@ -94,7 +90,7 @@ export default function UserCard({ user }) {
     }: {
         peer: { uid: string; countryCode: string; ping: number } | undefined
     }) {
-        console.log(peer)
+        const isMe = peer.uid === userState?.uid || false
         const getWifiIcon = () => {
             if (peer?.ping < 100) {
                 return <Wifi />
@@ -108,8 +104,7 @@ export default function UserCard({ user }) {
             return <WifiOff />
         }
         return (
-            <>
-                {/* eventually we will display ping here */}
+            <Box display={'flex'} gap="8px">
                 <Tooltip
                     content={`${peer?.countryCode || 'Unknown'}`}
                     openDelay={200}
@@ -119,16 +114,18 @@ export default function UserCard({ user }) {
                         <span class={`fi fi-${peer?.countryCode?.toLowerCase() || 'xx'}`} />
                     </div>
                 </Tooltip>
-                <Tooltip
-                    content={`Estimated Ping: ${peer?.ping || 'Unknown'} ms`}
-                    openDelay={200}
-                    closeDelay={100}
-                >
-                    <Icon size="md" color="gray.100">
-                        {getWifiIcon()}
-                    </Icon>
-                </Tooltip>
-            </>
+                {!isMe && (
+                    <Tooltip
+                        content={`Estimated Ping: ${peer?.ping || 'Unknown'} ms`}
+                        openDelay={200}
+                        closeDelay={100}
+                    >
+                        <Icon size="md" color="gray.100">
+                            {getWifiIcon()}
+                        </Icon>
+                    </Tooltip>
+                )}
+            </Box>
         )
     }
 
@@ -140,7 +137,8 @@ export default function UserCard({ user }) {
         >
             <Popover.Trigger asChild>
                 <Box
-                    minW="260px"
+                    minW="280px"
+                    maxW="280px"
                     minH="60px"
                     maxH="60px"
                     background={theme.colors.main.card}
@@ -152,7 +150,7 @@ export default function UserCard({ user }) {
                     _hover={{ bg: theme.colors.main.cardLight, cursor: 'pointer' }}
                 >
                     <Flex gap="12px">
-                        <Box>
+                        <Box maxW="120px">
                             <Avatar.Root bg={theme.colors.main.bg} variant="solid">
                                 <Avatar.Fallback name={user.name} />
                                 <Avatar.Image src={user.userProfilePic} />
@@ -179,10 +177,10 @@ export default function UserCard({ user }) {
                             <TitleBadge title={user.userTitle || null} />
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
-                        <Box marginLeft={'12px'}>
+                        <Box marginLeft={'12px'} minWidth={'40px'}>
                             <RankDisplay elo={user.elo} />
                         </Box>
-                        <Box display="flex" alignItems={'center'} gap="4px">
+                        <Box display="flex" alignItems={'center'} gap="4px" minW={'60px'}>
                             <PingDisplay
                                 peer={
                                     (userState?.lastKnownPings &&
