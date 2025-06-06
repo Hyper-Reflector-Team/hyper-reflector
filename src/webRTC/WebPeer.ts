@@ -17,9 +17,7 @@ var dataChannels: { to: string; from: string; channel: RTCDataChannel }[] = []
 export async function initWebRTC(
     myUID: string,
     toUID: string,
-    signalingSocket: WebSocket,
-    isAnswer?: boolean,
-    offer?: any
+    signalingSocket: WebSocket
 ): Promise<RTCPeerConnection> {
     const peer = new RTCPeerConnection({
         iceServers,
@@ -57,11 +55,6 @@ export async function initWebRTC(
         if (peer.iceConnectionState === 'connected') {
             console.log('-------------------------- > Peer connection established!')
         }
-    }
-
-    if (isAnswer) {
-        await peer.setRemoteDescription(new RTCSessionDescription(offer))
-        answerCall(peer, signalingSocket, toUID, myUID)
     }
 
     return peer

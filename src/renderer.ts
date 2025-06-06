@@ -86,29 +86,14 @@ window.api.on(
 )
 
 // handle send answer to specific user
-window.api.on(
-    'answerCall',
-    async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
-        console.log('is this actually firing off?', callerId, answererId)
-        // let answer = await peerConnections[callerId]?.createAnswer()
-        // await peerConnections[callerId].setLocalDescription(answer)
-
-        // signalServerSocket.send(
-        //     JSON.stringify({
-        //         type: 'answerCall',
-        //         data: {
-        //             callerId,
-        //             answer,
-        //             answererId,
-        //         },
-        //     })
-        // )
-        callerIdState = callerId
-        opponentUID = callerId
-        playerNum = 1 // if we answer a call we are always player 1
-        window.api.startGameOnline(opponentUID, playerNum)
-    }
-)
+window.api.on('answerCall', async ({ from, answererId }: { from: string; answererId: string }) => {
+    answerCall(peerConnection, signalServerSocket, myUID, from)
+    console.log('is this actually firing off?', myUID, from)
+    callerIdState = from
+    opponentUID = from
+    playerNum = 1 // if we answer a call we are always player 1
+    window.api.startGameOnline(opponentUID, playerNum)
+})
 
 // window.api.on(
 //     'declineCall',
@@ -259,6 +244,7 @@ function connectWebSocket(user) {
                                 },
                             })
                         )
+                        console.log('making a peer connection')
                         peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                     }
                 })
@@ -305,20 +291,11 @@ function connectWebSocket(user) {
 
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
-            // im pretty sure we need a local description for both off and answer before we set remote.
-            // there is a timing issue here that nees to be fixed.
-            console.log('hey we got offer from ', data.from)
-            // call init with answer params
-
-            // push challenge message that can be accepted
-            peerConnection = await initWebRTC(
-                myUID,
-                data.from,
-                signalServerSocket,
-                true,
-                data.offer
-            )
-            // this may or may not fire
+            console.log(data)
+            peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+            }
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
             console.log('hey we got answer')

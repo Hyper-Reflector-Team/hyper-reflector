@@ -61,6 +61,7 @@ export default function UserChallengeMessage({ message }) {
                                         accepted: true,
                                     }
                                     updateMessage(updatedMessage)
+                                    console.log(caller)
                                     window.api.answerCall(caller)
                                     updateUserState({ ...userState, isFighting: true })
                                 }}
