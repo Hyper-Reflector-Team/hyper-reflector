@@ -39,13 +39,13 @@ export async function initWebRTC(
             )
             if (event.candidate.type === 'srflx' || event.candidate.type === 'host') {
                 // if we only require the stun server then we can break out of here.
-                console.log('STUN ICE Candidate:', event.candidate)
+                // console.log('STUN ICE Candidate:', event.candidate)
             }
             // if the below is true it means we've successfully udp tunnelled to the candidate on the turn server
             if (event.candidate.type === 'relay') {
-                console.log('TURN ICE Candidate:', event.candidate)
-                console.log(event.candidate.address, event.candidate.port)
-                console.log('UDP tunneled through TURN server!')
+                // console.log('TURN ICE Candidate:', event.candidate)
+                // console.log(event.candidate.address, event.candidate.port)
+                // console.log('UDP tunneled through TURN server!')
             }
         }
     }
@@ -77,7 +77,7 @@ export async function startCall(
     console.log('starting call with: ', to)
     if (peerConnection) {
         clients.push({ to: to, peer: peerConnection })
-        console.log('current clients after push', clients)
+        // console.log('current clients after push', clients)
         const offer = await peerConnection.createOffer()
         await peerConnection.setLocalDescription(offer)
         signalingSocket.send(

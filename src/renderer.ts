@@ -81,13 +81,15 @@ window.api.on('closingApp', async (user) => {
 window.api.on(
     'callUser',
     async ({ callerId, calleeId }: { callerId: string; calleeId: string }) => {
+        console.log('making a peer connection')
+        peerConnection = await initWebRTC(myUID, calleeId, signalServerSocket)
         startCall(peerConnection, signalServerSocket, calleeId, callerId, true)
     }
 )
 
 // handle send answer to specific user
 window.api.on('answerCall', async ({ from, answererId }: { from: string; answererId: string }) => {
-    answerCall(peerConnection, signalServerSocket, myUID, from)
+    answerCall(peerConnection, signalServerSocket, from, myUID)
     console.log('is this actually firing off?', myUID, from)
     callerIdState = from
     opponentUID = from
@@ -244,8 +246,6 @@ function connectWebSocket(user) {
                                 },
                             })
                         )
-                        console.log('making a peer connection')
-                        peerConnection = await initWebRTC(myUID, user.uid, signalServerSocket)
                     }
                 })
                 window.api.addUserGroupToRoom(data.users)
@@ -298,7 +298,10 @@ function connectWebSocket(user) {
             }
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
-            console.log('hey we got answer')
+            console.log('got an answer back')
+            console.log(data)
+            playerNum = 0 // if we answer a call we are always player 1
+            window.api.startGameOnline(data.from, playerNum)
             try {
                 // there is a timing issue here that nees to be fixed.
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
