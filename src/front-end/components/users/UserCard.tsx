@@ -162,7 +162,7 @@ export default function UserCard({ user }) {
                                     textStyle="sm"
                                     fontWeight="bold"
                                     color={theme.colors.main.text}
-                                    animation={'slide-from-bottom'}
+                                    animation={'pulse'}
                                 >
                                     {user.winStreak || null}
                                 </Text>
