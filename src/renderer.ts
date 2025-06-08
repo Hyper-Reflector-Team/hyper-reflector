@@ -24,8 +24,8 @@ let playerNum: number | null = null
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
-const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
-// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+// const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
+const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
 function resetState() {
     candidateList = []
