@@ -620,6 +620,7 @@ const createWindow = () => {
                     message = new Buffer('ping')
                 }
                 try {
+                    if (!socket) return
                     socket.send(
                         message,
                         0,
@@ -633,6 +634,9 @@ const createWindow = () => {
                     )
                 } catch (error) {
                     console.log('could not send message user B')
+                    killSocketAndEmu()
+                    // TODO: should we really close the sockets like this?
+                    mainWindow.webContents.send('endMatch', userUID)
                 }
             }
 
@@ -657,18 +661,9 @@ const createWindow = () => {
                                 },
                             })
                         }
+                        console.log('callback firing off')
                         sendMessageToS(true)
-                        // attempt to kill the emulator
-                        console.log('emulator should die')
-                        try {
-                            socket.close()
-                            emuListener.close()
-                            socket = null
-                            emuListener = null
-                        } catch (error) {
-                            console.log('could not properly shut down emulator and sockets')
-                        }
-
+                        killSocketAndEmu()
                         mainWindow.webContents.send('endMatch', userUID)
                         // get user out of challenge pool
                     },
@@ -676,6 +671,21 @@ const createWindow = () => {
             }
         }
     })
+
+    async function killSocketAndEmu() {
+        clearInterval(keepAliveInterval)
+        keepAliveInterval = null
+        // attempt to kill the emulator
+        console.log('emulator should die in main')
+        try {
+            await socket.close()
+            await emuListener.close()
+            socket = null
+            emuListener = null
+        } catch (error) {
+            console.log('could not properly shut down emulator and sockets')
+        }
+    }
 
     function killProcessByName(processName) {
         exec(`taskkill /F /IM ${processName}`, (error, stdout, stderr) => {
@@ -688,16 +698,7 @@ const createWindow = () => {
     }
 
     ipcMain.on('killEmulator', async () => {
-        clearInterval(keepAliveInterval)
-        keepAliveInterval = null
-        try {
-            socket.close()
-            emuListener.close()
-            socket = null
-            emuListener = null
-        } catch (error) {
-            console.log('could not close sockets used by emulator')
-        }
+        killSocketAndEmu()
 
         await mainWindow.webContents.send(
             'message-from-main',
