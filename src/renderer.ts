@@ -5,6 +5,7 @@ import './front-end/app'
 import {
     answerCall,
     closeAllPeers,
+    declineCall,
     initWebRTC,
     pingUser,
     sendDataChannelMessage,
@@ -88,7 +89,7 @@ window.api.on(
 )
 
 // handle send answer to specific user
-window.api.on('answerCall', async ({ from, answererId }: { from: string; answererId: string }) => {
+window.api.on('answerCall', async ({ from }: { from: string }) => {
     answerCall(peerConnection, signalServerSocket, from, myUID)
     console.log('is this actually firing off?', myUID, from)
     callerIdState = from
@@ -97,21 +98,9 @@ window.api.on('answerCall', async ({ from, answererId }: { from: string; answere
     window.api.startGameOnline(opponentUID, playerNum)
 })
 
-// window.api.on(
-//     'declineCall',
-//     async ({ callerId, answererId }: { callerId: string; answererId: string }) => {
-//         await signalServerSocket.send(
-//             JSON.stringify({
-//                 type: 'declineCall',
-//                 data: {
-//                     callerId,
-//                     answererId,
-//                 },
-//             })
-//         )
-//         await closePeerConnection(callerId) // close the peer connection when we decline
-//     }
-// )
+window.api.on('declineCall', async ({ from }: { from: string }) => {
+    declineCall(signalServerSocket, from, myUID)
+})
 
 function connectWebSocket(user) {
     if (signalServerSocket) return // Prevent duplicate ws connections from same client
@@ -284,7 +273,7 @@ function connectWebSocket(user) {
             webCheckData(peerConnection)
         }
 
-        if (data.type === 'callDeclined') {
+        if (data.type === 'webrtc-ping-decline') {
             // closePeerConnection(data.data.answererId)
             window.api.callDeclined(data.data.answererId)
         }

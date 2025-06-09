@@ -69,11 +69,6 @@ export async function startCall(
 ) {
     if (!isCaller) return
 
-    // if (clients.find((client) => client.to === to)) {
-    //     console.log('peer client exists skipping call')
-    //     return
-    // }
-
     console.log('starting call with: ', to)
     if (peerConnection) {
         clients.push({ to: to, peer: peerConnection })
@@ -106,6 +101,18 @@ export async function answerCall(
             to,
             from,
             answer,
+        })
+    )
+}
+
+export async function declineCall(signalingSocket: WebSocket, to: string, from: string) {
+    console.log('declining call -> ', to, from)
+    await closeConnectionWithUser(to)
+    signalingSocket.send(
+        JSON.stringify({
+            type: 'webrtc-ping-decline',
+            to,
+            from,
         })
     )
 }
@@ -175,6 +182,36 @@ export function sendDataChannelMessage(message: string) {
         dataChannels[0].channel.send(message)
     } else {
         console.log('no channel to send on, state: ', dataChannels[0]?.channel || 'null channel')
+    }
+}
+
+export async function closeConnectionWithUser(toUID: string) {
+    console.log(`Closing connection with user: ${toUID}`)
+
+    // Close and remove the peer connection
+    const clientIndex = clients.findIndex((client) => client.to === toUID)
+    if (clientIndex !== -1) {
+        const peer = clients[clientIndex].peer
+        if (peer.signalingState !== 'closed') {
+            peer.close()
+            console.log(`Peer connection with ${toUID} closed.`)
+        }
+        clients.splice(clientIndex, 1)
+    } else {
+        console.warn(`No peer connection found for user: ${toUID}`)
+    }
+
+    // Close and remove the data channel
+    const dataIndex = dataChannels.findIndex((entry) => entry.to === toUID)
+    if (dataIndex !== -1) {
+        const channel = dataChannels[dataIndex].channel
+        if (channel.readyState === 'open' || channel.readyState === 'connecting') {
+            channel.close()
+            console.log(`Data channel with ${toUID} closed.`)
+        }
+        dataChannels.splice(dataIndex, 1)
+    } else {
+        console.warn(`No data channel found for user: ${toUID}`)
     }
 }
 
