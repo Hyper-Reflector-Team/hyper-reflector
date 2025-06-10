@@ -22,51 +22,31 @@ import '/node_modules/flag-icons/css/flag-icons.min.css'
 export default function UserCard({ user }) {
     const configState = useConfigStore((state) => state.configState)
     const theme = useLayoutStore((state) => state.appTheme)
-    const [userPopOpen, setUserPopOpen] = useState(false)
-    const [isInMatch, setIsInMatch] = useState(false)
-    const [isUserChallenging, setIsUserChallenging] = useState(false)
+    const pushMessage = useMessageStore((state) => state.pushMessage)
     const userState = useLoginStore((state) => state.userState)
     const updateUserState = useLoginStore((state) => state.updateUserState)
-    const callData = useMessageStore((state) => state.callData)
-    const removeCallData = useMessageStore((state) => state.removeCallData)
-    const clearCallData = useMessageStore((state) => state.clearCallData)
     const setLayoutTab = useLayoutStore((state) => state.setSelectedTab)
+    const [userPopOpen, setUserPopOpen] = useState(false)
+    const [cannotChallenge, setCannotChallenge] = useState(false)
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        setIsUserChallenging((prevState) => {
-            const found = callData.some((call) => call.callerId === user.uid)
-            return found // This ensures the state is always updated properly
-        })
-    }, [callData, user.uid])
-
     //TODO: modify this to not use a time out maybe?
     const handleEndMatch = () => {
-        updateUserState({ ...userState, isFighting: false })
-        setTimeout(() => {
-            setIsInMatch(false)
-            clearCallData()
-        }, 2000)
-    }
-
-    const handleCallDeclined = (declinedCall) => {
-        const { answererId } = declinedCall
-        setIsUserChallenging(false)
-        setIsInMatch(false)
-        const callToRemove = callData.find((call) => call.callerId === answererId)
-        removeCallData(callToRemove)
+        setCannotChallenge(false)
+        // updateUserState({ ...userState, isFighting: false })
+        // setTimeout(() => {
+        //     setIsInMatch(false)
+        //     clearCallData()
+        // }, 2000)
     }
 
     useEffect(() => {
         window.api.removeAllListeners('endMatchUI', handleEndMatch)
         window.api.on('endMatchUI', handleEndMatch)
 
-        window.api.removeAllListeners('callDeclined', handleCallDeclined)
-        window.api.on('callDeclined', handleCallDeclined)
         return () => {
             window.api.removeListener('endMatchUI', handleEndMatch)
-            window.api.removeListener('callDeclined', handleCallDeclined)
         }
     }, [])
 
@@ -234,16 +214,27 @@ export default function UserCard({ user }) {
                         <Popover.Arrow />
                         <Popover.Body>
                             <Flex gap="8px">
-                                {!isUserChallenging && user.uid !== userState.uid && (
+                                {user.uid !== userState.uid && (
                                     <Button
                                         bg={theme.colors.main.action}
-                                        disabled={isInMatch}
+                                        disabled={cannotChallenge}
                                         onClick={() => {
                                             setUserPopOpen(false)
-                                            setIsInMatch(true)
+                                            setCannotChallenge(true)
                                             window.api.callUser({
                                                 callerId: userState.uid,
                                                 calleeId: user.uid,
+                                            })
+                                            pushMessage({
+                                                sender: userState.uid,
+                                                fromMe: true,
+                                                challengedUID: user.uid,
+                                                opp: user.name,
+                                                message: `You Challenged: ${user.name}`,
+                                                type: 'request',
+                                                declined: false,
+                                                accepted: false,
+                                                id: Date.now(), // TODO this is not a long lasting solution
                                             })
                                         }}
                                     >

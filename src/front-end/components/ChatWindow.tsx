@@ -26,7 +26,7 @@ export default function ChatWindow() {
     }
 
     const handleRoomMessage = (messageObject) => {
-        // censor words befor sending to BE
+        // censor words before sending to BE
         const censor = new TextCensor()
         const input = messageObject.message
         const matches = matcher.getAllMatches(input)

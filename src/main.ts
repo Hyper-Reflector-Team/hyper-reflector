@@ -952,14 +952,14 @@ const createWindow = () => {
 
     ipcMain.on('callDeclined', (event, data) => {
         console.log('our call was declined')
-        mainWindow.webContents.send('callDeclined', { ...data, answererId: userUID })
+        mainWindow.webContents.send('callDeclined', data)
     })
 
     ipcMain.on('receivedCall', (event, data) => {
         console.log(data)
         mainWindow.webContents.send('receivedCall', data)
         const challengeObject = {
-            sender: data,
+            sender: data.from,
             message: 'got a challenge',
             type: 'challenge',
             declined: false,

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Flex, Stack, Text, Button } from '@chakra-ui/react'
+import { Flex, Stack, Text, Button, Box } from '@chakra-ui/react'
 import { useMessageStore, useLoginStore, useLayoutStore } from '../../state/store'
+import { Swords } from 'lucide-react'
 
 export default function UserChallengeMessage({ message }) {
     const theme = useLayoutStore((state) => state.appTheme)
@@ -14,7 +15,7 @@ export default function UserChallengeMessage({ message }) {
     const userState = useLoginStore((state) => state.userState)
 
     var timestamp = new Date()
-    const caller = callData.find((call) => call.callerId === message.sender)
+    const caller = callData.find((call) => call.from === message.sender)
     //TODO: fix bug where decline while fighting has some issues closing on the other users end
     return (
         <Flex
@@ -28,11 +29,25 @@ export default function UserChallengeMessage({ message }) {
             mb="1"
             bg={theme.colors.main.tertiary}
         >
-            {message.accepted && <div>Match Accepted</div>}
-            {message.declined && <div>Match Declined</div>}
+            {message.accepted && <div>Match vs Accepted</div>}
+            {message.declined && (
+                <Stack>
+                    <Box display="flex" color={theme.colors.main.bg}>
+                        <Text> Match vs {message?.opp || 'Unknown User'} declined</Text>
+                    </Box>
+                </Stack>
+            )}
             {!message.declined && !message.accepted && (
                 <Stack>
-                    {message.type && message.type !== 'challenge' && (
+                    {message.type && message.type === 'request' && message.type !== 'challenge' && (
+                        <Stack>
+                            <Box display="flex" color={theme.colors.main.caution}>
+                                <Swords />
+                                <Text> {message.message}</Text>
+                            </Box>
+                        </Stack>
+                    )}
+                    {message.type && message.type !== 'challenge' && message.type !== 'request' && (
                         <Stack>
                             <Text fontWeight="bold" color={theme.colors.main.actionSecondaryLight}>
                                 {message.sender}
@@ -45,14 +60,19 @@ export default function UserChallengeMessage({ message }) {
                         <Flex>
                             <Text color={theme.colors.main.text}>Received challenge from: </Text>
                             <Text fontWeight="bold" color={theme.colors.main.actionSecondaryLight}>
-                                {userList.find((user) => user.uid === caller.callerId)?.name ||
+                                {userList.find((user) => user.uid === caller.from)?.name ||
                                     'Unknown User'}
                             </Text>
                         </Flex>
                     )}
 
                     {message.type && message.type === 'challenge' && (
-                        <Flex gap="8px">
+                        <Flex
+                            gap="8px"
+                            color={theme.colors.main.actionSecondaryLight}
+                            alignItems={'center'}
+                        >
+                            <Swords />
                             <Button
                                 onClick={() => {
                                     setIsAccepted(true)
@@ -61,7 +81,6 @@ export default function UserChallengeMessage({ message }) {
                                         accepted: true,
                                     }
                                     updateMessage(updatedMessage)
-                                    console.log(caller)
                                     window.api.answerCall(caller)
                                     updateUserState({ ...userState, isFighting: true })
                                 }}
@@ -72,10 +91,10 @@ export default function UserChallengeMessage({ message }) {
                                 onClick={async () => {
                                     // remove the call from the call list
                                     const callToRemove = callData.find(
-                                        (call) => call.callerId === message.sender
+                                        (call) => call.from === message.sender
                                     )
                                     removeCallData(callToRemove)
-                                    // set visual state for declining cal
+                                    // set visual state for declining call
                                     setIsDeclined(true)
                                     await window.api.declineCall(callToRemove)
                                     const updatedMessage = {

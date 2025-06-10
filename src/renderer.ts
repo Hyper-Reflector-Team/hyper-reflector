@@ -82,7 +82,6 @@ window.api.on('closingApp', async (user) => {
 window.api.on(
     'callUser',
     async ({ callerId, calleeId }: { callerId: string; calleeId: string }) => {
-        console.log('making a peer connection')
         peerConnection = await initWebRTC(myUID, calleeId, signalServerSocket)
         startCall(peerConnection, signalServerSocket, calleeId, callerId, true)
     }
@@ -91,7 +90,6 @@ window.api.on(
 // handle send answer to specific user
 window.api.on('answerCall', async ({ from }: { from: string }) => {
     answerCall(peerConnection, signalServerSocket, from, myUID)
-    console.log('is this actually firing off?', myUID, from)
     callerIdState = from
     opponentUID = from
     playerNum = 1 // if we answer a call we are always player 1
@@ -275,23 +273,23 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'webrtc-ping-decline') {
+            console.log(data)
             // closePeerConnection(data.data.answererId)
-            window.api.callDeclined(data.data.answererId)
+            window.api.callDeclined(data.from)
         }
 
         // new web rtc
         if (data.type === 'webrtc-ping-offer') {
-            console.log(data)
+            if (!data?.from) return
             peerConnection = await initWebRTC(myUID, data.from, signalServerSocket)
             if (peerConnection) {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
             }
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
-            console.log('got an answer back')
-            console.log(data)
+            if (!data.from) return
             playerNum = 0 // if we answer a call we are always player 1
-            window.api.startGameOnline(data.from, playerNum)
+            window.api.startGameOnline(data?.from, playerNum)
             try {
                 // there is a timing issue here that nees to be fixed.
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
@@ -303,7 +301,6 @@ function connectWebSocket(user) {
             //console.log('Received ICE candidate:', candidate)
             try {
                 await peerConnection.addIceCandidate(candidate)
-                console.log('ICE candidate added immediately.')
             } catch (error) {
                 console.warn('Failed to add ICE candidate:', error)
             }

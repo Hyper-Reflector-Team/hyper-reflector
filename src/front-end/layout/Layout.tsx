@@ -16,7 +16,11 @@ export default function Layout({ children }) {
     const setUserState = useLoginStore((state) => state.setUserState)
     const user = useLoginStore((state) => state.userState)
     const loggedOut = useLoginStore((state) => state.loggedOut)
+    const messageState = useMessageStore((state) => state.messageState)
     const clearMessageState = useMessageStore((state) => state.clearMessageState)
+    const updateMessage = useMessageStore((state) => state.updateMessage)
+    const callData = useMessageStore((state) => state.callData)
+    const removeCallData = useMessageStore((state) => state.removeCallData)
     const clearUserList = useMessageStore((state) => state.clearUserList)
     const layoutTab = useLayoutStore((state) => state.selectedTab)
     const setLayoutTab = useLayoutStore((state) => state.setSelectedTab)
@@ -25,9 +29,12 @@ export default function Layout({ children }) {
     const theme = useLayoutStore((state) => state.appTheme)
     const setTheme = useLayoutStore((state) => state.setTheme)
     const [isLoading, setIsLoading] = useState(false)
-    const [notificationOn, setNotificationOn] = useState(true)
 
     const navigate = useNavigate()
+
+    useEffect(() => {
+        console.log('state update')
+    }, [user, configState])
 
     // Initially set the theme when loaded
     useEffect(() => {
@@ -84,39 +91,45 @@ export default function Layout({ children }) {
         })
     }
 
+    const handleCallDeclined = (fromUID) => {
+        console.log('our call go declined--------------------------------------', fromUID)
+        const callToRemove = callData.find((call) => call.callerId === fromUID)
+        removeCallData(callToRemove)
+        const messageState = useMessageStore.getState().messageState
+        console.log(messageState)
+        const message = messageState.find(
+            (m) => m?.fromMe && m?.challengedUID === fromUID && !m?.declined
+        )
+        const updatedMessage = {
+            ...message,
+            declined: true,
+        }
+        updateMessage(updatedMessage)
+        console.log('call was declined', callToRemove)
+    }
+
     useEffect(() => {
+        window.api.removeAllListeners('callDeclined', handleCallDeclined)
+        window.api.on('callDeclined', handleCallDeclined)
         window.api.removeExtraListeners('getConfigValue', handleSetConfigState)
         window.api.on('getConfigValue', handleSetConfigState)
         window.api.removeExtraListeners('sendAlert', handleAlertFromMain)
         window.api.on('sendAlert', handleAlertFromMain)
 
         return () => {
+            window.api.removeListener('callDeclined', handleCallDeclined)
             window.api.removeListener('getConfigValue', handleSetConfigState)
             window.api.removeListener('sendAlert', handleAlertFromMain)
         }
     }, [])
 
-    useEffect(() => {
-        console.log('user state change', user)
-    }, [user])
-
     // update chats
     const handleChallengeQueue = (messageObject) => {
-        const currentUser = useLoginStore.getState().userState
-        console.log('test message', messageObject, currentUser.isFighting)
-        if (messageObject.type === 'challenge' && !currentUser.isFighting) {
-            if (configState?.appSoundOn === 'true') {
+        const currentConfig = useConfigStore.getState().configState
+        if (messageObject.type === 'challenge') {
+            if (currentConfig?.appSoundOn === 'true') {
                 audioEffect.play()
             }
-
-            // TODO: adjust this to feedback
-            // if we are in the lobby tab, play the sound, if not push a notification etc.
-            // TODO need to have another way of handling messages as they come in to the system outside of tab
-            toaster.create({
-                type: 'warning',
-                title: 'Received a challenge!',
-                // description: 'from some user', fix this later
-            })
         }
     }
 

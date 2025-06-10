@@ -690,7 +690,7 @@ export default function PlayerProfilePage() {
                                     <SelectContent>
                                         {titleList?.items.map((title) => (
                                             <SelectItem item={title} key={title.value}>
-                                                {title.label}
+                                                {title?.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
