@@ -252,7 +252,7 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'lobby-user-counts') {
-            console.log('lobby update', data.updates)
+            // console.log('lobby update', data.updates)
             window.api.updateLobbyStats(data.updates)
         }
 
@@ -287,7 +287,9 @@ function connectWebSocket(user) {
             }
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
+            console.log(data)
             if (!data.from) return
+            console.log(data)
             playerNum = 0 // if we answer a call we are always player 1
             window.api.startGameOnline(data?.from, playerNum)
             try {

@@ -638,7 +638,7 @@ const createWindow = () => {
                         message.length,
                         serverPort,
                         serverHost,
-                        function (err, nrOfBytesSent) {
+                        function (err, numberOfBytes) {
                             if (err) return console.log(err)
                             console.log('UDP message sent Server ' + serverHost + ':' + serverPort)
                         }
@@ -727,6 +727,7 @@ const createWindow = () => {
             await emuListener.close()
             socket = null
             emuListener = null
+            spawnedEmulator = null
         } catch (error) {
             console.log('could not properly shut down emulator and sockets')
         }

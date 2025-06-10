@@ -32,9 +32,9 @@ export default function Layout({ children }) {
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        console.log('state update')
-    }, [user, configState])
+    // useEffect(() => {
+    //     console.log('state update')
+    // }, [user, configState])
 
     // Initially set the theme when loaded
     useEffect(() => {
@@ -243,8 +243,8 @@ export default function Layout({ children }) {
                                     width={'60px'}
                                     color={
                                         configState?.isAway === 'true'
-                                            ? theme.colors.main.active
-                                            : theme.colors.main.away
+                                            ? theme.colors.main.away
+                                            : theme.colors.main.active
                                     }
                                     cursor={'pointer'}
                                     onClick={() => {
@@ -260,7 +260,7 @@ export default function Layout({ children }) {
                                         }
                                     }}
                                 >
-                                    {configState?.isAway === 'true' ? <Bell /> : <BellOff />}
+                                    {configState?.isAway === 'false' ? <Bell /> : <BellOff />}
                                 </Button>
                                 <Tabs.Trigger
                                     justifySelf="end"

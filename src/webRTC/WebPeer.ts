@@ -51,7 +51,7 @@ export async function initWebRTC(
     }
 
     peer.oniceconnectionstatechange = () => {
-        console.log('ICE connection state:', peer.iceConnectionState)
+        // console.log('ICE connection state:', peer.iceConnectionState)
         if (peer.iceConnectionState === 'connected') {
             console.log('-------------------------- > Peer connection established!')
         }
