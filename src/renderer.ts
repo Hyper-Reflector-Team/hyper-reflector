@@ -99,6 +99,7 @@ window.api.on('answerCall', async ({ from }: { from: string }) => {
 })
 
 window.api.on('declineCall', async ({ from }: { from: string }) => {
+    console.log('trying to decline a call', from)
     declineCall(signalServerSocket, from, myUID)
 })
 

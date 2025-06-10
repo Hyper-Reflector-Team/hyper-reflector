@@ -108,6 +108,7 @@ export async function answerCall(
 export async function declineCall(signalingSocket: WebSocket, to: string, from: string) {
     console.log('declining call -> ', to, from)
     await closeConnectionWithUser(to)
+    console.log('did it decline?')
     signalingSocket.send(
         JSON.stringify({
             type: 'webrtc-ping-decline',
