@@ -161,7 +161,6 @@ const createWindow = () => {
     function getConfigData() {
         try {
             config = getConfig()
-            console.log({ config })
         } catch (error) {
             mainWindow.webContents.send('message-from-main', error)
             console.error('Failed to read file:', error)
@@ -316,9 +315,49 @@ const createWindow = () => {
         }
     }
 
+    const setConfigValue = async (key: string, value: string | number) => {
+        console.log(`Attempting to set config ${key} = ${value}`)
+
+        try {
+            const filePath = path.join(filePathBase, 'config.txt')
+            mainWindow.webContents.send('message-from-main', `Set config ${key} to: ${value}`)
+
+            let fileContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : ''
+            let lines = fileContent.split('\n').filter((line: string) => line.trim() !== '')
+
+            let found = false
+            lines = lines.map((line: string) => {
+                if (line.startsWith(`${key}=`)) {
+                    found = true
+                    return `${key}=${value}`
+                }
+                return line
+            })
+
+            if (!found) {
+                lines.push(`${key}=${value}`)
+            }
+
+            fs.writeFileSync(filePath, lines.join('\n'), 'utf8')
+
+            console.log(`CONFIG: Updated ${key} to ${value}`)
+        } catch (error) {
+            mainWindow.webContents.send('message-from-main', `Error updating ${key}: ${error}`)
+            console.error(`Failed to update config ${key}:`, error)
+        }
+    }
+
+    const getConfigValue = async (key: string) => {
+        await getConfigData() // Ensures latest config is loaded
+
+        // Access value safely, assuming config is flat or nested as needed
+        const value = config[key] ?? config.app?.[key]
+
+        mainWindow.webContents.send('getConfigValue', { key, value })
+    }
+
     const getAppTheme = async () => {
         await getConfigData()
-        console.log(config.app.appTheme)
         mainWindow.webContents.send('appTheme', parseInt(config.app.appTheme))
     }
 
@@ -327,7 +366,6 @@ const createWindow = () => {
         try {
             await signInWithEmailAndPassword(auth, email, pass)
                 .then(async (data) => {
-                    console.log('login info', data)
                     await saveRefreshToken(data.user.refreshToken)
                     return true
                 })
@@ -350,14 +388,12 @@ const createWindow = () => {
 
     async function removeRefreshToken() {
         await fs.unlinkSync(tokenFilePath, 'auth_token.json')
-        console.log('Refresh token removed.')
     }
 
     async function handleLogOut() {
         await signOut(auth)
             .then(() => {
                 try {
-                    console.log('logout success')
                     removeRefreshToken()
                     mainWindow.webContents.send('loggedOutSuccess', 'user logged out')
                 } catch (error) {
@@ -462,6 +498,15 @@ const createWindow = () => {
 
     ipcMain.on('setAppTheme', (event, themeIndex) => {
         setAppTheme(themeIndex)
+    })
+
+    //TODO make the config setters use this instead
+    ipcMain.on('setConfigValue', (event, { key, value }) => {
+        setConfigValue(key, value)
+    })
+
+    ipcMain.on('getConfigValue', (event, { key }) => {
+        getConfigValue(key)
     })
 
     ipcMain.on('getAppTheme', () => {
@@ -1053,7 +1098,6 @@ app.on('activate', () => {
 
 app.whenReady().then(async () => {
     mainWindow.webContents.once('did-finish-load', () => {
-        console.log('UI has fully loaded!')
         mainWindow.webContents.send('autoLoggingIn')
         function getRefreshToken() {
             if (fs.existsSync(tokenFilePath)) {
@@ -1080,15 +1124,12 @@ app.whenReady().then(async () => {
                 const user = await api
                     .getUserByAuth(auth)
                     .catch((err) => console.log('err getting user by auth'))
-                console.log(user)
 
                 if (user) {
-                    console.log('user logged in')
                     // send our user object to the front end
                     mainWindow.webContents.send('loginSuccess', getLoginObject(user))
-
                     userUID = user.uid
-                    console.log('user is: ', user)
+                    // console.log('user is: ', user) // used to observe initial user state
                 }
             } else {
                 mainWindow.webContents.send('autoLoginFailure')

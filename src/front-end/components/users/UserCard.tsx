@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useLoginStore, useMessageStore, useLayoutStore } from '../../state/store'
+import { useLoginStore, useMessageStore, useLayoutStore, useConfigStore } from '../../state/store'
 import {
     Button,
     Stack,
@@ -20,6 +20,7 @@ import TitleBadge from './TitleBadge'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 
 export default function UserCard({ user }) {
+    const configState = useConfigStore((state) => state.configState)
     const theme = useLayoutStore((state) => state.appTheme)
     const [userPopOpen, setUserPopOpen] = useState(false)
     const [isInMatch, setIsInMatch] = useState(false)
@@ -129,6 +130,14 @@ export default function UserCard({ user }) {
         )
     }
 
+    const getIsOnline = () => {
+        if (user.uid !== userState.uid) return
+        if (configState?.isAway === 'true') {
+            return false
+        }
+        return true
+    }
+
     return (
         <Popover.Root
             open={userPopOpen}
@@ -176,7 +185,11 @@ export default function UserCard({ user }) {
                                 <Avatar.Image src={user.userProfilePic} />
                                 <Float placement="bottom-end" offsetX="1" offsetY="1">
                                     <Circle
-                                        bg={theme.colors.main.active}
+                                        bg={
+                                            getIsOnline()
+                                                ? theme.colors.main.away
+                                                : theme.colors.main.active
+                                        }
                                         size="8px"
                                         outline="0.2em solid"
                                         outlineColor={theme.colors.main.cardDark}

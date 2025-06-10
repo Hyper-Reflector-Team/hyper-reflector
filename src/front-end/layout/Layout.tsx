@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Stack, Tabs, Box, Text, Image } from '@chakra-ui/react'
+import { Stack, Tabs, Box, Text, Image, Button } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { toaster } from '../components/chakra/ui/toaster'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
-import { Settings } from 'lucide-react'
+import { useConfigStore, useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { Bell, BellOff, Settings } from 'lucide-react'
 import { getThemeNameList } from '../utils/theme'
 import bgImage from './bgImage.svg'
 import hrLogo from './logo.svg'
@@ -11,9 +11,7 @@ import hrLogo from './logo.svg'
 import soundBase64Data from '../components/sound/challenge.wav'
 
 export default function Layout({ children }) {
-    const theme = useLayoutStore((state) => state.appTheme)
-    const setTheme = useLayoutStore((state) => state.setTheme)
-    const [isLoading, setIsLoading] = useState(false)
+    const audioEffect = new Audio(soundBase64Data) // this line for renderer process only
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
     const setUserState = useLoginStore((state) => state.setUserState)
     const user = useLoginStore((state) => state.userState)
@@ -22,11 +20,19 @@ export default function Layout({ children }) {
     const clearUserList = useMessageStore((state) => state.clearUserList)
     const layoutTab = useLayoutStore((state) => state.selectedTab)
     const setLayoutTab = useLayoutStore((state) => state.setSelectedTab)
+    const configState = useConfigStore((state) => state.configState)
+    const updateConfigState = useConfigStore((state) => state.updateConfigState)
+    const theme = useLayoutStore((state) => state.appTheme)
+    const setTheme = useLayoutStore((state) => state.setTheme)
+    const [isLoading, setIsLoading] = useState(false)
+    const [notificationOn, setNotificationOn] = useState(true)
 
     const navigate = useNavigate()
 
     // Initially set the theme when loaded
     useEffect(() => {
+        window.api.getConfigValue('appSoundOn')
+        window.api.getConfigValue('isAway')
         window.api.removeExtraListeners('appTheme', handleSetTheme)
         window.api.on('appTheme', handleSetTheme)
 
@@ -71,11 +77,21 @@ export default function Layout({ children }) {
         })
     }
 
+    const handleSetConfigState = (data: { key: string; value: string | boolean | number }) => {
+        const { key, value } = data
+        updateConfigState({
+            [key]: value,
+        })
+    }
+
     useEffect(() => {
+        window.api.removeExtraListeners('getConfigValue', handleSetConfigState)
+        window.api.on('getConfigValue', handleSetConfigState)
         window.api.removeExtraListeners('sendAlert', handleAlertFromMain)
         window.api.on('sendAlert', handleAlertFromMain)
 
         return () => {
+            window.api.removeListener('getConfigValue', handleSetConfigState)
             window.api.removeListener('sendAlert', handleAlertFromMain)
         }
     }, [])
@@ -89,16 +105,18 @@ export default function Layout({ children }) {
         const currentUser = useLoginStore.getState().userState
         console.log('test message', messageObject, currentUser.isFighting)
         if (messageObject.type === 'challenge' && !currentUser.isFighting) {
+            if (configState?.appSoundOn === 'true') {
+                audioEffect.play()
+            }
+
             // TODO: adjust this to feedback
             // if we are in the lobby tab, play the sound, if not push a notification etc.
-            new Audio(soundBase64Data).play() // this line for renderer process only
-
             // TODO need to have another way of handling messages as they come in to the system outside of tab
-            // toaster.create({
-            //     type: 'warning',
-            //     title: 'Received a challenge!',
-            //     // description: 'from some user', fix this later
-            // })
+            toaster.create({
+                type: 'warning',
+                title: 'Received a challenge!',
+                // description: 'from some user', fix this later
+            })
         }
     }
 
@@ -200,7 +218,37 @@ export default function Layout({ children }) {
                                 Offline
                             </Tabs.Trigger>
                             <Tabs.Indicator rounded="l2" bgColor={theme.colors.main.action} />
-                            <Box width="100%">
+                            <Box
+                                gap={'20px'}
+                                width="100%"
+                                display={'flex'}
+                                alignItems="center"
+                                justifyContent={'right'}
+                            >
+                                <Button
+                                    bg="none"
+                                    width={'60px'}
+                                    color={
+                                        configState?.isAway === 'true'
+                                            ? theme.colors.main.active
+                                            : theme.colors.main.away
+                                    }
+                                    cursor={'pointer'}
+                                    onClick={() => {
+                                        const value =
+                                            configState?.isAway === 'true' ? 'false' : 'true'
+                                        try {
+                                            window.api.setConfigValue('isAway', value)
+                                            updateConfigState({ isAway: value })
+                                        } catch (error) {
+                                            toaster.error({
+                                                title: 'Error',
+                                            })
+                                        }
+                                    }}
+                                >
+                                    {configState?.isAway === 'true' ? <Bell /> : <BellOff />}
+                                </Button>
                                 <Tabs.Trigger
                                     justifySelf="end"
                                     width="40px"

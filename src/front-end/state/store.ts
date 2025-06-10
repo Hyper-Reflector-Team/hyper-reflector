@@ -30,6 +30,15 @@ export const useLoginStore = create((set) => ({
         })),
 }))
 
+export const useConfigStore = create((set) => ({
+    configState: { appSoundOn: 'true', isAway: 'false' },
+    setConfigState: (data) => set({ configState: data }),
+    updateConfigState: (data) =>
+        set((state) => ({
+            configState: { ...state.configState, ...data },
+        })),
+}))
+
 export const useMessageStore = create((set) => ({
     // current lobby
     currentLobbyState: { name: 'Hyper Reflector', id: 0, pass: null, private: false, users: 1 },

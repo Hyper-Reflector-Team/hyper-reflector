@@ -8,15 +8,17 @@ import {
     SelectValueText,
 } from '../components/chakra/ui/select'
 import { toaster } from '../components/chakra/ui/toaster'
-import { useLayoutStore, useLoginStore } from '../state/store'
+import { useConfigStore, useLayoutStore, useLoginStore } from '../state/store'
 import { getThemeNameList } from '../utils/theme'
 import SideBar from '../components/general/SideBar'
-import { AlertCircle, Settings, Settings2 } from 'lucide-react'
+import { AlertCircle, Settings, Settings2, Volume2, VolumeX } from 'lucide-react'
 
 export default function SettingsPage() {
     const theme = useLayoutStore((state) => state.appTheme)
     const setTheme = useLayoutStore((state) => state.setTheme)
     const isLoggedIn = useLoginStore((state) => state.isLoggedIn)
+    const configState = useConfigStore((state) => state.configState)
+    const updateConfigState = useConfigStore((state) => state.updateConfigState)
     const [currentTab, setCurrentTab] = useState<number>(0)
     const [currentEmuPath, setCurrentEmuPath] = useState('')
     const [currentDelay, setCurrentDelay] = useState('')
@@ -54,7 +56,6 @@ export default function SettingsPage() {
     }
 
     const handleSetTheme = (themeIndex: string) => {
-        console.log(themeIndex, currentTheme)
         setCurrentTheme(themeIndex)
         const themeToSet = themes.items[parseInt(themeIndex)].label
         setTheme(themeToSet)
@@ -64,6 +65,7 @@ export default function SettingsPage() {
         window.api.getEmulatorPath()
         window.api.getEmulatorDelay()
         window.api.getAppTheme()
+        window.api.getConfigValue('appSoundOn')
     }, [])
 
     useEffect(() => {
@@ -88,6 +90,7 @@ export default function SettingsPage() {
     }, [currentEmuPath])
 
     useEffect(() => {
+        //TODO remove the old ones and only use getConfigValue
         window.api.removeExtraListeners('emulatorPath', handleSetPath)
         window.api.on('emulatorPath', handleSetPath)
 
@@ -154,8 +157,8 @@ export default function SettingsPage() {
                                         window.api.setEmulatorPath()
                                     } catch (error) {
                                         toaster.error({
-                                            title: 'Update successful',
-                                            description: 'File saved successfully to the server',
+                                            title: 'Error',
+                                            description: 'Failed to update path.',
                                         })
                                     }
                                 }}
@@ -164,6 +167,33 @@ export default function SettingsPage() {
                             </Button>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Current Path: {currentEmuPath}
+                            </Text>
+                            <Text textStyle="md" color={theme.colors.main.text}>
+                                Sound Settings
+                            </Text>
+                            <Button
+                                bg={
+                                    configState?.appSoundOn === 'true'
+                                        ? theme.colors.main.success
+                                        : theme.colors.main.warning
+                                }
+                                onClick={() => {
+                                    const value =
+                                        configState?.appSoundOn === 'true' ? 'false' : 'true'
+                                    try {
+                                        window.api.setConfigValue('appSoundOn', value)
+                                        updateConfigState({ appSoundOn: value })
+                                    } catch (error) {
+                                        toaster.error({
+                                            title: 'Error',
+                                        })
+                                    }
+                                }}
+                            >
+                                {configState?.appSoundOn ? <Volume2 /> : <VolumeX />}
+                            </Button>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                Sound: {configState?.appSoundOn ? 'On' : 'Off'}
                             </Text>
                             <Text textStyle="md" color={theme.colors.main.text}>
                                 Theme

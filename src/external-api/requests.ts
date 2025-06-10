@@ -38,7 +38,6 @@ async function addLoggedInUser(auth) {
 
 async function getLoggedInUser(userEmail: string) {
     try {
-        console.log('user email making request', userEmail)
         const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-logged-in`, {
             method: 'POST',
             headers: {
@@ -161,7 +160,6 @@ async function createAccount(auth, name, email) {
 
 async function getUserByAuth(auth) {
     if (checkCurrentAuthState(auth)) {
-        console.log('attempting user fetch by auth')
         const idToken = await auth.currentUser.getIdToken().then((res) => res)
         try {
             const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-user-auth`, {
@@ -206,12 +204,12 @@ async function autoLogin(refreshToken: string) {
     }
     const data = await response.json()
     if (data.id_token) {
-        console.log('Auto-login successful:', data)
+        // console.log('Auto-login successful:', data)
         const userInfo = await decodeJwt(data.id_token)
         const loginObject = await getLoggedInUser(userInfo.email).catch((err) =>
             console.log('error checkig if user was loggin in', err)
         )
-        console.log(loginObject)
+        // console.log(loginObject)
         return data
     }
 }

@@ -6,6 +6,8 @@ export type AppConfig = {
     emuPath: string
     emuDelay: string
     appTheme: string
+    appSoundOn: string
+    isAway: string
     filePathBase: string
     isDev: boolean
 }
@@ -45,6 +47,8 @@ function getAppConfig(): AppConfig {
         emuPath: configFileMap.emuPath,
         emuDelay: configFileMap.emuDelay,
         appTheme: configFileMap.appTheme,
+        appSoundOn: configFileMap.appSoundOn,
+        isAway: configFileMap.isAway,
         filePathBase,
         isDev,
     }
