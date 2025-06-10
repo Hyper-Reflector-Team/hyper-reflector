@@ -13,10 +13,11 @@ export default function UserChallengeMessage({ message }) {
     const userList = useMessageStore((state) => state.userList)
     const updateUserState = useLoginStore((state) => state.updateUserState)
     const userState = useLoginStore((state) => state.userState)
-
-    var timestamp = new Date()
+    //non state related
     const caller = callData.find((call) => call.from === message.sender)
-    //TODO: fix bug where decline while fighting has some issues closing on the other users end
+    const getSenderName = userList.find((user) => user.uid === message.sender)?.name || null
+    var timestamp = new Date()
+
     return (
         <Flex
             key={timestamp + message.message}
@@ -29,11 +30,23 @@ export default function UserChallengeMessage({ message }) {
             mb="1"
             bg={theme.colors.main.tertiary}
         >
-            {message.accepted && <div>Match vs Accepted</div>}
+            {message.accepted && message.type === 'accept' && (
+                <Stack>
+                    <Box display="flex" color={theme.colors.main.bg}>
+                        <Swords />
+                        <Text>
+                            {message?.opp || getSenderName || 'Unknown User'} Accepts your
+                            challenge!
+                        </Text>
+                    </Box>
+                </Stack>
+            )}
             {message.declined && (
                 <Stack>
                     <Box display="flex" color={theme.colors.main.bg}>
-                        <Text> Match vs {message?.opp || 'Unknown User'} declined</Text>
+                        <Text>
+                            Match vs {message?.opp || getSenderName || 'Unknown User'} Declined
+                        </Text>
                     </Box>
                 </Stack>
             )}

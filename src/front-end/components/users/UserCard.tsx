@@ -167,8 +167,8 @@ export default function UserCard({ user }) {
                                     <Circle
                                         bg={
                                             getIsOnline()
-                                                ? theme.colors.main.away
-                                                : theme.colors.main.active
+                                                ? theme.colors.main.active
+                                                : theme.colors.main.away
                                         }
                                         size="8px"
                                         outline="0.2em solid"

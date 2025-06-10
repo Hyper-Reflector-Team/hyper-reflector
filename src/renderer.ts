@@ -289,6 +289,15 @@ function connectWebSocket(user) {
         } else if (data.type === 'webrtc-ping-answer') {
             console.log(data)
             if (!data.from) return
+            const acceptMessage = {
+                sender: data.from,
+                message: 'Accepted',
+                type: 'accept',
+                declined: false,
+                accepted: true,
+                id: Date.now(), // TODO this is not a long lasting solution
+            }
+            window.api.sendRoomMessage(acceptMessage)
             console.log(data)
             playerNum = 0 // if we answer a call we are always player 1
             window.api.startGameOnline(data?.from, playerNum)

@@ -92,20 +92,18 @@ export default function Layout({ children }) {
     }
 
     const handleCallDeclined = (fromUID) => {
-        console.log('our call go declined--------------------------------------', fromUID)
         const callToRemove = callData.find((call) => call.callerId === fromUID)
         removeCallData(callToRemove)
         const messageState = useMessageStore.getState().messageState
-        console.log(messageState)
-        const message = messageState.find(
-            (m) => m?.fromMe && m?.challengedUID === fromUID && !m?.declined
-        )
-        const updatedMessage = {
-            ...message,
-            declined: true,
-        }
-        updateMessage(updatedMessage)
-        console.log('call was declined', callToRemove)
+        messageState.forEach((m) => {
+            if (m?.fromMe && m?.challengedUID === fromUID && !m?.declined) {
+                const updatedMessage = {
+                    ...m,
+                    declined: true,
+                }
+                updateMessage(updatedMessage)
+            }
+        })
     }
 
     useEffect(() => {
