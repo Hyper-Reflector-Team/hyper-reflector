@@ -7,6 +7,13 @@ import { useLayoutStore, useLoginStore } from '../state/store'
 
 const blogsArray = [
     {
+        title: 'Update Version 0.3.1a',
+        date: '6/10/2025',
+        content: `
+         Hey this isn't perfect but I want to get it out as soon as possible so that people can use the platform again. I've added a few things, but the notes will have more info
+        `,
+    },
+    {
         title: 'Update Version 0.3.0a',
         date: '4/30/2025',
         content: `

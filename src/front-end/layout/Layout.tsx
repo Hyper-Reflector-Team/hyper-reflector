@@ -317,7 +317,7 @@ export default function Layout({ children }) {
                 </Box>
 
                 <Text textStyle="xs" color={theme.colors.main.action}>
-                    Hyper Reflector version 0.3.0a 2025
+                    Hyper Reflector version 0.3.1a 2025
                 </Text>
             </Box>
         </Stack>
