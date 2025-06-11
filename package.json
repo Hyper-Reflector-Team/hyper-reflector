@@ -8,7 +8,7 @@
   "main": ".vite/build/main.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/licebeam/hyper-reflector.git"
+    "url": "https://github.com/Hyper-Reflector-Team/hyper-reflector.git"
   },
   "scripts": {
     "start": "electron-forge start",

@@ -71,7 +71,7 @@ const config: ForgeConfig = {
             name: '@electron-forge/publisher-github',
             config: {
                 repository: {
-                    owner: 'licebeam',
+                    owner: 'Hyper-Reflector-Team',
                     name: 'hyper-reflector',
                 },
                 prerelease: false,
