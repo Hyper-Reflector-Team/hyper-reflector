@@ -21,7 +21,7 @@ let myUserData: any | null = null
 let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
-let currentLobbyID: string | null = null
+let currentLobbyID: string | null = 'Hyper Reflector' // set to default lobby at start
 
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
@@ -233,7 +233,7 @@ function connectWebSocket(user) {
         if (data.type === 'connected-users') {
             if (data.users.length) {
                 currentUsers = data.users
-                console.log(currentUsers)
+                console.log('current user list', currentUsers)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
