@@ -112,7 +112,6 @@ export default function UserCard({ user }) {
 
     const getIsOnline = () => {
         if (user.uid !== userState.uid) {
-            console.log(user)
             return user?.isAway !== 'true'
         }
         if (configState?.isAway === 'true') {

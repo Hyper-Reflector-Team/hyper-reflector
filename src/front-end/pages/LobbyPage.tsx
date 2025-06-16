@@ -85,6 +85,8 @@ export default function LobbyPage() {
             // set the userState lobby so that messages send to the current lobby via websockets
             updateUserState({ ...userState, currentLobbyId: selectedLobby.name })
             clearMessageState()
+            // this makes sure when we change lobbies everyone gets our CURRENT state.
+            window.api.getConfigValue('isAway')
         }
     }, [currentLobbyState])
 
@@ -111,6 +113,7 @@ export default function LobbyPage() {
     // }
 
     const handleUpdateUser = (data) => {
+        window.api.getConfigValue('isAway')
         if (data?.isNewPing) {
             const updatedPings =
                 userState?.lastKnownPings?.filter((peer) => peer.id !== data.id) ?? []
