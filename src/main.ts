@@ -511,7 +511,6 @@ const createWindow = () => {
     ipcMain.on('getConfigValue', (event, { key }) => {
         getConfigValue(key)
         if (key === 'isAway') {
-            console.log('getting config value', key, config?.app?.isAway || 'false')
             // make sure we send our
             mainWindow.webContents.send('updateSocketState', {
                 key,
