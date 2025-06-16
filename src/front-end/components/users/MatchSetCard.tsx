@@ -172,6 +172,7 @@ function MatchSetCard({
                                         selectedMatchDetails?.matches?.length > 0 &&
                                         selectedMatchDetails.matches.map((match, index) => {
                                             const parsedData = parseMatchData(match?.matchData?.raw)
+                                            if (!parseMatchData) return
                                             console.log(parsedMatchData)
                                             return (
                                                 <Collapsible.Root>

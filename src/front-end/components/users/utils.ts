@@ -1,4 +1,5 @@
 function parseMatchData(rawData) {
+    if (!rawData) return null
     const result = {}
     const lines = rawData
         .split('\n')
