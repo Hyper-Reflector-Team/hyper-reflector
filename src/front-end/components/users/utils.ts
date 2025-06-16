@@ -6,7 +6,6 @@ function parseMatchData(rawData) {
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
 
-    console.log(lines)
     // Iterate through the lines and process key-value pairs
     for (let line of lines) {
         const [key, value] = line.split(':')
