@@ -111,7 +111,10 @@ export default function UserCard({ user }) {
     }
 
     const getIsOnline = () => {
-        if (user.uid !== userState.uid) return
+        if (user.uid !== userState.uid) {
+            console.log(user)
+            return user?.isAway !== 'true'
+        }
         if (configState?.isAway === 'true') {
             return false
         }
@@ -217,7 +220,7 @@ export default function UserCard({ user }) {
                                 {user.uid !== userState.uid && (
                                     <Button
                                         bg={theme.colors.main.action}
-                                        disabled={cannotChallenge}
+                                        disabled={cannotChallenge || !getIsOnline()}
                                         onClick={() => {
                                             setUserPopOpen(false)
                                             setCannotChallenge(true)
