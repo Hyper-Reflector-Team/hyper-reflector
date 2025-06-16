@@ -15,7 +15,7 @@ import {
     Popover,
 } from '@chakra-ui/react'
 import { Tooltip } from '../chakra/ui/tooltip'
-import { Crown, Wifi, WifiHigh, WifiLow, WifiOff } from 'lucide-react'
+import { Crown, Sword, Wifi, WifiHigh, WifiLow, WifiOff } from 'lucide-react'
 import TitleBadge from './TitleBadge'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 
@@ -218,6 +218,8 @@ export default function UserCard({ user }) {
                             <Flex gap="8px">
                                 {user.uid !== userState.uid && (
                                     <Button
+                                        borderColor={theme.colors.main.text}
+                                        borderWidth={'1px'}
                                         bg={theme.colors.main.action}
                                         disabled={cannotChallenge || !getIsOnline()}
                                         onClick={() => {
@@ -240,6 +242,7 @@ export default function UserCard({ user }) {
                                             })
                                         }}
                                     >
+                                        <Sword />
                                         Challenge
                                     </Button>
                                 )}
