@@ -503,6 +503,9 @@ const createWindow = () => {
     //TODO make the config setters use this instead
     ipcMain.on('setConfigValue', (event, { key, value }) => {
         setConfigValue(key, value)
+        if (key === 'isAway') {
+            mainWindow.webContents.send('updateSocketState', { key, value })
+        }
     })
 
     ipcMain.on('getConfigValue', (event, { key }) => {
@@ -844,7 +847,7 @@ const createWindow = () => {
 
     ipcMain.on(
         'createNewLobby',
-        (event, lobbyData: { name: string; pass: string; user: any; private: boolean }) => {
+        (event, lobbyData: { name: string; pass: string; user: any; isPrivate: boolean }) => {
             mainWindow.webContents.send('createNewLobby', lobbyData)
         }
     )
@@ -859,7 +862,7 @@ const createWindow = () => {
 
     ipcMain.on(
         'userChangeLobby',
-        (event, lobbyData: { newLobbyId: string; pass: string; user: any; private: boolean }) => {
+        (event, lobbyData: { newLobbyId: string; pass: string; user: any; isPrivate: boolean }) => {
             console.log('lobby changing', lobbyData)
             mainWindow.webContents.send('userChangeLobby', lobbyData)
         }

@@ -30,13 +30,13 @@ contextBridge.exposeInMainWorld('api', {
     handShake: (type: string) => ipcRenderer.send('hand-shake-users', type),
     sendDataChannel: (data: string) => ipcRenderer.send('send-data-channel', data),
     //lobbies
-    createNewLobby: (lobbyData: { name: string; pass: string; user: any; private: boolean }) =>
+    createNewLobby: (lobbyData: { name: string; pass: string; user: any; isPrivate: boolean }) =>
         ipcRenderer.send('createNewLobby', lobbyData),
     userChangeLobby: (lobbyData: {
         newLobbyId: string
         pass: string
         user: any
-        private: boolean
+        isPrivate: boolean
     }) => ipcRenderer.send('userChangeLobby', lobbyData),
     updateLobbyStats: (lobbyArray: any) => ipcRenderer.send('updateLobbyStats', lobbyArray),
     updateUserData: (userData: any) => ipcRenderer.send('updateUserData', userData),
@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld('api', {
     setAppTheme: (themeIndex: number) => ipcRenderer.send('setAppTheme', themeIndex),
     setConfigValue: (key: string, value: string | boolean | number) =>
         ipcRenderer.send('setConfigValue', { key, value }),
+    updateSocketState: (key: string, value: string | boolean | number) =>
+        ipcRenderer.send('updateSocketState', { key, value }),
     getConfigValue: (key: string, value: string | boolean | number) =>
         ipcRenderer.send('getConfigValue', { key, value }),
     getAppTheme: (themeIndex: number) => ipcRenderer.send('getAppTheme', themeIndex),

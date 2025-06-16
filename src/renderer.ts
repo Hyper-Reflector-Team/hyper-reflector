@@ -21,12 +21,13 @@ let myUserData: any | null = null
 let myUID: string | null = null
 let opponentUID: string | null = null
 let playerNum: number | null = null
+let currentLobbyID: string | null = null
 
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
-// const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
+// const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
 
 function resetState() {
     candidateList = []
@@ -84,6 +85,21 @@ window.api.on(
     async ({ callerId, calleeId }: { callerId: string; calleeId: string }) => {
         peerConnection = await initWebRTC(myUID, calleeId, signalServerSocket)
         startCall(peerConnection, signalServerSocket, calleeId, callerId, true)
+    }
+)
+
+// handle update away status
+window.api.on(
+    'updateSocketState',
+    async ({ key, value }: { key: string; value: string | number | boolean }) => {
+        if (signalServerSocket) {
+            await signalServerSocket.send(
+                JSON.stringify({
+                    type: 'updateSocketState',
+                    data: { lobbyId: currentLobbyID, uid: myUID, stateToUpdate: { key, value } },
+                })
+            )
+        }
     }
 )
 
@@ -156,12 +172,13 @@ function connectWebSocket(user) {
 
     window.api.on('createNewLobby', (lobbyInfo) => {
         console.log('sending lobby data', lobbyInfo)
+        currentLobbyID = lobbyInfo.name || null
         signalServerSocket.send(
             JSON.stringify({
                 type: 'createLobby',
                 lobbyId: lobbyInfo.name,
                 pass: lobbyInfo.pass,
-                private: lobbyInfo.private,
+                isPrivate: lobbyInfo.isPrivate,
                 user: lobbyInfo.user, // this is our full user object
             })
         )
@@ -169,12 +186,13 @@ function connectWebSocket(user) {
 
     window.api.on('userChangeLobby', (lobbyInfo) => {
         console.log('hey we changed lobbies', lobbyInfo)
+        currentLobbyID = lobbyInfo.newLobbyId || null
         signalServerSocket.send(
             JSON.stringify({
                 type: 'changeLobby',
                 newLobbyId: lobbyInfo.newLobbyId,
                 pass: lobbyInfo.pass,
-                private: lobbyInfo.private,
+                isPrivate: lobbyInfo.isPrivate,
                 user: lobbyInfo.user, // this is our full user object
             })
         )
@@ -215,7 +233,7 @@ function connectWebSocket(user) {
         if (data.type === 'connected-users') {
             if (data.users.length) {
                 currentUsers = data.users
-                // PingManager.addPeers(data.users)
+                console.log(currentUsers)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {
@@ -273,7 +291,6 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'webrtc-ping-decline') {
-            console.log(data)
             // closePeerConnection(data.data.answererId)
             window.api.callDeclined(data.from)
         }
@@ -287,7 +304,6 @@ function connectWebSocket(user) {
             }
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
-            console.log(data)
             if (!data.from) return
             const acceptMessage = {
                 sender: data.from,
@@ -298,7 +314,6 @@ function connectWebSocket(user) {
                 id: Date.now(), // TODO this is not a long lasting solution
             }
             window.api.sendRoomMessage(acceptMessage)
-            console.log(data)
             playerNum = 0 // if we answer a call we are always player 1
             window.api.startGameOnline(data?.from, playerNum)
             try {

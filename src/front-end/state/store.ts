@@ -41,9 +41,11 @@ export const useConfigStore = create((set) => ({
 
 export const useMessageStore = create((set) => ({
     // current lobby
-    currentLobbyState: { name: 'Hyper Reflector', id: 0, pass: null, private: false, users: 1 },
+    currentLobbyState: { name: 'Hyper Reflector', id: 0, pass: null, isPrivate: false, users: 1 },
     setCurrentLobbyState: (lobby) => set((state) => ({ currentLobbyState: lobby })),
-    currentLobbiesState: [{ name: 'Hyper Reflector', id: 0, pass: null, private: false, users: 1 }],
+    currentLobbiesState: [
+        { name: 'Hyper Reflector', id: 0, pass: null, isPrivate: false, users: 1 },
+    ],
     setCurrentLobbiesState: (lobbies) => set((state) => ({ currentLobbiesState: lobbies })),
     // room messages
     messageState: [],
