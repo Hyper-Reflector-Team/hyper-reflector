@@ -511,7 +511,12 @@ const createWindow = () => {
     ipcMain.on('getConfigValue', (event, { key }) => {
         getConfigValue(key)
         if (key === 'isAway') {
+            // TODO lets add win streak stuff
             // make sure we send our
+            // mainWindow.webContents.send('updateSocketState', {
+            //     key: 'winStreak',
+            //     value: 99,
+            // })
             mainWindow.webContents.send('updateSocketState', {
                 key,
                 value: config?.app?.isAway || 'false',
