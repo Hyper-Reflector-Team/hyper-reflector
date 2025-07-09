@@ -141,12 +141,14 @@ export default function UserCard({ user }) {
                     _hover={{ bg: theme.colors.main.cardLight, cursor: 'pointer' }}
                     position={'relative'}
                 >
-                    <Float placement="middle-start" offsetX="-1" offsetY="0">
+                    <Float placement="middle-start" offsetX="-2.5" offsetY="0">
                         <Tooltip content={`Win Streak`} openDelay={200} closeDelay={100}>
                             <Box
+                                textAlign={'center'}
+                                alignItems={'center'}
                                 className={user.winStreak >= 5 && 'glow'}
                                 background={theme.colors.main.bg}
-                                width={'18px'}
+                                width={'32px'}
                                 borderRadius={'8px'}
                             >
                                 <Text

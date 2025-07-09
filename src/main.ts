@@ -636,7 +636,6 @@ const createWindow = () => {
             function sendMessageToS(kill: boolean) {
                 const serverPort = 33334 // revert this after killing all of the new services
                 const serverHost = keys.COTURN_IP
-                // var serverHost = '127.0.0.1'
                 console.log(userUID, '- is kill? ' + kill)
                 const message = new Buffer(
                     JSON.stringify({ uid: userUID || data.myId, peerUid: data.opponentUID, kill })

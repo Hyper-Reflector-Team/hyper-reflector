@@ -26,8 +26,9 @@ let currentLobbyID: string | null = 'Hyper Reflector' // set to default lobby at
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
-// const SOCKET_ADDRESS = `ws://127.0.0.1:3003` // debug
 const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+
+const gows = new WebSocket(`ws://${keys.COTURN_IP}:8890/ws`)
 
 function resetState() {
     candidateList = []
@@ -148,6 +149,12 @@ function connectWebSocket(user) {
             }
             if (messageObject.text === 'ping' && peerConnection) {
                 pingUser(user.uid)
+            }
+            // testing new go socket server
+            if (messageObject.text === 'golang') {
+                console.log('sending message to golang server')
+                gows.onmessage = (e) => console.log('From server:', e.data)
+                gows.send('Hello Go!')
             }
             if (messageObject.text === 'vid') {
                 try {
