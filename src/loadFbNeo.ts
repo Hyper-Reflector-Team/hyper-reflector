@@ -9,12 +9,12 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
 
         // Capture stdout (logs from emulator)
         child.stdout.on('data', (data) => {
-            console.log(`[Fightcade-FBNeo]: ${data.toString()}`)
+            console.log(`[FBNeo]: ${data.toString()}`)
         })
 
         // Capture stderr (errors)
         child.stderr.on('data', (data) => {
-            console.error(`[Fightcade-FBNeo Error]: ${data.toString()}`)
+            console.error(`[FBNeo Error]: ${data.toString()}`)
             return 'test error'
         })
 
@@ -38,7 +38,7 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
 
         // Listen for errors
         child.on('error', (error) => {
-            console.error(`Failed to start Fightcade-FBNeo: ${error.message}`)
+            console.error(`Failed to start FBNeo: ${error.message}`)
         })
 
         return child // Return process reference
@@ -87,7 +87,8 @@ export function startPlayingOnline({
         luaPath = config.emulator.trainingLuaPath
     }
     // const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
-    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct -n ${'name ->' + player} -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort} -d 1 --player ${player} `
+    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player 2 -n TestGuy -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort}`
+    // const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct -n TestGuy -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort} -d 1 -p ${2}`
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)
