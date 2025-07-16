@@ -86,7 +86,8 @@ export function startPlayingOnline({
     if (isTraining) {
         luaPath = config.emulator.trainingLuaPath
     }
-    const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 ${luaPath}`
+    // const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
+    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct -n ${'name ->' + player} -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort} -d 1 --player ${player} `
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)
@@ -104,7 +105,9 @@ export function startSoloMode({
     config: Config
     callBack: (isOnOpen?: boolean) => any
 }) {
-    const directCommand = `${fightcadeCmd(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    // const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct -n Test -l 127.0.0.1:7000 -r 127.0.0.1:7000 -d 0 --player 1 `
+    // const directCommand = `${fightcadeCmd(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}`
     return launchGGPOSpawn(directCommand, callBack)
 }
 

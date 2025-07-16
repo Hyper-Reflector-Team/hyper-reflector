@@ -1,2 +1,5 @@
-emuPath=C:\Users\dusti\Documents\Fightcade\emulator\fbneo
+emuPath=C:\Users\dusti\Desktop\hyper-reflector\emu\hyper-screw-fbneo
 emuDelay=1
+isAway=false
+appSoundOn=false
+appTheme=0

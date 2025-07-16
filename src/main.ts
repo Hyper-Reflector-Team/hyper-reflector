@@ -535,7 +535,7 @@ const createWindow = () => {
         readStatFile(mainWindow)
     })
 
-    ipcMain.on('serveMatch', async (event, data) => {})
+    ipcMain.on('serveMatch', async (event, data) => { })
 
     let keepAliveInterval = null
 
@@ -614,7 +614,7 @@ const createWindow = () => {
                         opponentEndpoint = JSON.parse(message)
                         currentMatchId = opponentEndpoint.matchId || null
                         sendMessageToB(opponentEndpoint.peer.address, opponentEndpoint.peer.port)
-                    } catch (err) {}
+                    } catch (err) { }
                 })
             } catch (error) {
                 console.log('error in socket', error)
@@ -788,7 +788,8 @@ const createWindow = () => {
                 }, 2000)
 
                 if (process.platform === 'win32') {
-                    killProcessByName('fcadefbneo.exe')
+                    // killProcessByName('fcadefbneo.exe')
+                    killProcessByName('fs-fbneo.exe')
                     spawnedEmulator = null
                 }
 
