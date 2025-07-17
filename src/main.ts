@@ -561,7 +561,7 @@ const createWindow = () => {
             console.log('opening socket')
             try {
                 socket = dgram.createSocket('udp4')
-                socket.bind(7003, () => {
+                socket.bind(() => {
                     console.log('Socket bound to random port:', socket.address())
                 })
             } catch (error) {
@@ -610,7 +610,7 @@ const createWindow = () => {
                     } else {
                         console.log('message from other user', message)
                         // This is a message to the proxy from our opponent, we then send that information directly to the listening port of the emulator.
-                        socket.send(message, 0, message.length, 7000, '127.0.0.1')
+                        emuListener.send(message, 0, message.length, 7000, '127.0.0.1')
                     }
                     try {
                         opponentEndpoint = JSON.parse(message)

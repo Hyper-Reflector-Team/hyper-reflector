@@ -88,7 +88,7 @@ export function startPlayingOnline({
     }
     console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player)
     // const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
-    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player 1 -n testguy -l 127.0.0.1:7000 -r 127.0.0.1:7003 -d 0`
+    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player 1 -n beavis -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 0`
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)
