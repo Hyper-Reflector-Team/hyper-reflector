@@ -86,9 +86,9 @@ export function startPlayingOnline({
     if (isTraining) {
         luaPath = config.emulator.trainingLuaPath
     }
+    console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`)
     // const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
-    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player 2 -n TestGuy -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort}`
-    // wasnt working // const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct -n TestGuy -l ${"127.0.0.1" + ':' + localPort} -r ${remoteIp + ':' + remotePort} -d 1 -p ${2}`
+    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player ${player} -n ${player}-p -r ${remoteIp + ':' + remotePort} -d ${delay}`
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)

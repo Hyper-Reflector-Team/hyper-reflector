@@ -711,7 +711,7 @@ const createWindow = () => {
                     localPort: 7000,
                     remoteIp: '127.0.0.1',
                     remotePort: emuListener.address().port,
-                    player: data.player + 1,
+                    player: data.player + 1, // TODO fix this
                     delay: parseInt(config.app.emuDelay),
                     isTraining: false, // Might be used in the future.
                     callBack: (isOnOpen: boolean) => {
