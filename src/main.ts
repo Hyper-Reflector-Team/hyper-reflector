@@ -561,7 +561,7 @@ const createWindow = () => {
             console.log('opening socket')
             try {
                 socket = dgram.createSocket('udp4')
-                socket.bind(() => {
+                socket.bind(7003, () => {
                     console.log('Socket bound to random port:', socket.address())
                 })
             } catch (error) {
