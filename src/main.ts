@@ -608,6 +608,8 @@ const createWindow = () => {
                         // )
                         // console.log(remote.address + ':' + remote.port + ' - ' + message)
                     } else {
+                        console.log('message from other user', message)
+                        // This is a message to the proxy from our opponent, we then send that information directly to the listening port of the emulator.
                         socket.send(message, 0, message.length, 7000, '127.0.0.1')
                     }
                     try {
@@ -621,8 +623,10 @@ const createWindow = () => {
             }
 
             try {
-                // get messages from our local emulator and send it to the other player socket
+                // listening to the emulator on port 7001
+                // get messages from our local emulator and send it to the other players open proxy
                 emuListener.on('message', function (message, remote) {
+                    console.log('sending message to via listener > ' + JSON.stringify(opponentEndpoint.peer))
                     sendMessageToB(
                         opponentEndpoint.peer.address,
                         opponentEndpoint.peer.port,
@@ -630,7 +634,7 @@ const createWindow = () => {
                     )
                 })
             } catch (error) {
-                console.log('error in emu scket', error)
+                console.log('error in emu socket', error)
             }
 
             function sendMessageToS(kill: boolean) {
@@ -707,7 +711,7 @@ const createWindow = () => {
                     localPort: 7000,
                     remoteIp: '127.0.0.1',
                     remotePort: emuListener.address().port,
-                    player: data.player,
+                    player: data.player + 1,
                     delay: parseInt(config.app.emuDelay),
                     isTraining: false, // Might be used in the future.
                     callBack: (isOnOpen: boolean) => {
