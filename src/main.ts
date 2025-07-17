@@ -788,8 +788,8 @@ const createWindow = () => {
                 }, 2000)
 
                 if (process.platform === 'win32') {
-                    killProcessByName('fcadefbneo.exe')
-                    // killProcessByName('fs-fbneo.exe')
+                    // killProcessByName('fcadefbneo.exe')
+                    killProcessByName('fs-fbneo.exe')
                     spawnedEmulator = null
                 }
 
