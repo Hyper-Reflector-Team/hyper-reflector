@@ -102,5 +102,5 @@ src/hyper_read_commands.txt
 src/hyper_write_commands.txt
 
 # emulator related
-emu/roms
-emu/config
+emu/hyper-screw-fbneo/roms
+emu/hyper-screw-fbneo/config
