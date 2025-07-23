@@ -182,7 +182,8 @@ export default function UserCard({ user }) {
                             </Avatar.Root>
                         </Box>
                         <Stack gap="0px">
-                            <Flex>
+                            {/* position absolute isn't a great idea here but it is a quick fix */}
+                            <Flex position={'absolute'} marginBottom={'20px'}>
                                 <Text
                                     textStyle="sm"
                                     fontWeight="bold"
@@ -194,8 +195,9 @@ export default function UserCard({ user }) {
                             <TitleBadge title={user.userTitle || null} />
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
-                        <Box marginLeft={'12px'} minWidth={'40px'}>
-                            <RankDisplay elo={user.elo} />
+                        <Box marginLeft={'18px'} minWidth={'40px'}>
+                            {/* <RankDisplay elo={user.elo} /> */}
+                            <RankDisplay elo={1200} />
                         </Box>
                         <Box display="flex" alignItems={'center'} gap="4px" minW={'60px'}>
                             <PingDisplay
