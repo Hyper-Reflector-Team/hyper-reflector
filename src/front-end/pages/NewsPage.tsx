@@ -7,6 +7,13 @@ import { useLayoutStore, useLoginStore } from '../state/store'
 
 const blogsArray = [
     {
+        title: 'Update Version 0.4.0a',
+        date: '7/27/2025',
+        content: `
+         News updates will be going away
+        `,
+    },
+    {
         title: 'Update Version 0.3.1a',
         date: '6/10/2025',
         content: `
