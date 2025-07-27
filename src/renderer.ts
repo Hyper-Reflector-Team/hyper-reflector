@@ -26,9 +26,10 @@ let currentLobbyID: string | null = 'Hyper Reflector' // set to default lobby at
 let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003`
+// Updates for online
+const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003` // set for online env
 
-const gows = new WebSocket(`ws://${keys.COTURN_IP}:8890/ws`)
+const gows = new WebSocket(`ws://${keys.COTURN_IP}:8890/ws`) // go web socks
 
 function resetState() {
     candidateList = []
