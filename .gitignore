@@ -104,3 +104,5 @@ src/hyper_write_commands.txt
 # emulator related
 emu/hyper-screw-fbneo/roms
 emu/hyper-screw-fbneo/config
+emu/hyper-screw-fbneo/savestates
+emu/hyper-screw-fbneo/screenshots
