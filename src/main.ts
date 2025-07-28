@@ -768,8 +768,6 @@ const createWindow = () => {
     }
 
     ipcMain.on('killEmulator', async () => {
-        killSocketAndEmu();
-
         await mainWindow.webContents.send(
             'message-from-main',
             'Attempting to gracefully close emulator'
@@ -818,6 +816,7 @@ const createWindow = () => {
             console.log('No emulator process found to kill.');
         }
 
+        killSocketAndEmu();
         clearStatFile();
         mainWindow.webContents.send('endMatchUI', userUID);
     });
