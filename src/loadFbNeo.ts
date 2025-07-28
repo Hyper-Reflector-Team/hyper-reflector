@@ -31,10 +31,6 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
                 if (code === 1 && callBack) {
                     callBack(true) // failed to open
                 }
-                if (code === 0 && callBack) {
-                    // Testing signal terminations
-                    callBack() // failed to open
-                }
             } else {
                 console.log(`FBNeo terminated by signal ${signal}`)
             }
