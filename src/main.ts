@@ -53,6 +53,7 @@ const path = require('path')
 const isDev = !app.isPackaged
 
 let userUID: string | null = null
+let userName: string | null = null
 let filePathBase = process.resourcesPath
 const tokenFilePath = path.join(app.getPath('userData'), 'auth_token.json')
 
@@ -429,6 +430,8 @@ const createWindow = () => {
             // send our user object to the front end
             mainWindow.webContents.send('loginSuccess', getLoginObject(user))
             userUID = user.uid
+            console.log('setting user ', user.name, user)
+            userName = user.name
             console.log('user is: ', user)
         }
     }
@@ -511,6 +514,7 @@ const createWindow = () => {
     ipcMain.on('getConfigValue', (event, { key }) => {
         getConfigValue(key)
         if (key === 'isAway') {
+            // HEY HEY HEY 
             // TODO lets add win streak stuff
             // make sure we send our
             // mainWindow.webContents.send('updateSocketState', {
@@ -540,6 +544,7 @@ const createWindow = () => {
     let keepAliveInterval = null
 
     ipcMain.on('startGameOnline', async (event, data) => {
+        console.log('data', data)
         if (socket) {
             console.log('killing socket', socket)
             try {
@@ -608,7 +613,7 @@ const createWindow = () => {
                         // )
                         // console.log(remote.address + ':' + remote.port + ' - ' + message)
                     } else {
-                        console.log('message from other user', message)
+                        // console.log('message from other user', message)
                         // This is a message to the proxy from our opponent, we then send that information directly to the listening port of the emulator.
                         emuListener.send(message, 0, message.length, 7000, '127.0.0.1')
                     }
@@ -626,7 +631,7 @@ const createWindow = () => {
                 // listening to the emulator on port 7001
                 // get messages from our local emulator and send it to the other players open proxy
                 emuListener.on('message', function (message, remote) {
-                    console.log('sending message to via listener > ' + JSON.stringify(opponentEndpoint.peer))
+                    // console.log('sending message to via listener > ' + JSON.stringify(opponentEndpoint.peer))
                     sendMessageToB(
                         opponentEndpoint.peer.address,
                         opponentEndpoint.peer.port,
@@ -656,7 +661,7 @@ const createWindow = () => {
                         message.length,
                         serverPort,
                         serverHost,
-                        function (err, numberOfBytes) {
+                        function (err) {
                             if (err) return console.log(err)
                             console.log('UDP message sent Server ' + serverHost + ':' + serverPort)
                         }
@@ -711,8 +716,9 @@ const createWindow = () => {
                     localPort: 7000,
                     remoteIp: '127.0.0.1',
                     remotePort: emuListener.address().port,
-                    player: data.player + 1, // TODO fix this
+                    player: data.player + 1, // This depends on the emulator
                     delay: parseInt(config.app.emuDelay),
+                    playerName: userName || 'Unknown',
                     isTraining: false, // Might be used in the future.
                     callBack: (isOnOpen: boolean) => {
                         if (isOnOpen) {
@@ -792,6 +798,7 @@ const createWindow = () => {
                 }, 2000)
 
                 if (process.platform === 'win32') {
+                    console.log('trying to kill the emulator here')
                     // killProcessByName('fcadefbneo.exe')
                     killProcessByName('fs-fbneo.exe')
                     spawnedEmulator = null
@@ -807,6 +814,7 @@ const createWindow = () => {
         // Check if process is still alive before calling taskkill
         if (spawnedEmulator) {
             const pid = spawnedEmulator.pid
+            console.log('emulator', pid)
 
             // Debug: Check if process is still running
             exec(`tasklist /FI "PID eq ${pid}"`, (err, stdout, stderr) => {
@@ -958,10 +966,12 @@ const createWindow = () => {
 
     // matchmaking
     ipcMain.on('callUser', (event, data) => {
+        console.log(data)
         mainWindow.webContents.send('callUser', data)
     })
 
     ipcMain.on('answerCall', (event, data) => {
+        console.log(data)
         mainWindow.webContents.send('answerCall', { ...data, answererId: userUID })
     })
 
@@ -1149,7 +1159,8 @@ app.whenReady().then(async () => {
                     // send our user object to the front end
                     mainWindow.webContents.send('loginSuccess', getLoginObject(user))
                     userUID = user.uid
-                    // console.log('user is: ', user) // used to observe initial user state
+                    userName = user.userName
+                    console.log('user is: ', user) // used to observe initial user state
                 }
             } else {
                 mainWindow.webContents.send('autoLoginFailure')

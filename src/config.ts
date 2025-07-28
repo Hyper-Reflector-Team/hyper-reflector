@@ -13,7 +13,7 @@ export type AppConfig = {
 }
 
 export type EmulatorConfig = {
-    fightcadePath: string
+    fbNeoPath: string
     luaPath: string
     trainingLuaPath: string
 }
@@ -56,8 +56,8 @@ function getAppConfig(): AppConfig {
 
 function getEmulatorConfig({ emuPath, filePathBase }: AppConfig) {
     return {
-        // fightcadePath: path.join(emuPath || filePathBase, 'fcadefbneo.exe'),
-        fightcadePath: path.join(emuPath || filePathBase, 'fs-fbneo.exe'),
+        // fbNeoPath: path.join(emuPath || filePathBase, 'fcadefbneo.exe'),
+        fbNeoPath: path.join(emuPath || filePathBase, 'fs-fbneo.exe'),
         luaPath: path.join(filePathBase, 'lua', '3rd_training_lua', 'hyper_reflector.lua'),
         trainingLuaPath: path.join(filePathBase, 'lua', '3rd_training_lua', '3rd_training.lua'),
     }

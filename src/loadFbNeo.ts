@@ -31,6 +31,10 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
                 if (code === 1 && callBack) {
                     callBack(true) // failed to open
                 }
+                if (code === 0 && callBack) {
+                    // Testing signal terminations
+                    callBack() // failed to open
+                }
             } else {
                 console.log(`FBNeo terminated by signal ${signal}`)
             }
@@ -47,21 +51,21 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
     }
 }
 
-function fightcadeCmd(config: Config) {
-    const { fightcadePath } = config.emulator
+function fbNeoCommand(config: Config) {
+    const { fbNeoPath } = config.emulator
     console.log({ platform: process.platform })
     switch (process.platform) {
         case 'darwin':
-            return `wine "${fightcadePath}"`
+            return `wine "${fbNeoPath}"`
         case 'linux':
-            return `wine "${fightcadePath}"`
+            return `wine "${fbNeoPath}"`
         default:
-            return `"${fightcadePath}"`
+            return `"${fbNeoPath}"`
     }
 }
 
 /**
- * for these file paths like fightcade path and lua path, we need some way to access this directly through electron so we do no need to update all of the time.
+ * for these file paths like fbneo path and lua path, we need some way to access this directly through electron so we do no need to update all of the time.
  */
 export function startPlayingOnline({
     config,
@@ -69,6 +73,7 @@ export function startPlayingOnline({
     remoteIp,
     remotePort,
     player,
+    playerName,
     delay,
     isTraining = false,
     callBack,
@@ -78,6 +83,7 @@ export function startPlayingOnline({
     remoteIp: string
     remotePort: number
     player: number
+    playerName: string
     delay: number
     isTraining: boolean
     callBack: (isOnOpen?: boolean) => any
@@ -86,9 +92,10 @@ export function startPlayingOnline({
     if (isTraining) {
         luaPath = config.emulator.trainingLuaPath
     }
-    console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player)
-    // const directCommand = `${fightcadeCmd(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
-    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 direct --player 1 -n beavis -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 0`
+    console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
+    // const directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
+    // const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 direct --player 1 -n beavis -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 2`
+    const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n ${playerName} -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay} `
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)
@@ -106,8 +113,11 @@ export function startSoloMode({
     config: Config
     callBack: (isOnOpen?: boolean) => any
 }) {
-    // const directCommand = `${fightcadeCmd(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
-    const directCommand = `${fightcadeCmd(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+    // const directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+
+    // for testing against self
+    // const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 direct --player 1 -n crunchwrap -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 0`
     return launchGGPOSpawn(directCommand, callBack)
 }
 

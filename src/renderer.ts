@@ -111,7 +111,7 @@ window.api.on('answerCall', async ({ from }: { from: string }) => {
     callerIdState = from
     opponentUID = from
     playerNum = 1 // if we answer a call we are always player 1
-    window.api.startGameOnline(opponentUID, playerNum)
+    window.api.startGameOnline(opponentUID, playerNum, '')
 })
 
 window.api.on('declineCall', async ({ from }: { from: string }) => {
@@ -323,7 +323,7 @@ function connectWebSocket(user) {
             }
             window.api.sendRoomMessage(acceptMessage)
             playerNum = 0 // if we answer a call we are always player 1
-            window.api.startGameOnline(data?.from, playerNum)
+            window.api.startGameOnline(data?.from, playerNum, '')
             try {
                 // there is a timing issue here that nees to be fixed.
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
