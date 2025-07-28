@@ -776,6 +776,7 @@ const createWindow = () => {
         );
 
         if (spawnedEmulator) {
+            spawnedEmulator.kill()
             const pid = spawnedEmulator.pid;
             console.log('Attempting to terminate emulator, PID:', pid);
 

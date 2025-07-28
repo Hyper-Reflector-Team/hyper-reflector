@@ -1,13 +1,12 @@
 const { spawn } = require('child_process')
 import { Config } from './config'
 
+
 export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) => any) {
     try {
         const [cmd, ...args] = command.split(' ')
-        let child
-        child = spawn(cmd, args, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
+        const child = spawn(cmd, args, { shell: true, stdio: ['ignore', 'pipe', 'pipe'] })
 
-        // Capture stdout (logs from emulator)
         child.stdout.on('data', (data) => {
             console.log(`[FBNeo]: ${data.toString()}`)
         })
