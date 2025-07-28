@@ -768,79 +768,135 @@ const createWindow = () => {
     }
 
     ipcMain.on('killEmulator', async () => {
-        killSocketAndEmu()
+        killSocketAndEmu();
 
         await mainWindow.webContents.send(
             'message-from-main',
             'Attempting to gracefully close emulator'
-        )
+        );
 
-        try {
-            if (spawnedEmulator) {
-                console.log('Trying to close emulator', spawnedEmulator.pid)
-
-                // Try SIGTERM first
-                spawnedEmulator.kill('SIGTERM')
-                // if we are on windows we also need to kill the process
-
-                // Listen for the process to close
-                spawnedEmulator.on('close', (code, signal) => {
-                    console.log(`Emulator exited with code ${code} and signal ${signal}`)
-                    spawnedEmulator = null
-                })
-
-                // After 2 seconds, force kill if it's still running
-                setTimeout(() => {
-                    if (spawnedEmulator && !spawnedEmulator.killed) {
-                        console.log('Force killing emulator')
-                        spawnedEmulator.kill('SIGKILL')
-                    }
-                }, 2000)
-
-                if (process.platform === 'win32') {
-                    console.log('trying to kill the emulator here')
-                    // killProcessByName('fcadefbneo.exe')
-                    killProcessByName('fs-fbneo.exe')
-                    spawnedEmulator = null
-                }
-
-                mainWindow.webContents.send('message-from-main', 'Emulator exists, closing')
-            }
-        } catch (err) {
-            mainWindow.webContents.send('message-from-main', 'Could not close emulator')
-            console.error('Failed to close emulator:', err)
-        }
-
-        // Check if process is still alive before calling taskkill
         if (spawnedEmulator) {
-            const pid = spawnedEmulator.pid
-            console.log('emulator', pid)
+            const pid = spawnedEmulator.pid;
+            console.log('Attempting to terminate emulator, PID:', pid);
 
-            // Debug: Check if process is still running
-            exec(`tasklist /FI "PID eq ${pid}"`, (err, stdout, stderr) => {
-                if (!stdout.includes(pid)) {
-                    console.log(`Process ${pid} is already gone.`)
-                    return
+            spawnedEmulator.on('close', (code, signal) => {
+                console.log(`Emulator process closed. Code: ${code}, Signal: ${signal}`);
+                spawnedEmulator = null;
+            });
+
+            try {
+                spawnedEmulator.kill('SIGTERM');
+            } catch (e) {
+                console.error('Error sending SIGTERM:', e);
+            }
+
+            setTimeout(() => {
+                if (spawnedEmulator) {
+                    console.warn('Process still alive after 2s. Forcing SIGKILL...');
+                    try {
+                        spawnedEmulator.kill('SIGKILL');
+                    } catch (e) {
+                        console.error('Failed to SIGKILL:', e);
+                    }
                 }
+            }, 2000);
 
-                console.log(`Process ${pid} is still running. Attempting to force kill...`)
+            if (process.platform === 'win32') {
+                exec(`taskkill /PID ${pid} /F /T`, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(`taskkill failed for PID ${pid}:`, err);
+                    } else {
+                        console.log(`taskkill succeeded for PID ${pid}`);
+                    }
+                });
 
-                if (process.platform === 'win32') {
-                    exec(`taskkill /PID ${pid} /F`, (err, stdout, stderr) => {
-                        if (err) console.error('taskkill failed:', err)
-                    })
-                } else {
-                    exec(`pkill -P ${pid}`, (err, stdout, stderr) => {
-                        if (err) console.error('pkill failed:', err)
-                    })
-                }
-            })
+                killProcessByName('fs-fbneo.exe');
+            }
+
+            await mainWindow.webContents.send('message-from-main', 'Emulator exists, closing');
+        } else {
+            console.log('No emulator process found to kill.');
         }
 
-        // Cleanup
-        clearStatFile()
-        mainWindow.webContents.send('endMatchUI', userUID)
-    })
+        clearStatFile();
+        mainWindow.webContents.send('endMatchUI', userUID);
+    });
+
+    // ipcMain.on('killEmulator', async () => {
+    //     killSocketAndEmu()
+
+    //     await mainWindow.webContents.send(
+    //         'message-from-main',
+    //         'Attempting to gracefully close emulator'
+    //     )
+
+    //     try {
+    //         if (spawnedEmulator) {
+    //             console.log('Trying to close emulator', spawnedEmulator.pid)
+
+    //             // Try SIGTERM first
+    //             spawnedEmulator.kill('SIGTERM')
+    //             // if we are on windows we also need to kill the process
+
+    //             // Listen for the process to close
+    //             spawnedEmulator.on('close', (code, signal) => {
+    //                 console.log(`Emulator exited with code ${code} and signal ${signal}`)
+    //                 spawnedEmulator = null
+    //             })
+
+    //             // After 2 seconds, force kill if it's still running
+    //             setTimeout(() => {
+    //                 if (spawnedEmulator && !spawnedEmulator.killed) {
+    //                     console.log('Force killing emulator')
+    //                     spawnedEmulator.kill('SIGKILL')
+    //                 }
+    //             }, 2000)
+
+    //             if (process.platform === 'win32') {
+    //                 console.log('trying to kill the emulator here')
+    //                 // killProcessByName('fcadefbneo.exe')
+    //                 killProcessByName('fs-fbneo.exe')
+    //                 spawnedEmulator = null
+    //             }
+
+    //             mainWindow.webContents.send('message-from-main', 'Emulator exists, closing')
+    //         }
+    //     } catch (err) {
+    //         mainWindow.webContents.send('message-from-main', 'Could not close emulator')
+    //         console.error('Failed to close emulator:', err)
+    //     }
+
+    //     // Check if process is still alive before calling taskkill
+    //     if (spawnedEmulator) {
+    //         const pid = spawnedEmulator.pid
+    //         console.log('emulator', pid)
+
+    //         // Debug: Check if process is still running
+    //         exec(`tasklist /FI "PID eq ${pid}"`, (err, stdout, stderr) => {
+    //             if (!stdout.includes(pid)) {
+    //                 console.log(`Process ${pid} is already gone.`)
+    //                 return
+    //             }
+
+    //             console.log(`Process ${pid} is still running. Attempting to force kill...`)
+
+    //             if (process.platform === 'win32') {
+    //                 exec(`taskkill /PID ${pid} /F`, (err, stdout, stderr) => {
+    //                     if (err) console.error('taskkill failed:', err)
+    //                 })
+    //             } else {
+    //                 exec(`pkill -P ${pid}`, (err, stdout, stderr) => {
+    //                     if (err) console.error('pkill failed:', err)
+    //                 })
+    //             }
+    //         })
+    //     }
+
+    //     // Cleanup
+    //     spawnedEmulator = null
+    //     clearStatFile()
+    //     mainWindow.webContents.send('endMatchUI', userUID)
+    // })
 
     ipcMain.on('startTrainingMode', (event) => {
         startSoloMode({
