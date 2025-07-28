@@ -751,7 +751,6 @@ const createWindow = () => {
             await emuListener.close()
             socket = null
             emuListener = null
-            spawnedEmulator = null
         } catch (error) {
             console.log('could not properly shut down emulator and sockets')
         }
