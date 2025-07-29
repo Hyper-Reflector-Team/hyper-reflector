@@ -147,8 +147,16 @@ export default function SettingsPage() {
                             Application Settings
                         </Heading>
                         <Stack>
+                            <Button
+                                bg={theme.colors.main.actionSecondary}
+                                onClick={() => {
+                                    window.api.openEmulatorFolder()
+                                }}
+                            >
+                                Open Rom Folder
+                            </Button>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                                This is where we can set our emulator path and other setting
+                                Current Path: {currentEmuPath}
                             </Text>
                             <Button
                                 bg={theme.colors.main.actionSecondary}
@@ -165,8 +173,11 @@ export default function SettingsPage() {
                             >
                                 Use Default Emulator
                             </Button>
+                            <Text textStyle="xs" color={theme.colors.main.warning}>
+                                Not recommended
+                            </Text>
                             <Button
-                                bg={theme.colors.main.actionSecondary}
+                                bg={theme.colors.main.warning}
                                 onClick={() => {
                                     try {
                                         window.api.setEmulatorPath()
@@ -180,9 +191,6 @@ export default function SettingsPage() {
                             >
                                 Set Custom Emulator Path
                             </Button>
-                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                                Current Path: {currentEmuPath}
-                            </Text>
                             <Text textStyle="md" color={theme.colors.main.text}>
                                 Sound Settings
                             </Text>

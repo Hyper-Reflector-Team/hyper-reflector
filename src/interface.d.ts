@@ -27,6 +27,7 @@ export interface IElectronAPI {
     sendDataChannel: any
     // settings
     setEmulatorPath: any
+    openEmulatorFolder: any
     getEmulatorPath: any
     setEmulatorDelay: any
     getEmulatorDelay: any

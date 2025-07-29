@@ -4,6 +4,7 @@ import {
     ipcMain,
     dialog,
     Notification,
+    shell
     // desktopCapturer,
     // session,
 } from 'electron'
@@ -172,6 +173,19 @@ const createWindow = () => {
 
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
+
+    ipcMain.on('openEmulatorFolder', async () => {
+        const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo\\roms');
+        try {
+            await shell.openPath(externalAppPath);
+        } catch (error) {
+            new Notification({
+                title: 'Error',
+                body: 'Rom folder does not exist'
+            }).show()
+        }
+
+    })
 
     const setEmulatorPath = async (isResetPath = false) => {
         // the below path is only for the default emulator settings
