@@ -117,11 +117,15 @@ export function startSoloMode({
     config: Config
     callBack: (isOnOpen?: boolean) => any
 }) {
-    // const directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
-    const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+    const pathEnd = config.emulator.fbNeoPath
+    const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
+    let directCommand
 
-    // for testing against self
-    // const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 direct --player 1 -n crunchwrap -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 0`
+    if (slicedPathEnd === 'fs-fbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+    } else if (slicedPathEnd === 'fcadefbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    }
     return launchGGPOSpawn(directCommand, callBack)
 }
 
