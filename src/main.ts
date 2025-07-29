@@ -854,7 +854,7 @@ const createWindow = () => {
                 });
 
                 const pathEnd = config.emulator.fbNeoPath
-                const slicedPathEnd = pathEnd.split('\\').pop()
+                const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
 
                 if (slicedPathEnd === 'fs-fbneo.exe') {
                     killProcessByName('fs-fbneo.exe');

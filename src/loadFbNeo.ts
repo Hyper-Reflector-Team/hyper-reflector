@@ -90,7 +90,7 @@ export function startPlayingOnline({
     }
 
     const pathEnd = config.emulator.fbNeoPath
-    const slicedPathEnd = pathEnd.split('\\').pop()
+    const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
     let directCommand
 
     if (slicedPathEnd === 'fs-fbneo.exe') {
