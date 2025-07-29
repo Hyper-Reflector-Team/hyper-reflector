@@ -155,42 +155,6 @@ export default function SettingsPage() {
                             >
                                 Open Rom Folder
                             </Button>
-                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                                Current Path: {currentEmuPath}
-                            </Text>
-                            <Button
-                                bg={theme.colors.main.actionSecondary}
-                                onClick={() => {
-                                    try {
-                                        window.api.setEmulatorPath(true)
-                                    } catch (error) {
-                                        toaster.error({
-                                            title: 'Error',
-                                            description: 'Failed to reset or use path.',
-                                        })
-                                    }
-                                }}
-                            >
-                                Use Default Emulator
-                            </Button>
-                            <Text textStyle="xs" color={theme.colors.main.warning}>
-                                Not recommended
-                            </Text>
-                            <Button
-                                bg={theme.colors.main.warning}
-                                onClick={() => {
-                                    try {
-                                        window.api.setEmulatorPath()
-                                    } catch (error) {
-                                        toaster.error({
-                                            title: 'Error',
-                                            description: 'Failed to update path.',
-                                        })
-                                    }
-                                }}
-                            >
-                                Set Custom Emulator Path
-                            </Button>
                             <Text textStyle="md" color={theme.colors.main.text}>
                                 Sound Settings
                             </Text>
@@ -293,6 +257,42 @@ export default function SettingsPage() {
                             Danger Settings
                         </Heading>
                         <Stack>
+                            <Text textStyle="xs" color={theme.colors.main.textMedium}>
+                                Current Path: {currentEmuPath}
+                            </Text>
+                            <Button
+                                bg={theme.colors.main.actionSecondary}
+                                onClick={() => {
+                                    try {
+                                        window.api.setEmulatorPath(true)
+                                    } catch (error) {
+                                        toaster.error({
+                                            title: 'Error',
+                                            description: 'Failed to reset or use path.',
+                                        })
+                                    }
+                                }}
+                            >
+                                Use Default Emulator
+                            </Button>
+                            <Text textStyle="xs" color={theme.colors.main.warning}>
+                                Not recommended
+                            </Text>
+                            <Button
+                                bg={theme.colors.main.warning}
+                                onClick={() => {
+                                    try {
+                                        window.api.setEmulatorPath()
+                                    } catch (error) {
+                                        toaster.error({
+                                            title: 'Error',
+                                            description: 'Failed to update path.',
+                                        })
+                                    }
+                                }}
+                            >
+                                Set Custom Emulator Path
+                            </Button>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Log out user, this will also make it so you do not automaitcally log
                                 in on start next time.

@@ -150,13 +150,7 @@ export default function NewsPage() {
         const playerWinDonut = useChart({
             data: [
                 { name: 'Player 1 Wins', value: p1Wins, color: theme.colors.main.action },
-                { name: 'Player 1 Losses', value: p2Wins, color: theme.colors.main.actionDark },
-                { name: 'Player 2 Wins', value: p2Wins, color: theme.colors.main.actionSecondary },
-                {
-                    name: 'Player 2 Losses',
-                    value: p1Wins,
-                    color: theme.colors.main.actionSecondaryDark,
-                },
+                { name: 'Player 2 Wins', value: p2Wins, color: theme.colors.main.secondary },
             ],
         })
         return (
