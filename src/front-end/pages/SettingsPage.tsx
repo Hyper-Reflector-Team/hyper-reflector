@@ -154,6 +154,21 @@ export default function SettingsPage() {
                                 bg={theme.colors.main.actionSecondary}
                                 onClick={() => {
                                     try {
+                                        window.api.setEmulatorPath(true)
+                                    } catch (error) {
+                                        toaster.error({
+                                            title: 'Error',
+                                            description: 'Failed to reset or use path.',
+                                        })
+                                    }
+                                }}
+                            >
+                                Use Default Emulator
+                            </Button>
+                            <Button
+                                bg={theme.colors.main.actionSecondary}
+                                onClick={() => {
+                                    try {
                                         window.api.setEmulatorPath()
                                     } catch (error) {
                                         toaster.error({
@@ -163,7 +178,7 @@ export default function SettingsPage() {
                                     }
                                 }}
                             >
-                                Set Emulator Path
+                                Set Custom Emulator Path
                             </Button>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
                                 Current Path: {currentEmuPath}

@@ -42,7 +42,6 @@ function getAppConfig(): AppConfig {
     const filePathBase = isDev ? path.join(app.getAppPath(), 'src') : process.resourcesPath
 
     const configFileMap = getConfigFileMap(filePathBase)
-
     return {
         emuPath: configFileMap.emuPath,
         emuDelay: configFileMap.emuDelay,

@@ -173,14 +173,48 @@ const createWindow = () => {
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
 
-    if (!config.app.emuPath) {
-        new Notification({
-            title: 'error',
-            body: 'incorrect file path for your emulator',
-        }).show()
-    }
+    const setEmulatorPath = async (isResetPath = false) => {
+        // the below path is only for the default emulator settings
+        const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo');
+        if (isResetPath) {
+            const filePath = path.join(filePathBase, 'config.txt')
+            mainWindow.webContents.send(
+                'message-from-main',
+                `reset file path`
+            )
 
-    const setEmulatorPath = async () => {
+            // Read the existing file
+            let fileContent = fs.existsSync(filePath)
+                ? fs.readFileSync(filePath, 'utf8')
+                : ''
+
+            // Split the file into lines
+            let lines = fileContent.split('\n')
+
+            // Find and update the delay line
+            let found = false
+            lines = lines.map((line: string) => {
+                if (line.startsWith('emuPath=')) {
+                    found = true
+                    return `emuPath=${externalAppPath}` // Replace the file path line
+
+                }
+                return line // Keep other lines the same
+            })
+
+            // If no emuPath= line exists, append it with the default path
+            if (!found) {
+                if (isResetPath) {
+                    lines.push(`emuPath=${externalAppPath}`)
+                }
+            }
+
+            // Write back the modified content
+            fs.writeFileSync(filePath, lines.join('\n'), 'utf8')
+            getEmulatorPath()
+            return
+        }
+
         try {
             await dialog
                 .showOpenDialog({ properties: ['openFile', 'openDirectory'] })
@@ -211,7 +245,7 @@ const createWindow = () => {
                             return line // Keep other lines the same
                         })
 
-                        // If no emuPath= line exists, append it
+                        // If no emuPath= line exists, append it with the default path
                         if (!found) {
                             lines.push(`emuPath=${res.filePaths[0]}`)
                         }
@@ -230,6 +264,17 @@ const createWindow = () => {
             console.log(error)
         }
     }
+
+    // This will happen on load
+    if (!config.app.emuPath) {
+        setEmulatorPath(true)
+        // We don't necessarily need this warning because it should default the path now.
+        // new Notification({
+        //     title: 'error',
+        //     body: 'incorrect file path for your emulator',
+        // }).show()
+    }
+
 
     const getEmulatorPath = async () => {
         await getConfigData()
@@ -483,8 +528,8 @@ const createWindow = () => {
         mainWindow.webContents.send('send-data-channel', data)
     })
 
-    ipcMain.on('setEmulatorPath', () => {
-        setEmulatorPath()
+    ipcMain.on('setEmulatorPath', (event, isResetPath) => {
+        setEmulatorPath(isResetPath)
     })
 
     ipcMain.on('getEmulatorPath', () => {

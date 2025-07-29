@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld('api', {
     changeUserData: (userData: any) => ipcRenderer.send('changeUserData', userData),
 
     // match
-    setEmulatorPath: () => ipcRenderer.send('setEmulatorPath'),
+    setEmulatorPath: (isResetPath: boolean) => ipcRenderer.send('setEmulatorPath', isResetPath),
     getEmulatorPath: () => ipcRenderer.send('getEmulatorPath'),
     setEmulatorDelay: (delay: number) => ipcRenderer.send('setEmulatorDelay', delay),
     getEmulatorDelay: (delay: number) => ipcRenderer.send('getEmulatorDelay', delay),

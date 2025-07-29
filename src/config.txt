@@ -1,5 +1,4 @@
-emuPath=C:\Users\dusti\Desktop\hyper-reflector\emu\hyper-screw-fbneo
-emuDelay=1
+emuDelay=0
 isAway=false
-appSoundOn=false
+appSoundOn=true
 appTheme=0
