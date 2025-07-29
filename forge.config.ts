@@ -13,6 +13,7 @@ const config: ForgeConfig = {
         asar: true,
         ignore: [/\/\.(?!vite)/],
         extraResource: [
+            './emu', // include the emulator seperately
             './src/lua',
             './src/hyper_write_commands.txt',
             './src/hyper_read_commands.txt',
