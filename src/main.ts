@@ -853,7 +853,16 @@ const createWindow = () => {
                     }
                 });
 
-                killProcessByName('fs-fbneo.exe');
+                const pathEnd = config.emulator.fbNeoPath
+                const slicedPathEnd = pathEnd.split('\\').pop()
+
+                if (slicedPathEnd === 'fs-fbneo.exe') {
+                    killProcessByName('fs-fbneo.exe');
+                } else if (slicedPathEnd === 'fcadefbneo.exe') {
+                    killProcessByName('fcadefbneo.exe');
+
+                }
+
             }
 
             await mainWindow.webContents.send('message-from-main', 'Emulator exists, closing');

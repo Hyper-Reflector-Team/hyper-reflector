@@ -83,14 +83,23 @@ export function startPlayingOnline({
     isTraining: boolean
     callBack: (isOnOpen?: boolean) => any
 }) {
+    // TODO actually implement this
     let luaPath = config.emulator.luaPath
     if (isTraining) {
         luaPath = config.emulator.trainingLuaPath
     }
+
+    const pathEnd = config.emulator.fbNeoPath
+    const slicedPathEnd = pathEnd.split('\\').pop()
+    let directCommand
+
+    if (slicedPathEnd === 'fs-fbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n ${playerName} -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
+    } else if (slicedPathEnd === 'fcadefbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
+    }
     console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
-    // const directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},${remoteIp},${remotePort},${player},${delay},0 --lua ${luaPath}`
-    // const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 direct --player 1 -n beavis -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d 2`
-    const directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n ${playerName} -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay} `
+
     switch (process.platform) {
         case 'darwin':
             return launchGGPOSpawn(directCommand, callBack)

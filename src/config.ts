@@ -54,9 +54,10 @@ function getAppConfig(): AppConfig {
 }
 
 function getEmulatorConfig({ emuPath, filePathBase }: AppConfig) {
+    console.log(filePathBase, emuPath)
+    const isHyper = emuPath.split('\\').pop() === 'hyper-screw-fbneo'
     return {
-        // fbNeoPath: path.join(emuPath || filePathBase, 'fcadefbneo.exe'),
-        fbNeoPath: path.join(emuPath || filePathBase, 'fs-fbneo.exe'),
+        fbNeoPath: isHyper ? path.join(emuPath || filePathBase, 'fs-fbneo.exe') : path.join(emuPath || filePathBase, 'fcadefbneo.exe'),
         luaPath: path.join(filePathBase, 'lua', '3rd_training_lua', 'hyper_reflector.lua'),
         trainingLuaPath: path.join(filePathBase, 'lua', '3rd_training_lua', '3rd_training.lua'),
     }
