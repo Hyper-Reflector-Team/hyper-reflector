@@ -222,9 +222,7 @@ export default function UserCard({ user }) {
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
                         <Box marginLeft={'18px'} minWidth={'40px'}>
-                            test
                             <RankDisplay elo={user.elo} />
-                            {/* <RankDisplay elo={1200} /> */}
                         </Box>
                         <Box display="flex" alignItems={'center'} gap="4px" minW={'60px'}>
                             <PingDisplay
