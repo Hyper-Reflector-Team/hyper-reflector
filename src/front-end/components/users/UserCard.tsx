@@ -51,7 +51,6 @@ export default function UserCard({ user }) {
     }, [])
 
     function RankDisplay({ elo }) {
-        console.log('elo to display?', elo)
         if (!elo) return
         // this is just for demonstration purposes
         if (elo < 1100) {

@@ -241,7 +241,7 @@ function connectWebSocket(user) {
         if (data.type === 'connected-users') {
             if (data.users.length) {
                 currentUsers = data.users
-                console.log('current user list', currentUsers)
+                // console.log('current user list', currentUsers)
                 // The timing issue is here.
                 data.users.forEach(async (user) => {
                     if (user.uid !== myUID) {

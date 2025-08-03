@@ -408,7 +408,7 @@ export default function LobbyPage() {
                                         disabled={!enteredPass.length}
                                         onClick={() => {
                                             if (enteredPass === selectedLobby.pass) {
-                                                console.log('enetered pass', enteredPass)
+                                                //console.log('enetered pass', enteredPass)
                                                 setCurrentLobbyState(selectedLobby)
                                                 setEnteredPass('')
                                                 setOpen(false)

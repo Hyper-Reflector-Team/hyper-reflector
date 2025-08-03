@@ -70,9 +70,9 @@ export default function UsersChat() {
         }
     }, [])
 
-    useEffect(() => {
-        console.log(userList)
-    }, [userList])
+    // useEffect(() => {
+    //     console.log(userList)
+    // }, [userList])
 
     const renderUsers = () => {
         return userList.map((user) => {

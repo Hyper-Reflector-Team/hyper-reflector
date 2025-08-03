@@ -70,7 +70,6 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (prevEmuPathRef.current !== '') {
-            console.log('Previous count:', prevEmuPathRef.current)
             toaster.success({
                 title: 'Path Set!',
                 // description: `${currentEmuPath}`,
@@ -78,7 +77,6 @@ export default function SettingsPage() {
         }
 
         if (prevEmuPathRef.current === currentEmuPath && hasMounted.current) {
-            console.log('prev path:', prevEmuPathRef.current)
             toaster.error({
                 title: 'Path setting failed!',
                 // description: `${currentEmuPath}`,

@@ -32,9 +32,9 @@ export default function Layout({ children }) {
 
     const navigate = useNavigate()
 
-    useEffect(() => {
-        console.log('state update  -------------------------------', configState)
-    }, [configState])
+    // useEffect(() => {
+    //     console.log('state update  -------------------------------', configState)
+    // }, [configState])
 
     // Initially set the theme when loaded
     useEffect(() => {

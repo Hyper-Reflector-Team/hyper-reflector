@@ -172,8 +172,8 @@ const createWindow = () => {
 
     getConfigData() // get the config on boot.
 
-    // Open the DevTools.
-    mainWindow.webContents.openDevTools()
+    // show dev tools
+    //mainWindow.webContents.openDevTools()
 
     ipcMain.on('openEmulatorFolder', async () => {
         const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo\\roms');

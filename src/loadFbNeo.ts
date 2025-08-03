@@ -98,7 +98,7 @@ export function startPlayingOnline({
     } else if (slicedPathEnd === 'fcadefbneo.exe') {
         directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
     }
-    console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
+    // console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
 
     switch (process.platform) {
         case 'darwin':
@@ -120,6 +120,10 @@ export function startSoloMode({
     const pathEnd = config.emulator.fbNeoPath
     const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
     let directCommand
+
+    // uncomment to send use the match data sender
+    // let luaPath = config.emulator.luaPath
+    // directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
 
     if (slicedPathEnd === 'fs-fbneo.exe') {
         directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
