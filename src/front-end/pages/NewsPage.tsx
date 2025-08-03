@@ -8,9 +8,9 @@ import { useLayoutStore, useLoginStore } from '../state/store'
 const blogsArray = [
     {
         title: 'Update Version 0.4.0a',
-        date: '7/27/2025',
+        date: '8/3/2025',
         content: `
-         News updates will be going away
+         News updates will be going away from this page, so check the discord for full notes!
         `,
     },
     {
