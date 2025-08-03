@@ -1,5 +1,6 @@
 const { spawn } = require('child_process')
 import { Config } from './config'
+import path from 'path'
 
 
 export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) => any) {
@@ -90,7 +91,7 @@ export function startPlayingOnline({
     }
 
     const pathEnd = config.emulator.fbNeoPath
-    const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
+    const slicedPathEnd = pathEnd && path.basename(pathEnd)
     let directCommand
 
     if (slicedPathEnd === 'fs-fbneo.exe') {
@@ -110,6 +111,8 @@ export function startPlayingOnline({
     }
 }
 
+// Current Path: C:\Users\dusti\Desktop\hyper-reflector\out\hyper-reflector-win32-x64\resources\emu\hyper-screw-fbneo
+
 export function startSoloMode({
     config,
     callBack,
@@ -118,7 +121,7 @@ export function startSoloMode({
     callBack: (isOnOpen?: boolean) => any
 }) {
     const pathEnd = config.emulator.fbNeoPath
-    const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
+    const slicedPathEnd = pathEnd && path.basename(pathEnd)
     let directCommand
 
     // uncomment to send use the match data sender
