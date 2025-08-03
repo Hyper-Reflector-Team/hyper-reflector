@@ -32,9 +32,9 @@ export default function Layout({ children }) {
 
     const navigate = useNavigate()
 
-    // useEffect(() => {
-    //     console.log('state update')
-    // }, [user, configState])
+    useEffect(() => {
+        console.log('state update  -------------------------------', configState)
+    }, [configState])
 
     // Initially set the theme when loaded
     useEffect(() => {
@@ -246,6 +246,7 @@ export default function Layout({ children }) {
                                     }
                                     cursor={'pointer'}
                                     onClick={() => {
+                                        // This is terrible logic, lets fix this
                                         const value =
                                             configState?.isAway === 'true' ? 'false' : 'true'
                                         try {
@@ -258,7 +259,12 @@ export default function Layout({ children }) {
                                         }
                                     }}
                                 >
-                                    {configState?.isAway === 'false' ? <Bell /> : <BellOff />}
+                                    {configState?.isAway === 'false' ||
+                                    configState?.isAway === undefined ? (
+                                        <Bell />
+                                    ) : (
+                                        <BellOff />
+                                    )}
                                 </Button>
                                 <Tabs.Trigger
                                     justifySelf="end"

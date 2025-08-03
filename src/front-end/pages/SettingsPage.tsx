@@ -159,14 +159,19 @@ export default function SettingsPage() {
                                 Sound Settings
                             </Text>
                             <Button
+                                // Also terrible logic that we should fix
                                 bg={
-                                    configState?.appSoundOn === 'true'
+                                    configState?.appSoundOn === 'true' ||
+                                    configState?.appSoundOn === undefined
                                         ? theme.colors.main.success
                                         : theme.colors.main.warning
                                 }
                                 onClick={() => {
                                     const value =
-                                        configState?.appSoundOn === 'true' ? 'false' : 'true'
+                                        configState?.appSoundOn === 'true' ||
+                                        configState?.appSoundOn === undefined
+                                            ? 'false'
+                                            : 'true'
                                     try {
                                         window.api.setConfigValue('appSoundOn', value)
                                         updateConfigState({ appSoundOn: value })
@@ -177,10 +182,19 @@ export default function SettingsPage() {
                                     }
                                 }}
                             >
-                                {configState?.appSoundOn ? <Volume2 /> : <VolumeX />}
+                                {configState?.appSoundOn === 'true' ||
+                                configState?.appSoundOn === undefined ? (
+                                    <Volume2 />
+                                ) : (
+                                    <VolumeX />
+                                )}
                             </Button>
                             <Text textStyle="xs" color={theme.colors.main.textMedium}>
-                                Sound: {configState?.appSoundOn ? 'On' : 'Off'}
+                                Sound:{' '}
+                                {configState?.appSoundOn === 'true' ||
+                                configState?.appSoundOn === undefined
+                                    ? 'On'
+                                    : 'Off'}
                             </Text>
                             <Text textStyle="md" color={theme.colors.main.text}>
                                 Theme

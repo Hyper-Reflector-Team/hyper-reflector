@@ -333,7 +333,7 @@ export default function PlayerProfilePage() {
 
     const UserProfileHeader = memo(function UserProfileHeader({ userData }) {
         return (
-            <Flex alignItems="center">
+            <Box display="flex" alignItems="center">
                 <Box flex={1} display={'flex'} alignContent={'center'} verticalAlign={'center'}>
                     <Box>
                         <Avatar.Root bg={theme.colors.main.bg} variant="solid" size={'2xl'}>
@@ -341,10 +341,12 @@ export default function PlayerProfilePage() {
                             <Avatar.Image src={userData.userProfilePic} />
                         </Avatar.Root>
                     </Box>
-                    <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
-                        {userData?.userName || 'Unknown User'}
+                    <Box>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            {userData?.userName || 'Unknown User'}
+                        </Text>
                         <TitleBadge title={userData?.userTitle} />
-                    </Text>
+                    </Box>
                 </Box>
                 <Box flex={1} textAlign={'right'}>
                     <Button
@@ -355,7 +357,7 @@ export default function PlayerProfilePage() {
                         <RefreshCcw />
                     </Button>
                 </Box>
-            </Flex>
+            </Box>
         )
     })
 
