@@ -51,8 +51,34 @@ export default function UserCard({ user }) {
     }, [])
 
     function RankDisplay({ elo }) {
+        console.log('elo to display?', elo)
         if (!elo) return
-        if (elo <= 1200) {
+        // this is just for demonstration purposes
+        if (elo < 1100) {
+            return (
+                <Box alignContent="center" width="40px" textAlign="center">
+                    <Icon size="md" color="yellow.800">
+                        <Crown />
+                    </Icon>
+                    <Text textStyle="xs" fontWeight="bold" color={theme.colors.main.text}>
+                        {elo}
+                    </Text>
+                </Box>
+            )
+        }
+        if (elo <= 1400) {
+            return (
+                <Box alignContent="center" width="40px" textAlign="center">
+                    <Icon size="md" color="green.600">
+                        <Crown />
+                    </Icon>
+                    <Text textStyle="xs" fontWeight="bold" color={theme.colors.main.text}>
+                        {elo}
+                    </Text>
+                </Box>
+            )
+        }
+        if (elo > 1400) {
             return (
                 <Box alignContent="center" width="40px" textAlign="center">
                     <Icon size="md" color="yellow.400">
@@ -196,8 +222,9 @@ export default function UserCard({ user }) {
                         </Stack>
                         {/* eventually we'll display user account ranks here. */}
                         <Box marginLeft={'18px'} minWidth={'40px'}>
-                            {/* <RankDisplay elo={user.elo} /> */}
-                            <RankDisplay elo={1200} />
+                            test
+                            <RankDisplay elo={user.elo} />
+                            {/* <RankDisplay elo={1200} /> */}
                         </Box>
                         <Box display="flex" alignItems={'center'} gap="4px" minW={'60px'}>
                             <PingDisplay

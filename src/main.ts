@@ -15,6 +15,7 @@ import { startPlayingOnline, startSoloMode } from './loadFbNeo'
 import { getConfig, type Config } from './config'
 // updating automatically
 import { updateElectronApp } from 'update-electron-app'
+import { parseMatchData } from './utils/data'
 import keys from './private/keys'
 // external api
 import api from './external-api/requests'
@@ -64,7 +65,7 @@ const getLoginObject = (user: any) => {
         name: user.userName,
         email: user.userEmail,
         uid: user.uid,
-        elo: user.accountELO || 0,
+        elo: user.accountElo || 0,
         userProfilePic: user.userProfilePic || 'test',
         userTitle: user.userTitle || null,
         lastKnownPings: user.lastKnownPings || null,
@@ -172,7 +173,7 @@ const createWindow = () => {
     getConfigData() // get the config on boot.
 
     // Open the DevTools.
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
     ipcMain.on('openEmulatorFolder', async () => {
         const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo\\roms');
@@ -382,8 +383,12 @@ const createWindow = () => {
             const filePath = path.join(filePathBase, 'config.txt')
             mainWindow.webContents.send('message-from-main', `Set config ${key} to: ${value}`)
 
-            let fileContent = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : ''
-            let lines = fileContent.split('\n').filter((line: string) => line.trim() !== '')
+            let fileContent = fs.existsSync(filePath)
+                ? fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n')
+                : ''
+            let lines = fileContent
+                .split('\n')
+                .filter(line => line.trim() !== '')
 
             let found = false
             lines = lines.map((line: string) => {
@@ -412,6 +417,7 @@ const createWindow = () => {
 
         // Access value safely, assuming config is flat or nested as needed
         const value = config[key] ?? config.app?.[key]
+        console.log('Got a config value', key, value)
 
         mainWindow.webContents.send('getConfigValue', { key, value })
     }
@@ -573,13 +579,6 @@ const createWindow = () => {
     ipcMain.on('getConfigValue', (event, { key }) => {
         getConfigValue(key)
         if (key === 'isAway') {
-            // HEY HEY HEY 
-            // TODO lets add win streak stuff
-            // make sure we send our
-            // mainWindow.webContents.send('updateSocketState', {
-            //     key: 'winStreak',
-            //     value: 99,
-            // })
             mainWindow.webContents.send('updateSocketState', {
                 key,
                 value: config?.app?.isAway || 'false',
@@ -1174,6 +1173,7 @@ ipcMain.on('request-data', (event) => {
     })
 })
 
+
 async function handleReadAndUploadMatch() {
     const data = await readCommand()
     if (!data) return
@@ -1192,6 +1192,25 @@ async function handleReadAndUploadMatch() {
             player1: lastKnownPlayerSlot == 0 ? userUID : opponentUID || 'fake-user',
             player2: lastKnownPlayerSlot == 1 ? userUID : opponentUID || 'fake-user',
         }
+        const parsedMatch = parseMatchData(data)
+        // Update win streak or local UI data after a match.
+        // Users could potentially fudge this data but thats ok for now.
+        if (matchData.player1 === userUID) {
+            if (parsedMatch?.['p1-win']) {
+                console.log('streak increased')
+                mainWindow.webContents.send('updateSocketState', {
+                    key: 'winStreak',
+                    value: 1,
+                })
+            } else {
+                console.log('streak lost')
+                mainWindow.webContents.send('updateSocketState', {
+                    key: 'winStreak',
+                    value: 0,
+                })
+            }
+        }
+
         await api.uploadMatchData(auth, matchData)
     }
 }

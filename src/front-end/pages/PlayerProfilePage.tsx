@@ -419,6 +419,9 @@ export default function PlayerProfilePage() {
                             <Construction /> Under Construction
                         </Box>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
+                            Current Elo: {userData?.playerStatSet?.accountElo}
+                        </Text>
+                        <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>
                             Overall win rate: {getWinRate()}%
                         </Text>
                         <Text textStyle="md" padding="8px" color={theme.colors.main.textMedium}>

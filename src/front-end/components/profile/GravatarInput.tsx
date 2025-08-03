@@ -38,7 +38,9 @@ export default function GravatarInput({
                     </Text>
                 </a>
             </Flex>
+
             <Editable.Root
+                //TODO:  Lets get rid of the email visibility.
                 defaultValue={'my-email@email.com'}
                 maxLength={128}
                 onEditChange={(e) => setIsEditGravEmail(e.edit)}
