@@ -102,6 +102,10 @@ async function autoUpdate() {
     }
 }
 
+const iconPath = isDev
+    ? path.join(__dirname, '..', 'icons', 'favicon.ico')
+    : path.join(process.resourcesPath, 'icons', 'favicon.ico')
+
 const createWindow = () => {
     autoUpdate()
     // Create the browser window.
@@ -114,7 +118,8 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
         },
         autoHideMenuBar: true,
-        icon: './icons/favicon-32x32.png',
+        icon: iconPath
+        // icon: './icons/favicon-32x32.png',
     })
 
     // allow for external link opening

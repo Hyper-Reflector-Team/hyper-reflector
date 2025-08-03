@@ -9,10 +9,12 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 
 const config: ForgeConfig = {
     packagerConfig: {
-        icon: './icons/favicon-32x32',
+        icon: './icons/favicon.ico',
         asar: true,
         ignore: [/\/\.(?!vite)/],
         extraResource: [
+            './public',
+            './icons',
             './emu', // include the emulator seperately
             './src/lua',
             './src/hyper_write_commands.txt',
