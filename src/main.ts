@@ -19,7 +19,7 @@ import keys from './private/keys'
 // external api
 import api from './external-api/requests'
 // p2p networking
-var dgram = require('dgram')
+const dgram = require('dgram')
 // Emulator reference
 let spawnedEmulator = null //used to handle closing the emulator process
 let opponentEndpoint
@@ -1183,7 +1183,7 @@ async function handleReadAndUploadMatch() {
     }
     if (data && data.length && currentMatchId) {
         //send match data to back end
-        console.log('we got some match data, sending it to the BE')
+        // console.log('we got some match data, sending it to the BE')
         const matchData = {
             matchData: {
                 raw: data,
