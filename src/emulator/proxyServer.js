@@ -2,16 +2,31 @@ const dgram = require('dgram')
 import keys from '../private/keys'
 import { startPlayingOnline } from '../loadFbNeo'
 
+let mainWindow = null
+let spawnedEmulator = null // We use this to store the emulator instance reference.
+let config = null // we get a reference to our config and send use it when starting the emulator
+let proxyStartData
 let keepAliveInterval = null
 let localSocket = null // This listens for keep alive requests and collects data to send to the emulator
 let emulatorListener = null // This is the emulators listening port when we send data to this it sends data to the emulator
 let opponentEndpoint = null // This is the address and port we use to reach our opponent.
 let userUID = null // we'll send this in from main.ts
+let userName = null
 let opponentUID = null
 
-export default async function runProxyServer(data, myUID) {
-    // set userUID on run
+export default async function runProxyServer(
+    data,
+    myUID,
+    userNameReference,
+    configReference,
+    mainWindowReference
+) {
+    // set our matching out sidevariables to be that of main
+    mainWindow = mainWindowReference
     userUID = myUID
+    userName = userNameReference
+    config = configReference
+    proxyStartData = data
 
     console.log('socket data: ', data)
     // Make sure we kill everything if it exists as soon as we start a new connection
@@ -85,22 +100,30 @@ export default async function runProxyServer(data, myUID) {
             console.log('error in emu socket', error)
         }
 
-        sendMessageToS(false, data)
+        sendMessageToS(false)
     }
 }
 
-function sendMessageToS(kill, serverData) {
-    console.log('message to server data', serverData)
+function sendMessageToS(kill) {
+    console.log('message to server data', proxyStartData)
     const serverPort = keys.PUNCH_PORT // revert this after killing all of the new services
     const serverHost = keys.COTURN_IP
     console.log(userUID, '- is kill? ' + kill)
     const message = new Buffer(
-        JSON.stringify({ uid: userUID || serverData.myId, peerUid: serverData.opponentUID, kill })
+        JSON.stringify({
+            uid: userUID || proxyStartData.myId,
+            peerUid: proxyStartData.opponentUID,
+            kill,
+        })
     )
-    opponentUID = serverData.opponentUID // used for sending match data to the server
+    opponentUID = proxyStartData.opponentUID // used for sending match data to the server
     console.log(
         'sending this message to server',
-        JSON.stringify({ uid: userUID || serverData.myId, peerUid: serverData.opponentUID, kill })
+        JSON.stringify({
+            uid: userUID || proxyStartData.myId,
+            peerUid: proxyStartData.opponentUID,
+            kill,
+        })
     )
     try {
         localSocket.send(message, 0, message.length, serverPort, serverHost, function (err) {
@@ -147,7 +170,7 @@ async function startEmulator(address, port) {
         localPort: 7000,
         remoteIp: '127.0.0.1',
         remotePort: emulatorListener.address().port,
-        player: data.player + 1, // This depends on the emulator
+        player: proxyStartData.player + 1, // This depends on the emulator
         delay: parseInt(config.app.emuDelay),
         playerName: userName || 'Unknown',
         isTraining: false, // Might be used in the future.
@@ -162,7 +185,7 @@ async function startEmulator(address, port) {
                 })
             }
             console.log('callback firing off')
-            sendMessageToS(true, data)
+            sendMessageToS(true)
             killProxyServer()
             mainWindow.webContents.send('endMatch', userUID)
             // get user out of challenge pool
