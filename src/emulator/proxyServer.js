@@ -7,6 +7,7 @@ let localSocket = null // This listens for keep alive requests and collects data
 let emulatorListener = null // This is the emulators listening port when we send data to this it sends data to the emulator
 let opponentEndpoint = null // This is the address and port we use to reach our opponent.
 let userUID = null // we'll send this in from main.ts
+let opponentUID = null
 
 export default async function runProxyServer(data, myUID) {
     // set userUID on run
@@ -44,8 +45,6 @@ export default async function runProxyServer(data, myUID) {
 
     if (localSocket && emulatorListener) {
         console.log('STARTING GAME ONLINE')
-        sendMessageToS(false, data)
-
         try {
             // Read socket messages
             localSocket.on('message', function (message, remote) {
@@ -85,20 +84,23 @@ export default async function runProxyServer(data, myUID) {
         } catch (error) {
             console.log('error in emu socket', error)
         }
+
+        sendMessageToS(false, data)
     }
 }
 
-function sendMessageToS(kill, data) {
+function sendMessageToS(kill, serverData) {
+    console.log('message to server data', serverData)
     const serverPort = keys.PUNCH_PORT // revert this after killing all of the new services
     const serverHost = keys.COTURN_IP
     console.log(userUID, '- is kill? ' + kill)
     const message = new Buffer(
-        JSON.stringify({ uid: userUID || data.myId, peerUid: data.opponentUID, kill })
+        JSON.stringify({ uid: userUID || serverData.myId, peerUid: serverData.opponentUID, kill })
     )
-    opponentUID = data.opponentUID
+    opponentUID = serverData.opponentUID // used for sending match data to the server
     console.log(
         'sending this message to server',
-        JSON.stringify({ uid: userUID || data.myId, peerUid: data.opponentUID, kill })
+        JSON.stringify({ uid: userUID || serverData.myId, peerUid: serverData.opponentUID, kill })
     )
     try {
         localSocket.send(message, 0, message.length, serverPort, serverHost, function (err) {
