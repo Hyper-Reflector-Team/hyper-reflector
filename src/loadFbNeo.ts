@@ -15,6 +15,7 @@ export function launchGGPOSpawn(command: string, callBack: (isOnOpen?: boolean) 
         // Capture stderr (errors)
         child.stderr.on('data', (data) => {
             console.error(`[FBNeo Error]: ${data.toString()}`)
+            // We should probably handle this case
             return 'test error'
         })
 
@@ -95,7 +96,7 @@ export function startPlayingOnline({
     let directCommand
 
     if (slicedPathEnd === 'fs-fbneo.exe') {
-        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n ${playerName} -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
+        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
     } else if (slicedPathEnd === 'fcadefbneo.exe') {
         directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
     }
@@ -125,14 +126,14 @@ export function startSoloMode({
     let directCommand
 
     // uncomment to send use the match data sender
-    // let luaPath = config.emulator.luaPath
-    // directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
+    let luaPath = config.emulator.luaPath
+    directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
 
-    if (slicedPathEnd === 'fs-fbneo.exe') {
-        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
-    } else if (slicedPathEnd === 'fcadefbneo.exe') {
-        directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
-    }
+    // if (slicedPathEnd === 'fs-fbneo.exe') {
+    //     directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+    // } else if (slicedPathEnd === 'fcadefbneo.exe') {
+    //     directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    // }
     return launchGGPOSpawn(directCommand, callBack)
 }
 
