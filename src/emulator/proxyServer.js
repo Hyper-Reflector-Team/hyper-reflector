@@ -6,8 +6,12 @@ let keepAliveInterval = null
 let localSocket = null // This listens for keep alive requests and collects data to send to the emulator
 let emulatorListener = null // This is the emulators listening port when we send data to this it sends data to the emulator
 let opponentEndpoint = null // This is the address and port we use to reach our opponent.
+let userUID = null // we'll send this in from main.ts
 
-export default async function runProxyServer(data) {
+export default async function runProxyServer(data, myUID) {
+    // set userUID on run
+    userUID = myUID
+
     console.log('socket data: ', data)
     // Make sure we kill everything if it exists as soon as we start a new connection
     await killProxyServer()
@@ -40,7 +44,7 @@ export default async function runProxyServer(data) {
 
     if (localSocket && emulatorListener) {
         console.log('STARTING GAME ONLINE')
-        sendMessageToS(false)
+        sendMessageToS(false, data)
 
         try {
             // Read socket messages
@@ -84,7 +88,7 @@ export default async function runProxyServer(data) {
     }
 }
 
-function sendMessageToS(kill) {
+function sendMessageToS(kill, data) {
     const serverPort = keys.PUNCH_PORT // revert this after killing all of the new services
     const serverHost = keys.COTURN_IP
     console.log(userUID, '- is kill? ' + kill)
@@ -156,7 +160,7 @@ async function startEmulator(address, port) {
                 })
             }
             console.log('callback firing off')
-            sendMessageToS(true)
+            sendMessageToS(true, data)
             killProxyServer()
             mainWindow.webContents.send('endMatch', userUID)
             // get user out of challenge pool

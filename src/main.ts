@@ -608,7 +608,7 @@ const createWindow = () => {
     ipcMain.on('startGameOnline', async (event, data) => {
         console.log('Starting proxer server for matches')
         lastKnownPlayerSlot = data.player // set the last know player slot for sending to the BE to record matches
-        runProxyServer(data)
+        runProxyServer(data, userUID)
     })
 
     // let keepAliveInterval = null
