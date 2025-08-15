@@ -1,6 +1,6 @@
 import { app } from 'electron'
-const path = require('path')
-const fs = require('fs')
+import path from 'path'
+import fs from 'fs'
 
 export type AppConfig = {
     emuPath: string

@@ -8,19 +8,18 @@ import {
     createMemoryHistory,
 } from '@tanstack/react-router'
 import { ChakraProvider, defaultConfig, defineConfig, createSystem, Box } from '@chakra-ui/react'
-// import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import StartPage from './pages/StartPage'
-import LobbyPage from './pages/LobbyPage'
-import OfflinePage from './pages/OfflinePage'
-import NewsPage from './pages/NewsPage'
-import PlayerProfilePage from './pages/PlayerProfilePage'
-import SettingsPage from './pages/SettingsPage'
-import CreateAccountPage from './pages/CreateAccountPage'
+import LobbyPage from '@features/lobby/pages/LobbyPage'
+import OfflinePage from '@features/user/pages/OfflinePage'
+import NewsPage from '@features/news/pages/NewsPage'
+import PlayerProfilePage from '@features/user/pages/PlayerProfilePage'
+import SettingsPage from '@features/user/pages/SettingsPage'
+import CreateAccountPage from '@features/auth/pages/CreateAccountPage'
 import ErrorBoundary from './ErrorBoundary'
-import Layout from './layout/Layout'
-import Autologin from './components/AutoLogin'
-import theme from './utils/theme'
-import { Toaster } from './components/chakra/ui/toaster'
+import Layout from '@features/common/layout/Layout'
+import Autologin from '@features/auth/pages/AutoLogin'
+import theme from '@features/common/utils/theme'
+import { Toaster } from '@features/common/ui/toaster'
+import LoginBlock from '@features/auth/pages/LoginBlock'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -38,7 +37,7 @@ const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     component: function Home() {
-        return <StartPage />
+        return <LoginBlock />
     },
 })
 
@@ -85,7 +84,7 @@ const chatRoute = createRoute({
 const profileRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/profile/$userId',
-    component: function Profile({ $userId }) {
+    component: function Profile({ $userId }: { $userId: string }) {
         return <PlayerProfilePage />
     },
 })
