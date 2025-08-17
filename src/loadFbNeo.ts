@@ -98,16 +98,17 @@ export function startPlayingOnline({
     const slicedPathEnd = pathEnd && path.basename(pathEnd)
     let directCommand
 
-    if (slicedPathEnd === 'fs-fbneo.exe') {
+    if (slicedPathEnd === 'fs-fbneo.exe' && !otherGameName) {
         directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
-    } else if (slicedPathEnd === 'fcadefbneo.exe') {
+    } else if (slicedPathEnd === 'fcadefbneo.exe' && !otherGameName) {
         directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
     }
+    // NOT WORKING
     // check for other games, this is temporary
     if (slicedPathEnd === 'fs-fbneo.exe' && otherGameName) {
-        directCommand = `${fbNeoCommand(config)} --rom ${otherGameName} --lua ${luaPath} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
+        directCommand = `${fbNeoCommand(config)} --rom ${otherGameName} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
     } else if (slicedPathEnd === 'fcadefbneo.exe' && otherGameName) {
-        directCommand = `${fbNeoCommand(config)} quark:direct,${otherGameName},${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
+        directCommand = `${fbNeoCommand(config)} quark:direct,${otherGameName},${localPort},127.0.0.1,${7001},${player},${delay},0` // for fc version
     }
     // console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
 
@@ -136,6 +137,7 @@ export function startSoloMode({
     // uncomment to send use the match data sender
     let luaPath = config.emulator.luaPath
     directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
+    // directCommand = `${fbNeoCommand(config)} --rom vsav`
 
     // if (slicedPathEnd === 'fs-fbneo.exe') {
     //     directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
