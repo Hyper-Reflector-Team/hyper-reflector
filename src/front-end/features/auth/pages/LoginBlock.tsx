@@ -56,22 +56,22 @@ export default function LoginBlock() {
 
     return (
         <>
+            {isLoading && (
+                <Box pos="absolute" inset="0" bg={theme.colors.main.bg} opacity="50%">
+                    <Center h="full">
+                        <Spinner color={theme.colors.main.action} />
+                    </Center>
+                </Box>
+            )}
+
+            {!isLoggedIn && (
+                <Heading size="md" color={theme.colors.main.textMedium}>
+                    Sign In
+                </Heading>
+            )}
+
             <form onSubmit={handleLoginClick} autoComplete="on">
                 <Stack gap={2} maxW={{ base: '100%', md: '50%', xl: '40%' }} mx="auto">
-                    {isLoading && (
-                        <Box pos="absolute" inset="0" bg={theme.colors.main.bg} opacity="50%">
-                            <Center h="full">
-                                <Spinner color={theme.colors.main.action} />
-                            </Center>
-                        </Box>
-                    )}
-
-                    {!isLoggedIn && (
-                        <Heading size="md" color={theme.colors.main.textMedium}>
-                            Sign In
-                        </Heading>
-                    )}
-
                     <Box>
                         {!isLoggedIn && (
                             <Stack gap={6}>
