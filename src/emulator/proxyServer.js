@@ -1,5 +1,5 @@
-const { spawn } = require('child_process')
-const dgram = require('dgram')
+import { spawn, exec } from 'child_process'
+import dgram from 'dgram'
 import { app } from 'electron'
 import path from 'path'
 import keys from '../private/keys'
@@ -17,26 +17,7 @@ let userUID = null // we'll send this in from main.ts
 let userName = null
 let opponentUID = null
 
-// Golang proxy setup and path
-// let proxyProc = null // used to spawn the goProxy
-
-// function resolveGoProxyPath() {
-//     const exe = process.platform === 'win32' ? 'goProxy.exe' : 'goProxy'
-//     const isProd = app.isPackaged
-
-//     if (isProd) {
-//         const p = path.join(process.resourcesPath, 'emulator', exe)
-//         return p
-//     }
-
-//     const projectRoot = path.resolve(__dirname, '..', '..')
-//     const p = path.join(projectRoot, 'src', 'emulator', exe)
-//     return p
-// }
-
-// const goProxyPath = resolveGoProxyPath()
-
-export default async function runProxyServer(
+async function runProxyServer(
     data,
     myUID,
     userNameReference,
@@ -123,46 +104,6 @@ export default async function runProxyServer(
         }
 
         sendMessageToS(false)
-
-        // New Golang proxy code
-        // const args = [
-        //     `-serverHost=${keys.COTURN_IP}`,
-        //     `-serverPort=${keys.PUNCH_PORT}`,
-        //     `-uid=${userUID}`,
-        //     `-peerUID=${proxyStartData.opponentUID}`,
-        //     `-emuIn=7004`,
-        //     `-emuOut=7005`,
-        // ]
-
-        // try {
-        //     proxyProc = spawn(goProxyPath, args, {
-        //         cwd: process.cwd(),
-        //     })
-
-        //     proxyProc.stdout.on('data', (data) => {
-        //         console.log(`prxy data: ${data.toString()}`)
-        //     })
-
-        //     proxyProc.stderr.on('data', (data) => {
-        //         console.error(`prxy error: ${data.toString()}`)
-        //         return 'prxy error'
-        //     })
-
-        //     // Listen for process exit
-        //     proxyProc.on('exit', (code, signal) => {
-        //         if (code !== null) {
-        //             console.log(`prxy exit ${code}`)
-        //         } else {
-        //             console.log(`prxy exit signal ${signal}`)
-        //         }
-        //     })
-
-        //     proxyProc.on('error', (error) => {
-        //         console.error(`prxy error: ${error.message}`)
-        //     })
-        // } catch (error) {
-        //     console.error(`Launch error prxy: ${error}`)
-        // }
     }
 }
 
@@ -170,7 +111,7 @@ function sendMessageToS(kill) {
     console.log('message to server data', proxyStartData)
     const serverPort = keys.PUNCH_PORT // revert this after killing all of the new services
     const serverHost = keys.COTURN_IP
-    console.log(userUID, '- is kill? ' + kill)
+    console.log(userUID, '- is trying to kill connection? ' + kill)
     const message = new Buffer(
         JSON.stringify({
             uid: userUID || proxyStartData.myId,
@@ -277,3 +218,76 @@ async function killProxyServer() {
         keepAliveInterval = null
     }
 }
+
+function killProcessByName(processName) {
+    exec(`taskkill /F /IM ${processName}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Failed to kill ${processName}: ${error.message}`)
+            return
+        }
+        console.log(`${processName} killed successfully:\n${stdout}`)
+    })
+}
+
+async function killEmulator() {
+    await mainWindow?.webContents.send(
+        'message-from-main',
+        'Attempting to gracefully close emulator'
+    )
+
+    if (spawnedEmulator) {
+        const pid = spawnedEmulator.pid
+        console.log('Attempting to terminate emulator, PID:', pid)
+
+        spawnedEmulator.on('close', (code, signal) => {
+            console.log(`Emulator process closed. Code: ${code}, Signal: ${signal}`)
+            spawnedEmulator = null
+        })
+
+        try {
+            spawnedEmulator.kill('SIGTERM')
+        } catch (e) {
+            console.error('Error sending SIGTERM:', e)
+        }
+
+        setTimeout(() => {
+            if (spawnedEmulator) {
+                console.warn('Process still alive after 2s. Forcing SIGKILL...')
+                try {
+                    spawnedEmulator.kill('SIGKILL')
+                } catch (e) {
+                    console.error('Failed to SIGKILL:', e)
+                }
+            }
+        }, 2000)
+
+        if (process.platform === 'win32') {
+            exec(`taskkill /PID ${pid} /F /T`, (err, stdout, stderr) => {
+                if (err) {
+                    console.error(`taskkill failed for PID ${pid}:`, err)
+                } else {
+                    console.log(`taskkill succeeded for PID ${pid}`)
+                }
+            })
+
+            const pathEnd = config.emulator.fbNeoPath
+            const slicedPathEnd = pathEnd && pathEnd.split('\\').pop()
+
+            if (slicedPathEnd === 'fs-fbneo.exe') {
+                killProcessByName('fs-fbneo.exe')
+            } else if (slicedPathEnd === 'fcadefbneo.exe') {
+                killProcessByName('fcadefbneo.exe')
+            }
+        }
+
+        await mainWindow?.webContents.send('message-from-main', 'Emulator exists, closing')
+    } else {
+        console.log('No emulator process found to kill.')
+    }
+
+    // killSocketAndEmu();
+    clearStatFile()
+    mainWindow?.webContents.send('endMatchUI', userUID)
+}
+
+export { killEmulator, runProxyServer }

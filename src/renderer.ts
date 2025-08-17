@@ -283,6 +283,7 @@ function connectWebSocket(user) {
         }
 
         if (data.type === 'matchEndedClose') {
+            console.log('match end code', opponentUID, data)
             //user the userUID and close all matches.
             if (opponentUID === data.userUID) {
                 window.api.killEmulator()
@@ -313,6 +314,7 @@ function connectWebSocket(user) {
             window.api.receivedCall(data)
         } else if (data.type === 'webrtc-ping-answer') {
             if (!data.from) return
+            opponentUID = data.from;
             const acceptMessage = {
                 sender: data.from,
                 message: 'Accepted',
