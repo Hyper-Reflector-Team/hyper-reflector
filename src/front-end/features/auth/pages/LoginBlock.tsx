@@ -19,8 +19,6 @@ export default function LoginBlock() {
 
     const navigate = useNavigate()
 
-    console.log('IS LOGGED IN', isLoggedIn)
-
     const handleLoginClick = () => {
         setIsLoading(true)
         window.api.loginUser(login)

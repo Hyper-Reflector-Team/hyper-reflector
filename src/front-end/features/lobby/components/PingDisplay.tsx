@@ -1,7 +1,6 @@
 import { Box } from '@chakra-ui/react'
 import { Tooltip } from '@features/common/ui/tooltip'
 import { Wifi, WifiHigh, WifiLow, WifiOff } from 'lucide-react'
-import { FC } from 'react'
 
 interface PingDisplayProps {
     peer?: {
@@ -19,11 +18,9 @@ interface PingDisplayProps {
     }
 }
 
-const PingDisplay: FC<PingDisplayProps> = ({ peer, userState }) => {
+const PingDisplay = ({ peer, userState }: PingDisplayProps) => {
     const isMe = peer.uid === userState?.uid || false
-    const ping =
-        peer?.ping ??
-        userState?.lastKnownPings?.find((u) => u.id === peer?.uid)?.ping 
+    const ping = peer?.ping ?? userState?.lastKnownPings?.find((u) => u.id === peer?.uid)?.ping
 
     const getWifiIcon = (ping: number) => {
         if (ping < 100) {

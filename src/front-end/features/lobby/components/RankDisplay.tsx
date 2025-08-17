@@ -1,13 +1,12 @@
 import { Box, Icon, Text } from '@chakra-ui/react'
 import { useLayoutStore } from '@features/common/state'
 import { Crown } from 'lucide-react'
-import { FC } from 'react'
 
 interface RankDisplayProps {
     elo: number | null | undefined
 }
 
-const RankDisplay: FC<RankDisplayProps> = ({ elo }) => {
+const RankDisplay = ({ elo }: RankDisplayProps) => {
     const theme = useLayoutStore((state) => state.appTheme)
 
     if (!elo) return

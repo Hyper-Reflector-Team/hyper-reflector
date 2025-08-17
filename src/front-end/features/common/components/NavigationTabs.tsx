@@ -3,7 +3,7 @@ import { useConfigStore, useLoginStore } from '@features/common/state'
 import { toaster } from '@features/common/ui/toaster'
 import { Theme } from '@features/common/utils/theme'
 import { Bell, BellOff, Settings } from 'lucide-react'
-import { FC, useState } from 'react'
+import { useState } from 'react'
 
 interface NavigationTabsProps {
     theme: Theme
@@ -13,13 +13,13 @@ interface NavigationTabsProps {
     navigation: ({ to }: { to: string }) => void
 }
 
-const NavigationTabs: FC<NavigationTabsProps> = ({
+const NavigationTabs = ({
     theme,
     isLoggedIn,
     selectedTab,
     onSelectTab,
     navigation,
-}) => {
+}: NavigationTabsProps) => {
     const user = useLoginStore((state) => state.userState)
     const { configState, updateConfigState } = useConfigStore((state) => state)
 

@@ -1,6 +1,5 @@
-import bgImage from '@/assets/images/bgImage.svg'
-import hrLogo from '@/assets/images/logo.svg'
 import { Box, Image, Stack } from '@chakra-ui/react'
+import { useEffect } from 'react'
 import {
     useConfigStore,
     useLayoutStore,
@@ -10,17 +9,19 @@ import {
 import { toaster } from '@features/common/ui/toaster'
 import { getThemeNameList } from '@features/common/utils/theme'
 import { useNavigate } from '@tanstack/react-router'
-import { FC, useEffect } from 'react'
 
-import soundBase64Data from '@/assets/sound/challenge.wav'
 import Footer from '@features/common/components/Footer'
 import NavigationTabs from '@features/common/components/NavigationTabs'
+
+import soundBase64Data from '@/assets/sound/challenge.wav'
+import bgImage from '@/assets/images/bgImage.svg'
+import hrLogo from '@/assets/images/logo.svg'
 
 interface LayoutProps {
     children: React.ReactNode
 }
 
-const Layout: FC<LayoutProps> = ({ children }) => {
+const Layout = ({ children }: LayoutProps) => {
     const audioEffect = new Audio(soundBase64Data) // this line for renderer process only
 
     const layoutTab = useLayoutStore((state) => state.selectedTab)

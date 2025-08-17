@@ -1,12 +1,11 @@
 import { Stack } from '@chakra-ui/react'
-import { FC } from 'react'
 
 interface SideBarProps {
     children: React.ReactNode
     width?: string
 }
 
-const SideBar: FC<SideBarProps> = ({ children, width }) => {
+const SideBar = ({ children, width }: SideBarProps) => {
     return (
         <Stack overflowY="auto" w={width} scrollbarWidth={'thin'}>
             {children}

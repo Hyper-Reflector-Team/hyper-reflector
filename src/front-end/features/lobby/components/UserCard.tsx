@@ -137,8 +137,7 @@ export default function UserCard({ user }) {
                                 <TitleBadge title={user.userTitle || null} />
                             </Stack>
                         </Flex>
-
-                        {/* DERECHA */}
+                        
                         <Flex align="center">
                             <RankDisplay elo={user.elo ?? 1300} />
 

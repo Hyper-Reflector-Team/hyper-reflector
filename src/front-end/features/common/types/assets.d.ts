@@ -1,6 +1,5 @@
 // src/types/assets.d.ts
 
-// Imágenes
 declare module '*.png' {
     const src: string
     export default src
@@ -30,7 +29,6 @@ declare module '*.avif' {
     export default src
 }
 
-// Audios
 declare module '*.mp3' {
     const src: string
     export default src

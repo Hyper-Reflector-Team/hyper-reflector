@@ -1,13 +1,12 @@
 import { Box, Text } from '@chakra-ui/react'
 
-import { FC } from 'react'
 import { Theme } from '@features/common/utils/theme'
 
 interface FooterProps {
     theme: Theme
 }
 
-const Footer: FC<FooterProps> = ({ theme }) => {
+const Footer = ({ theme }: FooterProps) => {
     return (
         <Box
             h="40px"
@@ -37,7 +36,7 @@ const Footer: FC<FooterProps> = ({ theme }) => {
             </Box>
 
             <Text textStyle="xs" color={theme.colors.main.action}>
-                Hyper Reflector version 0.4.0a 2025
+                Hyper Reflector version 0.4.1a 2025
             </Text>
         </Box>
     )

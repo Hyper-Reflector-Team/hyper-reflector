@@ -76,7 +76,6 @@ export default function LobbiesPanel({ onLobbyChange }) {
         } else {
             setCurrentLobbyState(lobby)
             setSelectedLobby(lobby)
-            // Notificar al componente padre del cambio
             if (onLobbyChange) {
                 onLobbyChange(lobby)
             }
@@ -88,7 +87,6 @@ export default function LobbiesPanel({ onLobbyChange }) {
             setCurrentLobbyState(selectedLobby)
             setEnteredPass('')
             setOpen(false)
-            // Notificar al componente padre del cambio
             if (onLobbyChange) {
                 onLobbyChange(selectedLobby)
             }
@@ -125,7 +123,6 @@ export default function LobbiesPanel({ onLobbyChange }) {
 
         setCurrentLobbiesState([...currentLobbiesState, censoredLobby])
 
-        // Notificar al componente padre del cambio
         if (onLobbyChange) {
             onLobbyChange(censoredLobby)
         }
@@ -142,7 +139,6 @@ export default function LobbiesPanel({ onLobbyChange }) {
 
     return (
         <>
-            {/* Dialog para crear lobby */}
             <Dialog.Root open={openCreate}>
                 <Portal>
                     <Dialog.Backdrop />
@@ -248,7 +244,6 @@ export default function LobbiesPanel({ onLobbyChange }) {
                 </Portal>
             </Dialog.Root>
 
-            {/* Dialog para unirse a lobby privado */}
             <Dialog.Root open={open}>
                 <Portal>
                     <Dialog.Backdrop />
@@ -315,7 +310,7 @@ export default function LobbiesPanel({ onLobbyChange }) {
                 </Portal>
             </Dialog.Root>
 
-            {/* Panel lateral con lista de lobbies */}
+            
             <SideBar width="240px">
                 <Button
                     justifyContent="flex-start"
