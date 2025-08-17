@@ -112,7 +112,6 @@ export function startPlayingOnline({
     }
 }
 
-// Current Path: C:\Users\dusti\Desktop\hyper-reflector\out\hyper-reflector-win32-x64\resources\emu\hyper-screw-fbneo
 
 export function startSoloMode({
     config,
@@ -126,14 +125,14 @@ export function startSoloMode({
     let directCommand
 
     // uncomment to send use the match data sender
-    let luaPath = config.emulator.luaPath
-    directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
+    // let luaPath = config.emulator.luaPath
+    // directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath}`
 
-    // if (slicedPathEnd === 'fs-fbneo.exe') {
-    //     directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
-    // } else if (slicedPathEnd === 'fcadefbneo.exe') {
-    //     directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
-    // }
+    if (slicedPathEnd === 'fs-fbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${config.emulator.trainingLuaPath}` // fs fbneo
+    } else if (slicedPathEnd === 'fcadefbneo.exe') {
+        directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
+    }
     return launchGGPOSpawn(directCommand, callBack)
 }
 

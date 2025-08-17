@@ -182,7 +182,7 @@ const createWindow = () => {
     //mainWindow.webContents.openDevTools()
 
     ipcMain.on('openEmulatorFolder', async () => {
-        const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo\\roms');
+        const externalAppPath = path.join(process.resourcesPath, 'emu/hyper-screw-fbneo/roms');
         try {
             await shell.openPath(externalAppPath);
         } catch (error) {
@@ -196,7 +196,7 @@ const createWindow = () => {
 
     const setEmulatorPath = async (isResetPath = false) => {
         // the below path is only for the default emulator settings
-        const externalAppPath = path.join(process.resourcesPath, 'emu\\hyper-screw-fbneo');
+        const externalAppPath = path.join(process.resourcesPath, 'emu/hyper-screw-fbneo');
         if (isResetPath) {
             const filePath = path.join(filePathBase, 'config.txt')
             mainWindow.webContents.send(
