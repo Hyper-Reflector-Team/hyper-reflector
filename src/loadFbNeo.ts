@@ -73,6 +73,7 @@ export function startPlayingOnline({
     playerName,
     delay,
     isTraining = false,
+    otherGameName = null,
     callBack,
 }: {
     config: Config
@@ -83,8 +84,10 @@ export function startPlayingOnline({
     playerName: string
     delay: number
     isTraining: boolean
+    otherGameName: string | null
     callBack: (isOnOpen?: boolean) => any
 }) {
+    console.log('trying to start with another game------------------', otherGameName)
     // TODO actually implement this
     let luaPath = config.emulator.luaPath
     if (isTraining) {
@@ -99,6 +102,12 @@ export function startPlayingOnline({
         directCommand = `${fbNeoCommand(config)} --rom sfiii3nr1 --lua ${luaPath} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
     } else if (slicedPathEnd === 'fcadefbneo.exe') {
         directCommand = `${fbNeoCommand(config)} quark:direct,sfiii3nr1,${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
+    }
+    // check for other games, this is temporary
+    if (slicedPathEnd === 'fs-fbneo.exe' && otherGameName) {
+        directCommand = `${fbNeoCommand(config)} --rom ${otherGameName} --lua ${luaPath} direct --player ${player} -n "${playerName}" -l 127.0.0.1:7000 -r 127.0.0.1:7001 -d ${delay}` //fs verison
+    } else if (slicedPathEnd === 'fcadefbneo.exe' && otherGameName) {
+        directCommand = `${fbNeoCommand(config)} quark:direct,${otherGameName},${localPort},127.0.0.1,${7001},${player},${delay},0 --lua ${luaPath}` // for fc version
     }
     // console.log("starting game on ", `${"127.0.0.1" + ':' + localPort}`, 'sending to: ', `${remoteIp + ':' + remotePort}`, player, playerName)
 

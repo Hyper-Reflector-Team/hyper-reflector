@@ -16,13 +16,15 @@ let opponentEndpoint = null // This is the address and port we use to reach our 
 let userUID = null // we'll send this in from main.ts
 let userName = null
 let opponentUID = null
+let currentGameName = null
 
 async function runProxyServer(
     data,
     myUID,
     userNameReference,
     configReference,
-    mainWindowReference
+    mainWindowReference,
+    gameNameReference
 ) {
     // set our matching out sidevariables to be that of main
     mainWindow = mainWindowReference
@@ -30,6 +32,7 @@ async function runProxyServer(
     userName = userNameReference
     config = configReference
     proxyStartData = data
+    currentGameName = gameNameReference
 
     console.log('socket data: ', data)
     // Make sure we kill everything if it exists as soon as we start a new connection
@@ -177,6 +180,7 @@ async function startEmulator(address, port) {
         delay: parseInt(config.app.emuDelay),
         playerName: userName || 'Unknown',
         isTraining: false, // Might be used in the future.
+        otherGameName: currentGameName || null, // just for fun
         callBack: (isOnOpen) => {
             if (isOnOpen) {
                 mainWindow.webContents.send('sendAlert', {

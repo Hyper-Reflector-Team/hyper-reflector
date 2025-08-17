@@ -9,7 +9,7 @@ import {
     // session,
 } from 'electron'
 import started from 'electron-squirrel-startup'
-import { sendCommand, readCommand, readStatFile, clearStatFile } from './sendHyperCommands'
+import { sendCommand, readCommand, readStatFile } from './sendHyperCommands'
 import { startSoloMode } from './loadFbNeo'
 import { getConfig, type Config } from './config'
 // updating automatically
@@ -600,7 +600,7 @@ const createWindow = () => {
     ipcMain.on('startGameOnline', async (event, data) => {
         console.log('Starting proxer server for matches')
         lastKnownPlayerSlot = data.player // set the last know player slot for sending to the BE to record matches
-        runProxyServer(data, userUID, userName, config, mainWindow)
+        runProxyServer(data, userUID, userName, config, mainWindow, data.gameName || null)
     })
 
     ipcMain.on('killEmulator', async () => {
