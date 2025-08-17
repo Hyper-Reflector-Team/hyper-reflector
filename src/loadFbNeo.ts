@@ -133,6 +133,7 @@ export function startSoloMode({
     } else if (slicedPathEnd === 'fcadefbneo.exe') {
         directCommand = `${fbNeoCommand(config)} -game sfiii3nr1 ${config.emulator.trainingLuaPath}`
     }
+
     return launchGGPOSpawn(directCommand, callBack)
 }
 
