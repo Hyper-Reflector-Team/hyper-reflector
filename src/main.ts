@@ -993,7 +993,7 @@ async function handleReadAndUploadMatch() {
         }
         if (lastKnownMatch === parsedMatch) {
             // We should probably use some kind of unique id per match just to ensure that a match is always 
-            return console.log("Unable to upload duplicate match, exact data match")
+            return console.log("Unable to upload duplicate match, exact data")
         }
         if (lastKnownMatch === null) {
             lastKnownMatch = parsedMatch
@@ -1024,9 +1024,9 @@ async function handleReadAndUploadMatch() {
 // read files
 const readInterval = setInterval(async () => {
     // uncomment if testing locally and need matches to upload
-    // if (opponentUID) {
-    handleReadAndUploadMatch()
-    // }
+    if (opponentUID) {
+        handleReadAndUploadMatch()
+    }
 }, 1000) // read from reflector.text every 1000 ms
 
 // This method will be called when Electron has finished
