@@ -1023,10 +1023,7 @@ async function handleReadAndUploadMatch() {
 
 // read files
 const readInterval = setInterval(async () => {
-    // uncomment if testing locally and need matches to upload
-    if (opponentUID) {
-        handleReadAndUploadMatch()
-    }
+    handleReadAndUploadMatch()
 }, 1000) // read from reflector.text every 1000 ms
 
 // This method will be called when Electron has finished
