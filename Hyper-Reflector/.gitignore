@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# hr related secrets and untracked files
+emu
+secrets
+private
+notes
