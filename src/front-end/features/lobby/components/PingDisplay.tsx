@@ -42,7 +42,7 @@ const PingDisplay = ({ peer, userState }: PingDisplayProps) => {
                     <span className={`fi fi-${peer?.countryCode?.toLowerCase() || 'xx'}`} />
                 </div>
             </Tooltip>
-            {isMe && (
+            {!isMe && (
                 <Tooltip
                     content={`Estimated Ping: ${peer?.ping || 'Unknown'} ms`}
                     openDelay={200}
