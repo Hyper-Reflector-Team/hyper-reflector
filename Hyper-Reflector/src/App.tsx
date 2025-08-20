@@ -24,6 +24,7 @@ import Layout from './layout/Layout'
 import Autologin from './components/AutoLogin'
 import { Toaster } from './components/chakra/ui/toaster'
 import './App.css'
+import TestingGround from './pages/TestingGround'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -32,7 +33,6 @@ const rootRoute = createRootRoute({
                 <Toaster />
                 <Outlet />
             </Layout>
-            {/* <TanStackRouterDevtools /> */}
         </>
     ),
 })
@@ -41,9 +41,17 @@ const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     component: function Home() {
-        return <StartPage />
+        return <TestingGround />
     },
 })
+
+// const indexRoute = createRoute({
+//     getParentRoute: () => rootRoute,
+//     path: '/',
+//     component: function Home() {
+//         return <StartPage />
+//     },
+// })
 
 const autoLogRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -114,7 +122,8 @@ const routeTree = rootRoute.addChildren([
 
 // this allows electron to hash the routing
 const memoryHistory = createMemoryHistory({
-    initialEntries: ['/auto-login'], // Pass your initial url
+    initialEntries: ['/'],
+    // initialEntries: ['/auto-login'],
 })
 
 const router = createRouter({ routeTree, history: memoryHistory })
