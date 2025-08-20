@@ -1,4 +1,4 @@
-import CreateAccountBlock from '../components/CreateAccountBlock'
+import CreateAccountBlock from '../CreateAccountBlock'
 
 export default function CreateAccountPage() {
     return <CreateAccountBlock />

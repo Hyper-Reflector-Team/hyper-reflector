@@ -8,7 +8,7 @@ import {
     englishDataset,
     englishRecommendedTransformers,
 } from 'obscenity'
-import { useLayoutStore } from '../../state/store'
+import { useLayoutStore } from '../../../state/deprecated_store'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),

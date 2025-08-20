@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../../state/deprecated_store'
 import { Stack, Box, Center, Spinner, Text } from '@chakra-ui/react'
 
 export default function Autologin() {

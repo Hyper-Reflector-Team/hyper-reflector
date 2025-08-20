@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { Stack, Box } from '@chakra-ui/react'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLoginStore, useMessageStore } from '../../state/deprecated_store'
 import UserChallengeMessage from './chat/UserChallengeMessage'
 import {
     RegExpMatcher,

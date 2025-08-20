@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../../state/deprecated_store'
 import { Button, Stack, Input, Box, Center, Spinner, Text, Flex, Heading } from '@chakra-ui/react'
-import { PasswordInput } from './chakra/ui/password-input'
-import { Field } from './chakra/ui/field'
+import { PasswordInput } from '../chakra/ui/password-input'
+import { Field } from '../chakra/ui/field'
 import { ArrowLeft } from 'lucide-react'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 

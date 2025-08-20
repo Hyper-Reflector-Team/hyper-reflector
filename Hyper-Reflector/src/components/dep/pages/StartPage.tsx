@@ -1,5 +1,5 @@
-import Layout from '../layout/Layout'
-import LoginBlock from '../components/LoginBlock'
+import Layout from '../../../layout/Deprecrated_Layout'
+import LoginBlock from '../LoginBlock'
 import { Link } from '@tanstack/react-router'
 import { useEffect } from 'react'
 

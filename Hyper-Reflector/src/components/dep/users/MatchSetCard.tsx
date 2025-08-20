@@ -13,8 +13,8 @@ import {
     Collapsible,
     Drawer,
 } from '@chakra-ui/react'
-import { CloseButton } from '../chakra/ui/close-button'
-import { useLayoutStore } from '../../state/store'
+import { CloseButton } from '../../chakra/ui/close-button'
+import { useLayoutStore } from '../../../state/deprecated_store'
 import { parseMatchData } from './utils'
 import { Construction } from 'lucide-react'
 

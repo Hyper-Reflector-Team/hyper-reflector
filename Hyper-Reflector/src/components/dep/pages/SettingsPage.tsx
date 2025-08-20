@@ -6,11 +6,11 @@ import {
     SelectRoot,
     SelectTrigger,
     SelectValueText,
-} from '../components/chakra/ui/select'
-import { toaster } from '../components/chakra/ui/toaster'
-import { useConfigStore, useLayoutStore, useLoginStore } from '../state/store'
-import { getThemeNameList } from '../utils/theme'
-import SideBar from '../components/general/SideBar'
+} from '../../chakra/ui/select'
+import { toaster } from '../../chakra/ui/toaster'
+import { useConfigStore, useLayoutStore, useLoginStore } from '../../../state/deprecated_store'
+import { getThemeNameList } from '../../../utils/theme'
+import SideBar from '../general/SideBar'
 import { AlertCircle, Settings, Settings2, Volume2, VolumeX } from 'lucide-react'
 
 export default function SettingsPage() {

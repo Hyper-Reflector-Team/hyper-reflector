@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button, Stack, Input, Flex, Box, Avatar, AvatarGroup, Card } from '@chakra-ui/react'
-import { useLoginStore, useMessageStore } from '../state/store'
+import { useLoginStore, useMessageStore } from '../../state/deprecated_store'
 import UserCard from './users/UserCard'
 
 export default function UsersChat() {

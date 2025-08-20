@@ -27,7 +27,7 @@ import {
     SelectRoot,
     SelectTrigger,
     SelectValueText,
-} from '../components/chakra/ui/select'
+} from '../../chakra/ui/select'
 import {
     ChartBar,
     Check,
@@ -41,9 +41,9 @@ import {
     Wrench,
     X,
 } from 'lucide-react'
-import { Field } from '../components/chakra/ui/field'
-import { toaster } from '../components/chakra/ui/toaster'
-import { useLoginStore, useLayoutStore } from '../state/store'
+import { Field } from '../../chakra/ui/field'
+import { toaster } from '../../chakra/ui/toaster'
+import { useLoginStore, useLayoutStore } from '../../../state/deprecated_store'
 
 import {
     RegExpMatcher,
@@ -52,10 +52,10 @@ import {
     englishRecommendedTransformers,
 } from 'obscenity'
 
-import SideBar from '../components/general/SideBar'
-import MatchSetCard from '../components/users/MatchSetCard'
-import TitleBadge from '../components/users/TitleBadge'
-import GravatarInput from '../components/profile/GravatarInput'
+import SideBar from '../general/SideBar'
+import MatchSetCard from '../users/MatchSetCard'
+import TitleBadge from '../users/TitleBadge'
+import GravatarInput from '../profile/GravatarInput'
 
 const matcher = new RegExpMatcher({
     ...englishDataset.build(),

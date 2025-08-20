@@ -15,11 +15,11 @@ import {
     SelectRoot,
     SelectTrigger,
     SelectValueText,
-} from '../components/chakra/ui/select'
-import { Field } from '../components/chakra/ui/field'
-import SideBar from '../components/general/SideBar'
+} from '../../chakra/ui/select'
+import { Field } from '../../chakra/ui/field'
+import SideBar from '../general/SideBar'
 import { BookUser, Construction, FlaskConical, PaintBucket, Router, UserRound } from 'lucide-react'
-import { useLayoutStore, useLoginStore } from '../state/store'
+import { useLayoutStore, useLoginStore } from '../../../state/deprecated_store'
 
 export default function OfflinePage() {
     const theme = useLayoutStore((state) => state.appTheme)

@@ -1,9 +1,9 @@
 // example
 import { useCallback, useEffect, useState } from 'react'
-import { auth, loginEmail, loginGoogle, callable } from '../utils/firebase'
-import api from '../external-api/requests'
+import { auth, loginEmail, loginGoogle, callable } from '../../../utils/firebase'
+import api from '../../../external-api/requests'
 import { onAuthStateChanged } from 'firebase/auth'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../../../state/deprecated_store'
 
 // await loginEmail('test@test.com', 'passs')
 // or

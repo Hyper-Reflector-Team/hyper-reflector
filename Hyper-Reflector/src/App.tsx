@@ -2,7 +2,7 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import { invoke } from '@tauri-apps/api/core'
 import theme from './utils/theme'
-import { Command } from '@tauri-apps/plugin-shell'
+// import { Command } from '@tauri-apps/plugin-shell'
 import {
     Outlet,
     RouterProvider,
@@ -12,19 +12,11 @@ import {
     createMemoryHistory,
 } from '@tanstack/react-router'
 import { ChakraProvider, defaultConfig, defineConfig, createSystem, Box } from '@chakra-ui/react'
-import StartPage from './pages/StartPage'
-import LobbyPage from './pages/LobbyPage'
-import OfflinePage from './pages/OfflinePage'
-import NewsPage from './pages/NewsPage'
-import PlayerProfilePage from './pages/PlayerProfilePage'
-import SettingsPage from './pages/SettingsPage'
-import CreateAccountPage from './pages/CreateAccountPage'
-import ErrorBoundary from './ErrorBoundary'
+// import ErrorBoundary from './ErrorBoundary'
 import Layout from './layout/Layout'
-import Autologin from './components/AutoLogin'
 import { Toaster } from './components/chakra/ui/toaster'
 import './App.css'
-import TestingGround from './pages/TestingGround'
+import HomePage from './pages/HomePage'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -41,7 +33,7 @@ const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     component: function Home() {
-        return <TestingGround />
+        return <HomePage />
     },
 })
 
@@ -53,72 +45,7 @@ const indexRoute = createRoute({
 //     },
 // })
 
-const autoLogRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/auto-login',
-    component: function Home() {
-        return <Autologin />
-    },
-})
-
-const newsRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/news',
-    component: function News() {
-        return <NewsPage />
-    },
-})
-
-const createAccountRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/create',
-    component: function News() {
-        return <CreateAccountPage />
-    },
-})
-
-const offlineRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/offline',
-    component: function Offline() {
-        return <OfflinePage />
-    },
-})
-
-const chatRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/chat',
-    component: function Chat() {
-        return <LobbyPage />
-    },
-})
-
-const profileRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/profile/$userId',
-    component: function Profile({ $userId }) {
-        return <PlayerProfilePage />
-    },
-})
-
-const settingsRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/settings',
-    component: function Settings() {
-        return <SettingsPage />
-    },
-})
-
-const routeTree = rootRoute.addChildren([
-    indexRoute,
-    autoLogRoute,
-    newsRoute,
-    offlineRoute,
-    chatRoute,
-    profileRoute,
-    settingsRoute,
-    createAccountRoute,
-])
+const routeTree = rootRoute.addChildren([indexRoute])
 
 // this allows electron to hash the routing
 const memoryHistory = createMemoryHistory({

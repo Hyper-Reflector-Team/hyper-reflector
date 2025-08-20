@@ -10,16 +10,16 @@ import {
     Clipboard,
     IconButton,
 } from '@chakra-ui/react'
-import { CloseButton } from '../components/chakra/ui/close-button'
-import { Field } from '../components/chakra/ui/field'
-import ChatWindow from '../components/ChatWindow'
-import ChatBar from '../components/ChatBar'
-import UsersChat from '../components/UsersChat'
-import SideBar from '../components/general/SideBar'
-import { toaster } from '../components/chakra/ui/toaster'
+import { CloseButton } from '../../chakra/ui/close-button'
+import { Field } from '../../chakra/ui/field'
+import ChatWindow from '../ChatWindow'
+import ChatBar from '../ChatBar'
+import UsersChat from '../UsersChat'
+import SideBar from '../general/SideBar'
+import { toaster } from '../../chakra/ui/toaster'
 import { ClipboardCopy, KeySquare, Plus, Users } from 'lucide-react'
-import { PasswordInput } from '../components/chakra/ui/password-input'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { PasswordInput } from '../../chakra/ui/password-input'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../../../state/deprecated_store'
 import {
     RegExpMatcher,
     asteriskCensorStrategy,

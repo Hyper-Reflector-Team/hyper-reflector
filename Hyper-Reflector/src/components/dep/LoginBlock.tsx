@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { useLayoutStore, useLoginStore, useMessageStore } from '../state/store'
+import { useLayoutStore, useLoginStore, useMessageStore } from '../../state/deprecated_store'
 import { Button, Stack, Input, Box, Center, Spinner, Text, Heading, Flex } from '@chakra-ui/react'
-import { PasswordInput } from './chakra/ui/password-input'
-import { Field } from './chakra/ui/field'
+import { PasswordInput } from '../chakra/ui/password-input'
+import { Field } from '../chakra/ui/field'
 import { Hammer } from 'lucide-react'
 
 export default function LoginBlock() {

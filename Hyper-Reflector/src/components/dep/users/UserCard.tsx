@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useLoginStore, useMessageStore, useLayoutStore, useConfigStore } from '../../state/store'
+import {
+    useLoginStore,
+    useMessageStore,
+    useLayoutStore,
+    useConfigStore,
+} from '../../../state/deprecated_store'
 import {
     Button,
     Stack,
@@ -14,7 +19,7 @@ import {
     Portal,
     Popover,
 } from '@chakra-ui/react'
-import { Tooltip } from '../chakra/ui/tooltip'
+import { Tooltip } from '../../chakra/ui/tooltip'
 import { Crown, Sword, Wifi, WifiHigh, WifiLow, WifiOff } from 'lucide-react'
 import TitleBadge from './TitleBadge'
 import '/node_modules/flag-icons/css/flag-icons.min.css'

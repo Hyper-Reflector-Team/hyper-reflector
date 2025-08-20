@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Box, Heading, Stack, Text } from '@chakra-ui/react'
 import { BarList, Chart, type BarListData, useChart } from '@chakra-ui/charts'
 import { Cell, Pie, PieChart, Tooltip } from 'recharts'
-import BlogPost from '../components/BlogPost'
-import { useLayoutStore, useLoginStore } from '../state/store'
+import BlogPost from '../BlogPost'
+import { useLayoutStore, useLoginStore } from '../../../state/deprecated_store'
 
 const blogsArray = [
     {

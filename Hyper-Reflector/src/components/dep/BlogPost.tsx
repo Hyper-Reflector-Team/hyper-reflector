@@ -1,5 +1,5 @@
 import { Box, Heading, Stack, Text, Flex } from '@chakra-ui/react'
-import { useLayoutStore } from '../state/store'
+import { useLayoutStore } from '../../state/deprecated_store'
 
 export function BlogPost({ blog }: { blog: { content: string; title: string; date: string } }) {
     const theme = useLayoutStore((state) => state.appTheme)

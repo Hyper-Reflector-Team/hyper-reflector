@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLayoutStore, useLoginStore } from '../state/store'
+import { useLayoutStore, useLoginStore } from '../../state/deprecated_store'
 import { Button, Stack, Input, Flex } from '@chakra-ui/react'
 import { Send } from 'lucide-react'
 
