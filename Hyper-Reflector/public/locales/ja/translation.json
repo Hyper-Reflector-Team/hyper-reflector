@@ -1,0 +1,17 @@
+{
+  "Settings": {
+    "Language": {
+      "title": "言語",
+      "en": "English",
+      "ja": "日本語"
+    }
+  },
+    "Lab": {
+      "title": "The Lab (ja)",
+      "currentPath": "Current path: (ja)",
+      "start": "Start Training (ja)",
+      "setLua": "Set custom training lua (ja)",
+      "dialogLua": "Select lua file (ja)",
+      "errorPath": "Failed to open dialog (ja)"
+    }
+}

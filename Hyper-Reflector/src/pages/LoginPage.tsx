@@ -5,7 +5,7 @@ import { Field } from '../components/chakra/ui/field'
 import { PasswordInput } from '../components/chakra/ui/password-input'
 import { onAuthStateChanged } from 'firebase/auth'
 import type { FirebaseError } from 'firebase/app'
-import { auth, loginEmail, loginGoogle, logout } from '../utils/firebase'
+import { auth, loginEmail, loginGoogle } from '../utils/firebase'
 // External API facing the server
 import api from '../external-api/requests'
 import { TUser } from '../types/user'
@@ -84,11 +84,6 @@ export default function LoginPage() {
         } catch (e) {
             handleFailUser()
         }
-    }
-
-    async function logoutHelper() {
-        setIsLoading(true)
-        logout()
     }
 
     const changeRoute = (route: string) => {
@@ -170,9 +165,6 @@ export default function LoginPage() {
                         </Button>
                     </Stack>
                 ) : null}
-                <Button disabled={!!!globalLoggedIn || isLoading} onClick={logoutHelper}>
-                    Logout
-                </Button>
             </Stack>
         </Box>
     )

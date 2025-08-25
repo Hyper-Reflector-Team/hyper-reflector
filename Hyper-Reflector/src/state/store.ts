@@ -19,6 +19,10 @@ type SettingsState = {
     setTheme: (t: { colorPalette: string, name: string }) => void
     emulatorPath: string
     setEmulatorPath: (path: string) => void
+    trainingPath: string
+    setTrainingPath: (path: string) => void
+    appLanguage: string
+    setAppLanguage: (code: string) => void
 }
 
 type UserState = {
@@ -54,6 +58,10 @@ export const useSettingsStore = create<SettingsState>()(
             setDarkMode: (on) => set({ darkMode: on }),
             theme: { colorPalette: 'orange', name: 'Orange Soda' },
             setTheme: (t) => set({ theme: t }),
+            trainingPath: '',
+            setTrainingPath: (path) => set({ trainingPath: path }),
+            appLanguage: '',
+            setAppLanguage: (code) => set({ appLanguage: code }),
         }),
         {
             name: 'settings',

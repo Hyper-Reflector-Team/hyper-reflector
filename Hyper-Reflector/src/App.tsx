@@ -6,8 +6,9 @@ import {
     createRootRoute,
     createMemoryHistory,
 } from '@tanstack/react-router'
+import './i18n'
 import { ChakraProvider, Box } from '@chakra-ui/react'
-import { ColorModeProvider, ColorModeButton } from './components/chakra/ui/color-mode'
+import { ColorModeProvider } from './components/chakra/ui/color-mode'
 import theme from './theme'
 // import ErrorBoundary from './ErrorBoundary'
 import Layout from './layout/Layout'
@@ -18,6 +19,9 @@ import HomePage from './pages/HomePage'
 import SettingsPage from './pages/SettingsPage'
 import LobbyPage from './pages/LobbyPage'
 import LabPage from './pages/LabPage'
+import { useEffect } from 'react'
+import { useSettingsStore } from './state/store'
+import { useTranslation } from 'react-i18next'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -92,6 +96,14 @@ declare module '@tanstack/react-router' {
 }
 
 function App() {
+    const { i18n } = useTranslation()
+    const appLanguage = useSettingsStore((s) => s.appLanguage)
+    // handle language changes and other effects on load
+    useEffect(() => {
+        i18n.changeLanguage(appLanguage)
+        console.log('app loaded as ', appLanguage)
+    }, [])
+
     return (
         <main className="container">
             <ChakraProvider value={theme}>

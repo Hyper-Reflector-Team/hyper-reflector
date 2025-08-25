@@ -1,10 +1,11 @@
 import { ReactElement } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Box, Stack, IconButton, Image } from '@chakra-ui/react'
+import { Box, Stack, IconButton, Image, Text } from '@chakra-ui/react'
 import { useSettingsStore, useUserStore } from '../state/store'
 import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
 import { FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
+import UserCard from '../components/UserCard.tsx/UserCard'
 
 export default function Layout({ children }: { children: ReactElement[] }) {
     const navigate = useNavigate()
@@ -68,15 +69,40 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             </Stack>
             <Stack flex="1" height={'100vh'}>
                 <Box height={'60px'} bgColor={'bg.muted'}>
-                    {/* <Box>Notification</Box>
-                    <Box>User</Box> */}
+                    <UserCard />
                 </Box>
                 <Box flex="1" display="flex" flexDirection="column" height="calc(100vh - 120px)">
                     <Box flex="1" overflowY="auto" p="4" scrollbarWidth={'thin'}>
                         {children}
                     </Box>
                 </Box>
-                <Box>Footer</Box>
+                <Box
+                    h="40px"
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    px="4"
+                    flexShrink={0}
+                >
+                    {/* These links no longer work, needs to be resolved */}
+                    <Box display="flex" gap="8px">
+                        <a href="https://hyper-reflector.com/" target="_blank" rel="noreferrer">
+                            <Text textStyle="xs">Hyper Reflector on:</Text>
+                        </a>
+                        <a href="https://discord.gg/fsQEVzXwbt" target="_blank" rel="noreferrer">
+                            <Text textStyle="xs">Discord</Text>
+                        </a>
+                        <a
+                            href="https://github.com/Hyper-Reflector-Team"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            <Text textStyle="xs">Github</Text>
+                        </a>
+                    </Box>
+
+                    <Text textStyle="xs">Hyper Reflector version 0.5.0a 2025</Text>
+                </Box>
             </Stack>
         </Box>
     )

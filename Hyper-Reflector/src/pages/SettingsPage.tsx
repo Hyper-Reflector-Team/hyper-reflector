@@ -1,4 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import {
     Stack,
     Button,
@@ -22,6 +23,7 @@ import { toaster } from '../components/chakra/ui/toaster'
 const MARGIN_SECTION = '12px'
 
 export default function SettingsPage() {
+    const { i18n, t } = useTranslation()
     const navigate = useNavigate()
     const { toggleColorMode } = useColorMode()
     const ggpoDelay = useSettingsStore((s) => s.ggpoDelay)
@@ -40,6 +42,8 @@ export default function SettingsPage() {
     const setTheme = useSettingsStore((s) => s.setTheme)
     const setEmulatorPath = useSettingsStore((s) => s.setEmulatorPath)
     const emulatorPath = useSettingsStore((s) => s.emulatorPath)
+    const setAppLanguage = useSettingsStore((s) => s.setAppLanguage)
+    const appLanguage = useSettingsStore((s) => s.appLanguage)
 
     const themes = createListCollection({
         items: [
@@ -66,6 +70,13 @@ export default function SettingsPage() {
             { label: '5', value: '5' },
             { label: '6', value: '6' },
             { label: '7', value: '7' },
+        ],
+    })
+
+    const languages = createListCollection({
+        items: [
+            { label: t('Settings.Language.en'), value: 'en' },
+            { label: t('Settings.Language.ja'), value: 'ja' },
         ],
     })
 
@@ -101,7 +112,6 @@ export default function SettingsPage() {
                 title: 'Select Emulator Executable',
                 filters: [{ name: 'Executables', extensions: ['exe'] }],
             })
-            console.log('res', res)
             if (typeof res === 'string') setEmulatorPath(res)
         } catch (err: any) {
             toaster.error({
@@ -148,7 +158,7 @@ export default function SettingsPage() {
                         <Select.HiddenSelect />
                         <Select.Label>Delay - Higher is smoother but more input lag</Select.Label>
                         <Select.Control>
-                            <Select.Trigger onChange={() => console.log('change')}>
+                            <Select.Trigger>
                                 <Select.ValueText placeholder="Select Delay" />
                             </Select.Trigger>
                             <Select.IndicatorGroup>
@@ -159,6 +169,46 @@ export default function SettingsPage() {
                             <Select.Positioner>
                                 <Select.Content>
                                     {delays.items.map((d) => (
+                                        <Select.Item item={d} key={d.value}>
+                                            {d.label}
+                                            <Select.ItemIndicator />
+                                        </Select.Item>
+                                    ))}
+                                </Select.Content>
+                            </Select.Positioner>
+                        </Portal>
+                    </Select.Root>
+                </Card.Body>
+            </Card.Root>
+            <Card.Root flex={'1'} overflow="hidden">
+                <Card.Body gap="2">
+                    <Card.Title>{t('Settings.Language.title')}</Card.Title>
+                    <Select.Root
+                        colorPalette={theme.colorPalette}
+                        marginTop={MARGIN_SECTION}
+                        maxW="1/2"
+                        key={'test'}
+                        variant={'outline'}
+                        collection={languages}
+                        value={[appLanguage]}
+                        onValueChange={(e) => {
+                            setAppLanguage(e.value[0])
+                            i18n.changeLanguage(e.value[0])
+                        }}
+                    >
+                        <Select.HiddenSelect />
+                        <Select.Control>
+                            <Select.Trigger>
+                                <Select.ValueText placeholder="Select language" />
+                            </Select.Trigger>
+                            <Select.IndicatorGroup>
+                                <Select.Indicator />
+                            </Select.IndicatorGroup>
+                        </Select.Control>
+                        <Portal>
+                            <Select.Positioner>
+                                <Select.Content>
+                                    {languages.items.map((d) => (
                                         <Select.Item item={d} key={d.value}>
                                             {d.label}
                                             <Select.ItemIndicator />
