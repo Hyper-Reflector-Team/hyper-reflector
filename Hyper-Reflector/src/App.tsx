@@ -1,8 +1,4 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import { invoke } from '@tauri-apps/api/core'
 import theme from './utils/theme'
-// import { Command } from '@tauri-apps/plugin-shell'
 import {
     Outlet,
     RouterProvider,
@@ -16,7 +12,11 @@ import { ChakraProvider, defaultConfig, defineConfig, createSystem, Box } from '
 import Layout from './layout/Layout'
 import { Toaster } from './components/chakra/ui/toaster'
 import './App.css'
+import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
+import SettingsPage from './pages/SettingsPage'
+import LobbyPage from './pages/LobbyPage'
+import LabPage from './pages/LabPage'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -32,25 +32,54 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
+    component: function Login() {
+        return <LoginPage />
+    },
+})
+
+const homeRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/home',
     component: function Home() {
         return <HomePage />
     },
 })
 
-// const indexRoute = createRoute({
-//     getParentRoute: () => rootRoute,
-//     path: '/',
-//     component: function Home() {
-//         return <StartPage />
-//     },
-// })
+const lobbyRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/lobby',
+    component: function Settings() {
+        return <LobbyPage />
+    },
+})
 
-const routeTree = rootRoute.addChildren([indexRoute])
+const labRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/lab',
+    component: function Settings() {
+        return <LabPage />
+    },
+})
+
+const settingsRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/settings',
+    component: function Settings() {
+        return <SettingsPage />
+    },
+})
+
+const routeTree = rootRoute.addChildren([
+    indexRoute,
+    homeRoute,
+    settingsRoute,
+    lobbyRoute,
+    labRoute,
+])
 
 // this allows electron to hash the routing
 const memoryHistory = createMemoryHistory({
     initialEntries: ['/'],
-    // initialEntries: ['/auto-login'],
 })
 
 const router = createRouter({ routeTree, history: memoryHistory })
@@ -70,18 +99,6 @@ const config = defineConfig({
 export const system = createSystem(defaultConfig, config)
 
 function App() {
-    const [greetMsg, setGreetMsg] = useState('')
-    const [name, setName] = useState('')
-
-    async function greet() {
-        console.log(greet)
-        // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-        setGreetMsg(await invoke('greet', { name }))
-        const full = await invoke('run_custom_process')
-        //const command = Command.sidecar('run_custom_process')
-        console.log(full)
-    }
-
     return (
         <main className="container">
             <ChakraProvider value={system}>
@@ -89,36 +106,6 @@ function App() {
                     <RouterProvider router={router} />
                 </Box>
             </ChakraProvider>
-            <h1>Welcome to Tauri + React</h1>
-
-            <div className="row">
-                <a href="https://vite.dev" target="_blank">
-                    <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-                </a>
-                <a href="https://tauri.app" target="_blank">
-                    <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-                </a>
-                <a href="https://react.dev" target="_blank">
-                    <img src={reactLogo} className="logo react" alt="React logo" />
-                </a>
-            </div>
-            <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-            <form
-                className="row"
-                onSubmit={(e) => {
-                    e.preventDefault()
-                    greet()
-                }}
-            >
-                <input
-                    id="greet-input"
-                    onChange={(e) => setName(e.currentTarget.value)}
-                    placeholder="Enter a name..."
-                />
-                <button type="submit">Greet</button>
-            </form>
-            <p>{greetMsg}</p>
         </main>
     )
 }
