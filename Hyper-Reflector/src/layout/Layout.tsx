@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 ) : null}
             </Stack>
             <Stack flex="1" height={'100vh'}>
-                <Box height={'60px'} bgColor={'bg.muted'}>
+                <Box height={'60px'} bgColor={'bg.muted'} justifyItems={'flex-end'}>
                     <UserCard />
                 </Box>
                 <Box flex="1" display="flex" flexDirection="column" height="calc(100vh - 120px)">
