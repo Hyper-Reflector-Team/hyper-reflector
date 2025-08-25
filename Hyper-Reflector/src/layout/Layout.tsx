@@ -1,19 +1,15 @@
 import { ReactElement } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Box, Stack, IconButton, Image } from '@chakra-ui/react'
-import { logout } from '../utils/firebase'
-import { useUserStore } from '../state/store'
+import { useSettingsStore, useUserStore } from '../state/store'
 import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
-import { FlaskConical, LogOut, LucideHome, MessageCircle, Settings } from 'lucide-react'
+import { FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
 
 export default function Layout({ children }: { children: ReactElement[] }) {
     const navigate = useNavigate()
     const globalLoggedIn = useUserStore((s) => s.globalLoggedIn)
-    async function logoutHelper() {
-        logout()
-        changeRoute('/')
-    }
+    const theme = useSettingsStore((s) => s.theme)
 
     const changeRoute = (route: string) => {
         navigate({ to: route })
@@ -21,13 +17,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
     return (
         <Box display="flex" bgImage={`url(${bgImage})`} bgBlendMode={'color-dodge'}>
-            <Stack backgroundColor={'black'} gap="24px" padding={'12px'}>
+            <Stack gap="24px" padding={'12px'} bgColor={'bg.emphasized'}>
                 <Box height={'60px'} alignSelf={'center'} flex="1">
                     <Image src={hrLogo} height={'60px'} />
                 </Box>
                 {globalLoggedIn ? (
                     <Stack alignItems={'center'} gap="24px" flex="2">
                         <IconButton
+                            colorPalette={theme.colorPalette}
                             width={'40px'}
                             height={'40px'}
                             onClick={() => changeRoute('/home')}
@@ -36,6 +33,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             <LucideHome />
                         </IconButton>
                         <IconButton
+                            colorPalette={theme.colorPalette}
                             width={'40px'}
                             height={'40px'}
                             onClick={() => changeRoute('/lobby')}
@@ -44,6 +42,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             <MessageCircle />
                         </IconButton>
                         <IconButton
+                            colorPalette={theme.colorPalette}
                             width={'40px'}
                             height={'40px'}
                             onClick={() => changeRoute('/lab')}
@@ -56,6 +55,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 {globalLoggedIn ? (
                     <Stack alignItems={'center'} flex="1" gap="24px" justifyContent={'flex-end'}>
                         <IconButton
+                            colorPalette={theme.colorPalette}
                             width={'40px'}
                             height={'40px'}
                             onClick={() => changeRoute('/settings')}
@@ -63,19 +63,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         >
                             <Settings />
                         </IconButton>
-                        <IconButton
-                            width={'40px'}
-                            height={'40px'}
-                            onClick={logoutHelper}
-                            aria-label="Logout"
-                        >
-                            <LogOut />
-                        </IconButton>
                     </Stack>
                 ) : null}
             </Stack>
             <Stack flex="1" height={'100vh'}>
-                <Box height={'60px'}>
+                <Box height={'60px'} bgColor={'bg.muted'}>
                     {/* <Box>Notification</Box>
                     <Box>User</Box> */}
                 </Box>

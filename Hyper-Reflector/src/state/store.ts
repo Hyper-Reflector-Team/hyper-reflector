@@ -15,8 +15,8 @@ type SettingsState = {
     setNotifAtSoundPath: (path: string) => void
     darkMode: boolean
     setDarkMode: (on: boolean) => void
-    theme: string
-    setTheme: (t: string) => void
+    theme: { colorPalette: string, name: string }
+    setTheme: (t: { colorPalette: string, name: string }) => void
     emulatorPath: string
     setEmulatorPath: (path: string) => void
 }
@@ -52,7 +52,7 @@ export const useSettingsStore = create<SettingsState>()(
             setEmulatorPath: (path) => set({ emulatorPath: path }),
             darkMode: true,
             setDarkMode: (on) => set({ darkMode: on }),
-            theme: 'dark',
+            theme: { colorPalette: 'orange', name: 'Orange Soda' },
             setTheme: (t) => set({ theme: t }),
         }),
         {

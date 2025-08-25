@@ -1,4 +1,3 @@
-import theme from './utils/theme'
 import {
     Outlet,
     RouterProvider,
@@ -7,7 +6,9 @@ import {
     createRootRoute,
     createMemoryHistory,
 } from '@tanstack/react-router'
-import { ChakraProvider, defaultConfig, defineConfig, createSystem, Box } from '@chakra-ui/react'
+import { ChakraProvider, Box } from '@chakra-ui/react'
+import { ColorModeProvider, ColorModeButton } from './components/chakra/ui/color-mode'
+import theme from './theme'
 // import ErrorBoundary from './ErrorBoundary'
 import Layout from './layout/Layout'
 import { Toaster } from './components/chakra/ui/toaster'
@@ -90,21 +91,15 @@ declare module '@tanstack/react-router' {
     }
 }
 
-const config = defineConfig({
-    theme: {
-        // animationStyles,
-    },
-})
-
-export const system = createSystem(defaultConfig, config)
-
 function App() {
     return (
         <main className="container">
-            <ChakraProvider value={system}>
-                <Box backgroundColor={theme.colors.main.bg}>
-                    <RouterProvider router={router} />
-                </Box>
+            <ChakraProvider value={theme}>
+                <ColorModeProvider>
+                    <Box>
+                        <RouterProvider router={router} />
+                    </Box>
+                </ColorModeProvider>
             </ChakraProvider>
         </main>
     )
