@@ -8,7 +8,6 @@ import {
     createMemoryHistory,
 } from '@tanstack/react-router'
 import { ChakraProvider, defaultConfig, defineConfig, createSystem, Box } from '@chakra-ui/react'
-// import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import StartPage from './pages/StartPage'
 import LobbyPage from './pages/LobbyPage'
 import OfflinePage from './pages/OfflinePage'
@@ -29,7 +28,6 @@ const rootRoute = createRootRoute({
                 <Toaster />
                 <Outlet />
             </Layout>
-            {/* <TanStackRouterDevtools /> */}
         </>
     ),
 })
@@ -111,7 +109,7 @@ const routeTree = rootRoute.addChildren([
 
 // this allows electron to hash the routing
 const memoryHistory = createMemoryHistory({
-    initialEntries: ['/auto-login'], // Pass your initial url
+    initialEntries: ['/auto-login'],
 })
 
 const router = createRouter({ routeTree, history: memoryHistory })
