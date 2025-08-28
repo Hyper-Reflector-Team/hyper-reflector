@@ -17,7 +17,7 @@ export default function UserCard() {
                     padding={'2'}
                     marginRight={'24px'}
                 >
-                    <Avatar.Root variant="outline" size={'md'}>
+                    <Avatar.Root variant="outline" size={'sm'}>
                         <Avatar.Fallback name={globalUser?.userName} />
                         <Avatar.Image src={globalUser?.userProfilePic} />
                     </Avatar.Root>
@@ -29,6 +29,7 @@ export default function UserCard() {
                     >
                         <div>
                             <span
+                                //  @ts-ignore // this is needed for the country code css library.
                                 class={`fi fi-${globalUser?.countryCode?.toLowerCase() || 'xx'}`}
                             />
                         </div>

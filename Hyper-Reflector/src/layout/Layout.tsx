@@ -19,8 +19,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     return (
         <Box display="flex" bgImage={`url(${bgImage})`} bgBlendMode={'color-dodge'}>
             <Stack gap="24px" padding={'12px'} bgColor={'bg.emphasized'}>
-                <Box height={'60px'} alignSelf={'center'} flex="1">
-                    <Image src={hrLogo} height={'60px'} />
+                <Box height={'64px'} alignSelf={'center'} flex="1">
+                    <Image src={hrLogo} height={'64px'} />
                 </Box>
                 {globalLoggedIn ? (
                     <Stack alignItems={'center'} gap="24px" flex="2">
@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 ) : null}
             </Stack>
             <Stack flex="1" height={'100vh'}>
-                <Box height={'60px'} bgColor={'bg.muted'} justifyItems={'flex-end'}>
+                <Box height={'48px'} bgColor={'bg.muted'} justifyItems={'flex-end'}>
                     <UserCard />
                 </Box>
                 <Box flex="1" display="flex" flexDirection="column" height="calc(100vh - 120px)">
@@ -77,7 +77,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     </Box>
                 </Box>
                 <Box
-                    h="40px"
+                    h="24px"
                     display="flex"
                     justifyContent="space-between"
                     alignItems="center"

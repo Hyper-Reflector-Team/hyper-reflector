@@ -22,6 +22,7 @@ import LabPage from './pages/LabPage'
 import { useEffect } from 'react'
 import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
+import ProfilePage from './pages/ProfilePage'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -74,12 +75,21 @@ const settingsRoute = createRoute({
     },
 })
 
+const profileRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/profile',
+    component: function Settings() {
+        return <ProfilePage />
+    },
+})
+
 const routeTree = rootRoute.addChildren([
     indexRoute,
     homeRoute,
     settingsRoute,
     lobbyRoute,
     labRoute,
+    profileRoute,
 ])
 
 // this allows electron to hash the routing

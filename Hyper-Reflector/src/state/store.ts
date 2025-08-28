@@ -32,6 +32,39 @@ type UserState = {
     setGlobalLoggedIn: (info: boolean) => void
 }
 
+type TMessage = {
+    id: string
+    role: 'user' | 'system' | 'challenge'
+    text: string
+    timeStamp: number
+    status?: 'sending' | 'sent' | 'failed'
+    userName?: string
+}
+
+type MessageState = {
+    chatMessages: TMessage[]
+    addChatMessage: (msg: TMessage) => void
+    addBatch: (msgs: TMessage[]) => void
+    updateMessage: (id: string, patch: Partial<TMessage>) => void
+    removeMessage: (id: string) => void
+    clear: () => void
+}
+
+export const useMessageStore = create<MessageState>()((set) => ({
+    chatMessages: [],
+    addChatMessage: (msg) =>
+        set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+    addBatch: (msgs) =>
+        set((s) => ({ chatMessages: [...s.chatMessages, ...msgs] })),
+    updateMessage: (id, patch) =>
+        set((s) => ({
+            chatMessages: s.chatMessages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+        })),
+    removeMessage: (id) =>
+        set((s) => ({ chatMessages: s.chatMessages.filter((m) => m.id !== id) })),
+    clear: () => set({ chatMessages: [] }),
+}))
+
 export const useUserStore = create<UserState>((set) => ({
     globalUser: undefined,
     globalLoggedIn: false,

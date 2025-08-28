@@ -1,9 +1,40 @@
 {
   "Settings": {
+    "GGPO": {
+      "title": "GGPO Settings (ja)",
+      "desc": "Choose your netplay experience (ja)",
+      "label": "Delay - Higher is smoother but more input lag (ja)",
+      "placeholder": "Select Delay (ja)"
+    },
     "Language": {
+      "placeholder": "Select Language (ja)",
       "title": "言語",
       "en": "English",
       "ja": "日本語"
+    },
+    "Notification": {
+      "title": "Notification Settings (ja)",
+      "desc": " Choose how the application notifies you of events (ja)",
+      "challengeSound": "Challenge Sound (ja)",
+      "setCustomChallenge": "Set custom challenge sound (ja)",
+      "messageSound": "@ Message Sound (ja)",
+      "setCustomMessage": "Set custom @ message sound (ja)"
+    },
+    "Theme": {
+      "title": "Theme Settings (ja)",
+      "desc": "Change the visual style of the application (ja)",
+      "darkMode": "Mode, (ja)",
+      "select": "Select Theme (ja)"
+    },
+    "Emu": {
+      "title": "Emulator Settings (ja)",
+      "desc": "Warning this is deprecated and will be removed (ja)",
+      "setEmuPath": "Set Custom Emulator Path (ja)"
+    },
+    "Danger": {
+      "title": "Danger (ja)",
+      "reset": "Reset to Defaults (ja)",
+      "logOut": "Log Out (ja)"
     }
   },
     "Lab": {

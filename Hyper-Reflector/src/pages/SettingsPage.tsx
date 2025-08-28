@@ -143,8 +143,8 @@ export default function SettingsPage() {
         <Stack>
             <Card.Root flex={'1'} overflow="hidden">
                 <Card.Body gap="2">
-                    <Card.Title>GGPO Settings</Card.Title>
-                    <Card.Description>Choose your netplay experience</Card.Description>
+                    <Card.Title>{t('Settings.GGPO.title')}</Card.Title>
+                    <Card.Description>{t('Settings.GGPO.desc')}</Card.Description>
                     <Select.Root
                         colorPalette={theme.colorPalette}
                         marginTop={MARGIN_SECTION}
@@ -156,10 +156,10 @@ export default function SettingsPage() {
                         onValueChange={(e) => setGgpoDelay(e.value[0])}
                     >
                         <Select.HiddenSelect />
-                        <Select.Label>Delay - Higher is smoother but more input lag</Select.Label>
+                        <Select.Label>{t('Settings.GGPO.label')}</Select.Label>
                         <Select.Control>
                             <Select.Trigger>
-                                <Select.ValueText placeholder="Select Delay" />
+                                <Select.ValueText placeholder={t('Settings.GGPO.placeholder')} />
                             </Select.Trigger>
                             <Select.IndicatorGroup>
                                 <Select.Indicator />
@@ -199,7 +199,9 @@ export default function SettingsPage() {
                         <Select.HiddenSelect />
                         <Select.Control>
                             <Select.Trigger>
-                                <Select.ValueText placeholder="Select language" />
+                                <Select.ValueText
+                                    placeholder={t('Settings.Language.placeholder')}
+                                />
                             </Select.Trigger>
                             <Select.IndicatorGroup>
                                 <Select.Indicator />
@@ -222,10 +224,8 @@ export default function SettingsPage() {
             </Card.Root>
             <Card.Root flex={'1'} overflow="hidden">
                 <Card.Body gap="2">
-                    <Card.Title>Notification Settings</Card.Title>
-                    <Card.Description>
-                        Choose how the application notifies you of events
-                    </Card.Description>
+                    <Card.Title>{t('Settings.Notification.title')}</Card.Title>
+                    <Card.Description>{t('Settings.Notification.desc')}</Card.Description>
                     <Switch.Root
                         colorPalette={theme.colorPalette}
                         marginTop={MARGIN_SECTION}
@@ -242,18 +242,17 @@ export default function SettingsPage() {
                             </Switch.Thumb>
                         </Switch.Control>
                         {notifChallengeSound ? <Volume2 /> : <VolumeX />}
-                        <Switch.Label>Challenge Sound</Switch.Label>
+                        <Switch.Label>{t('Settings.Notification.challengeSound')}</Switch.Label>
                     </Switch.Root>
                     <Stack>
                         <Text textStyle="xs">{notifChallengeSoundPath}</Text>
-
                         <Box gap="2" display={'flex'}>
                             <Button
                                 colorPalette={theme.colorPalette}
                                 maxW="1/2"
                                 onClick={() => pickSoundFile('challenge')}
                             >
-                                Set custom challenge sound
+                                {t('Settings.Notification.setCustomChallenge')}
                             </Button>
                             <IconButton
                                 colorPalette={theme.colorPalette}
@@ -291,7 +290,7 @@ export default function SettingsPage() {
                             </Switch.Thumb>
                         </Switch.Control>
                         {notifiAtSound ? <Volume2 /> : <VolumeX />}
-                        <Switch.Label>@ Message Sound</Switch.Label>
+                        <Switch.Label>{t('Settings.Notification.messageSound')}</Switch.Label>
                     </Switch.Root>
                     <Stack>
                         <Text textStyle="xs">{notifAtSoundPath}</Text>
@@ -301,7 +300,7 @@ export default function SettingsPage() {
                                 maxW="1/2"
                                 onClick={() => pickSoundFile('at')}
                             >
-                                Set custom @ message sound
+                                {t('Settings.Notification.setCustomMessage')}
                             </Button>
                             <IconButton
                                 colorPalette={theme.colorPalette}
@@ -327,8 +326,8 @@ export default function SettingsPage() {
             </Card.Root>
             <Card.Root overflow="hidden" flex={'1'}>
                 <Card.Body gap="2">
-                    <Card.Title>Theme Settings</Card.Title>
-                    <Card.Description>Change the visual style of the application</Card.Description>
+                    <Card.Title>{t('Settings.Theme.title')}</Card.Title>
+                    <Card.Description>{t('Settings.Theme.desc')}</Card.Description>
                     <Switch.Root
                         colorPalette={theme.colorPalette}
                         marginTop={MARGIN_SECTION}
@@ -351,7 +350,7 @@ export default function SettingsPage() {
                                 </Switch.ThumbIndicator>
                             </Switch.Thumb>
                         </Switch.Control>
-                        <Switch.Label>Mode</Switch.Label>
+                        <Switch.Label>{t('Settings.Theme.darkMode')}</Switch.Label>
                     </Switch.Root>
                     <Select.Root
                         colorPalette={theme.colorPalette}
@@ -366,10 +365,10 @@ export default function SettingsPage() {
                         }}
                     >
                         <Select.HiddenSelect />
-                        <Select.Label>Select Theme</Select.Label>
+                        <Select.Label>{t('Settings.Theme.select')}</Select.Label>
                         <Select.Control>
                             <Select.Trigger>
-                                <Select.ValueText placeholder="Select Theme" />
+                                <Select.ValueText placeholder={t('Settings.Theme.select')} />
                             </Select.Trigger>
                             <Select.IndicatorGroup>
                                 <Select.Indicator />
@@ -392,10 +391,8 @@ export default function SettingsPage() {
             </Card.Root>
             <Card.Root overflow="hidden" flex={'1'}>
                 <Card.Body gap="2">
-                    <Card.Title>Emulator Settings</Card.Title>
-                    <Card.Description>
-                        Warning this is deprecated and will be removed
-                    </Card.Description>
+                    <Card.Title>{t('Settings.Emu.title')}</Card.Title>
+                    <Card.Description>{t('Settings.Emu.desc')}</Card.Description>
                     <Text textStyle="xs">{emulatorPath}</Text>
                     <Button
                         colorPalette={'red'}
@@ -403,13 +400,13 @@ export default function SettingsPage() {
                         maxW="1/2"
                         onClick={pickExe}
                     >
-                        Set Custom Emulator Path
+                        {t('Settings.Emu.setEmuPath')}
                     </Button>
                 </Card.Body>
             </Card.Root>
             <Card.Root overflow="hidden" flex={'1'}>
                 <Card.Body gap="2">
-                    <Card.Title>Danger</Card.Title>
+                    <Card.Title>{t('Settings.Danger.title')}</Card.Title>
                     <Card.Description></Card.Description>
                     <Button
                         disabled
@@ -418,15 +415,15 @@ export default function SettingsPage() {
                         maxW="1/2"
                         onClick={() => console.log('need to implement')}
                     >
-                        Reset to default
+                        {t('Settings.Danger.reset')}
                     </Button>
-                    <Text textStyle="xs">Log out user</Text>
+                    <Text textStyle="xs">{t('Settings.Danger.logOut')}</Text>
                     <IconButton
                         colorPalette={'red'}
                         width={'40px'}
                         height={'40px'}
                         onClick={logoutHelper}
-                        aria-label="Logout"
+                        aria-label={t('Settings.Danger.logOut')}
                     >
                         <LogOut />
                     </IconButton>

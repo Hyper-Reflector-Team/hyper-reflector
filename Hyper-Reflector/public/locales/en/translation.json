@@ -1,9 +1,40 @@
 {
   "Settings": {
+    "GGPO": {
+      "title": "GGPO Settings",
+      "desc": "Choose your netplay experience",
+      "label": "Delay - Higher is smoother but more input lag",
+      "placeholder": "Select Delay"
+    },
     "Language": {
+      "placeholder": "Select Language",
       "title": "Language",
       "en": "English",
       "ja": "日本語"
+    },
+    "Notification": {
+      "title": "Notification Settings",
+      "desc": " Choose how the application notifies you of events",
+      "challengeSound": "Challenge Sound",
+      "setCustomChallenge": " Set custom challenge sound",
+      "messageSound": "@ Message Sound",
+      "setCustomMessage": "Set custom @ message sound"
+    },
+    "Theme": {
+      "title": "Theme Settings",
+      "desc": "Change the visual style of the application",
+      "darkMode": "Mode",
+      "select": "Select Theme"
+    },
+    "Emu": {
+      "title": "Emulator Settings",
+      "desc": "Warning this is deprecated and will be removed",
+      "setEmuPath": "Set Custom Emulator Path"
+    },
+    "Danger": {
+      "title": "Danger",
+      "reset": "Reset to Defaults",
+      "logOut": "Log Out"
     }
   },
     "Lab": {
