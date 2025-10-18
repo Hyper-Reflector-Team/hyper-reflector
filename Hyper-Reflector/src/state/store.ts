@@ -28,8 +28,10 @@ type SettingsState = {
 type UserState = {
     globalUser: TUser | undefined
     globalLoggedIn: boolean
+    lobbyUsers: TUser[]
     setGlobalUser: (user: TUser | undefined) => void
     setGlobalLoggedIn: (info: boolean) => void
+    setLobbyUsers: (users: TUser[]) => void
 }
 
 type TMessage = {
@@ -68,9 +70,12 @@ export const useMessageStore = create<MessageState>()((set) => ({
 export const useUserStore = create<UserState>((set) => ({
     globalUser: undefined,
     globalLoggedIn: false,
+    lobbyUsers: [],
     setGlobalUser: (user) => set({ globalUser: user }),
     setGlobalLoggedIn: (info) => set({ globalLoggedIn: info }),
+    setLobbyUsers: (users) => set({ lobbyUsers: users }),
 }))
+
 
 export const useSettingsStore = create<SettingsState>()(
     persist(
@@ -104,3 +109,4 @@ export const useSettingsStore = create<SettingsState>()(
         }
     )
 )
+
