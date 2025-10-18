@@ -126,9 +126,10 @@ export default function LobbyPage() {
             setMessage(trimmed.slice(0, MAX_MESSAGE_LENGTH))
             return
         }
+
         addChatMessage({
             userName: globalUser?.userName || 'Unknown User',
-            id: '1234',
+            id: globalUser ? Date.now() + globalUser?.userName : Date.now() + 'Unknown User',
             role: 'user',
             text: trimmed,
             timeStamp: Date.now(),
@@ -258,7 +259,7 @@ export default function LobbyPage() {
                         const isSelf = msg.userName === globalUser?.userName
 
                         return (
-                            <Stack bgColor={'bg.emphasized'} padding={'2'} key={msg.id}>
+                            <Stack bgColor={'bg.emphasized'} padding={'2'} key={msg.id + 'lobby'}>
                                 <Flex justifyContent="space-between" gap="2" alignItems="center">
                                     <Text
                                         fontWeight="semibold"
