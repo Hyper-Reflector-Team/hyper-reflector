@@ -47,10 +47,7 @@ export default function LobbyPage() {
 
     return (
         <Box display="flex" maxH="100%" minH="100%">
-            <Box display="flex" flexDirection="column" maxH="100%" minH="100%" flex="1">
-                Lobby creator
-            </Box>
-            <Box display="flex" flexDirection="column" maxH="100%" minH="100%" flex="4">
+            <Box display="flex" flexDirection="column" maxH="100%" minH="100%" flex="8">
                 <Stack
                     key="chat"
                     scrollbarWidth="thin"
@@ -71,7 +68,7 @@ export default function LobbyPage() {
                     })}
                     <div ref={endRef}></div>
                 </Stack>
-                <Stack flex="1" flexDirection={'column-reverse'}>
+                <Stack flex="1" height="100%" flexDirection={'column-reverse'}>
                     <Flex gap="2" padding="8px">
                         <Input
                             placeholder="Type a message!"
@@ -92,7 +89,32 @@ export default function LobbyPage() {
                     </Flex>
                 </Stack>
             </Box>
-            <Box display="flex" flexDirection="column" maxH="100%" minH="100%" flex="2">
+            <Box
+                display="flex"
+                flexDirection="column"
+                maxH="100%"
+                minH="100%"
+                flex="2"
+                overflow="scroll"
+            >
+                {/* TODO: search */}
+                <Input />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
+                <UserCardSmall user={globalUser} />
                 <UserCardSmall user={globalUser} />
             </Box>
         </Box>
