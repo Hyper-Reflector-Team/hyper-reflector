@@ -37,12 +37,29 @@
       "logOut": "Log Out"
     }
   },
-    "Lab": {
-      "title": "The Lab",
-      "currentPath": "Current path: ",
-      "start": "Start Training",
-      "setLua": "Set custom training lua",
-      "dialogLua": "Select lua file",
-      "errorPath": "Failed to open dialog"
+  "Lab": {
+    "title": "The Lab",
+    "currentPath": "Current path: ",
+    "start": "Start Training",
+    "setLua": "Set custom training lua",
+    "dialogLua": "Select lua file",
+    "errorPath": "Failed to open dialog"
+  },
+  "Lobby": {
+    "filters": "Filters",
+    "searchPlaceholder": "User name",
+    "messagePlaceholder": "Type a message!",
+    "scrollToLatest": "Scroll to newest message",
+    "allCountries": "All countries",
+    "showingUsers": "Showing {{count}} of {{total}} users",
+    "noMatches": "No users match the current filters.",
+    "hideFilters": "Hide filters",
+    "showFilters": "Show filters",
+    "elo": {
+      "all": "All ELO",
+      "rookie": "Below 1500",
+      "intermediate": "1500 - 1999",
+      "expert": "2000+"
     }
+  }
 }

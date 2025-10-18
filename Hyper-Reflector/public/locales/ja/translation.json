@@ -37,12 +37,29 @@
       "logOut": "Log Out (ja)"
     }
   },
-    "Lab": {
-      "title": "The Lab (ja)",
-      "currentPath": "Current path: (ja)",
-      "start": "Start Training (ja)",
-      "setLua": "Set custom training lua (ja)",
-      "dialogLua": "Select lua file (ja)",
-      "errorPath": "Failed to open dialog (ja)"
+  "Lab": {
+    "title": "The Lab (ja)",
+    "currentPath": "Current path: (ja)",
+    "start": "Start Training (ja)",
+    "setLua": "Set custom training lua (ja)",
+    "dialogLua": "Select lua file (ja)",
+    "errorPath": "Failed to open dialog (ja)"
+  },
+  "Lobby": {
+    "filters": "フィルター",
+    "searchPlaceholder": "ユーザー名",
+    "messagePlaceholder": "メッセージを入力してください",
+    "scrollToLatest": "最新メッセージへ移動",
+    "allCountries": "すべての国",
+    "showingUsers": "全{{total}}件中{{count}}件を表示",
+    "noMatches": "条件に一致するユーザーはいません。",
+    "hideFilters": "フィルターを隠す",
+    "showFilters": "フィルターを表示",
+    "elo": {
+      "all": "すべてのELO",
+      "rookie": "1500未満",
+      "intermediate": "1500～1999",
+      "expert": "2000以上"
     }
+  }
 }

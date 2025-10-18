@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useMessageStore, useUserStore } from '../state/store'
+import { useMessageStore, useUserStore, useSettingsStore } from '../state/store'
+import { useTranslation } from 'react-i18next'
 import {
     Stack,
     Box,
@@ -25,18 +26,22 @@ import { Send, Search, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
 
+const MAX_MESSAGE_LENGTH = 60
+
 type EloFilter = 'ALL' | 'ROOKIE' | 'INTERMEDIATE' | 'EXPERT'
 
 type SelectOption = { label: string; value: string }
 
-const ELO_OPTIONS: SelectOption[] = [
-    { label: 'All ELO', value: 'ALL' },
-    { label: 'Below 1500', value: 'ROOKIE' },
-    { label: '1500 - 1999', value: 'INTERMEDIATE' },
-    { label: '2000+', value: 'EXPERT' },
+const ELO_OPTION_DEFS: Array<{ value: EloFilter; labelKey: string }> = [
+    { value: 'ALL', labelKey: 'Lobby.elo.all' },
+    { value: 'ROOKIE', labelKey: 'Lobby.elo.rookie' },
+    { value: 'INTERMEDIATE', labelKey: 'Lobby.elo.intermediate' },
+    { value: 'EXPERT', labelKey: 'Lobby.elo.expert' },
 ]
 
 export default function LobbyPage() {
+    const theme = useSettingsStore((s) => s.theme)
+    const { t } = useTranslation()
     const globalUser = useUserStore((s) => s.globalUser)
     const lobbyUsers = useUserStore((s) => s.lobbyUsers)
     const chatMessages = useMessageStore((s) => s.chatMessages)
@@ -65,10 +70,10 @@ export default function LobbyPage() {
     }, [lobbyRoster])
 
     const countryOptions = useMemo<SelectOption[]>(() => {
-        const items: SelectOption[] = [{ label: 'All countries', value: 'ALL' }]
+        const items: SelectOption[] = [{ label: t('Lobby.allCountries'), value: 'ALL' }]
         countryCodes.forEach((code) => items.push({ label: code, value: code }))
         return items
-    }, [countryCodes])
+    }, [countryCodes, t])
 
     const countryCollection = useMemo(
         () =>
@@ -80,14 +85,23 @@ export default function LobbyPage() {
         [countryOptions]
     )
 
+    const localizedEloOptions = useMemo<SelectOption[]>(
+        () =>
+            ELO_OPTION_DEFS.map(({ value, labelKey }) => ({
+                value,
+                label: t(labelKey),
+            })),
+        [t]
+    )
+
     const eloCollection = useMemo(
         () =>
             createListCollection<SelectOption>({
-                items: ELO_OPTIONS,
+                items: localizedEloOptions,
                 itemToValue: (item) => item.value,
                 itemToString: (item) => item.label,
             }),
-        []
+        [localizedEloOptions]
     )
 
     useEffect(() => {
@@ -104,11 +118,19 @@ export default function LobbyPage() {
     }, [])
 
     const sendMessage = () => {
+        const trimmed = message.trim()
+        if (!trimmed.length) {
+            return
+        }
+        if (trimmed.length > MAX_MESSAGE_LENGTH) {
+            setMessage(trimmed.slice(0, MAX_MESSAGE_LENGTH))
+            return
+        }
         addChatMessage({
             userName: globalUser?.userName || 'Unknown User',
             id: '1234',
             role: 'user',
-            text: message,
+            text: trimmed,
             timeStamp: Date.now(),
         })
         setMessage('')
@@ -138,6 +160,18 @@ export default function LobbyPage() {
     const handleEloChange = (details: SelectValueChangeDetails<SelectOption>) => {
         const next = (details.items[0]?.value as EloFilter | undefined) ?? 'ALL'
         setEloFilter(next)
+    }
+
+    const formatChatTimestamp = (timestamp?: number) => {
+        if (!timestamp) {
+            return ''
+        }
+        try {
+            const date = new Date(timestamp)
+            return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
+        } catch {
+            return ''
+        }
     }
 
     const filteredUsers = useMemo(() => {
@@ -221,10 +255,20 @@ export default function LobbyPage() {
                     ref={boxRef}
                 >
                     {chatMessages.map((msg) => {
+                        const isSelf = msg.userName === globalUser?.userName
+
                         return (
                             <Stack bgColor={'bg.emphasized'} padding={'2'} key={msg.id}>
-                                <Flex>
-                                    {msg.userName} {msg.timeStamp}
+                                <Flex justifyContent="space-between" gap="2" alignItems="center">
+                                    <Text
+                                        fontWeight="semibold"
+                                        color={isSelf ? `${theme.colorPalette}.500` : undefined}
+                                    >
+                                        {msg.userName}
+                                    </Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                        {formatChatTimestamp(msg.timeStamp)}
+                                    </Text>
                                 </Flex>
                                 <Box>{msg.text || 'failed message'}</Box>
                             </Stack>
@@ -235,10 +279,13 @@ export default function LobbyPage() {
                 <Stack flex="1" height="100%" flexDirection={'column-reverse'}>
                     <Flex gap="2" padding="8px">
                         <Input
-                            placeholder="Type a message!"
+                            placeholder={t('Lobby.messagePlaceholder')}
                             maxW="300px"
                             autoFocus
-                            onChange={(e) => setMessage(e.target.value)}
+                            maxLength={MAX_MESSAGE_LENGTH}
+                            onChange={(e) =>
+                                setMessage(e.target.value.slice(0, MAX_MESSAGE_LENGTH))
+                            }
                             type="text"
                             value={message}
                             onKeyDown={(e) => {
@@ -247,7 +294,11 @@ export default function LobbyPage() {
                                 }
                             }}
                         />
-                        <Button id="message-send-btn" onClick={sendMessage}>
+                        <Button
+                            id="message-send-btn"
+                            onClick={sendMessage}
+                            colorPalette={theme.colorPalette}
+                        >
                             <Send />
                         </Button>
                     </Flex>
@@ -262,7 +313,8 @@ export default function LobbyPage() {
                     transform={showScrollButton ? 'translateY(0)' : 'translateY(8px)'}
                 >
                     <IconButton
-                        aria-label="Scroll to newest message"
+                        colorPalette={theme.colorPalette}
+                        aria-label={t('Lobby.scrollToLatest')}
                         onClick={() => scrollChatToBottom()}
                         size="sm"
                         variant="solid"
@@ -286,11 +338,14 @@ export default function LobbyPage() {
                 >
                     <Flex align="center" justify="space-between" px="4" py="2">
                         <Text fontSize="sm" fontWeight="semibold">
-                            Filters
+                            {t('Lobby.filters')}
                         </Text>
                         <CollapsibleTrigger asChild>
                             <IconButton
-                                aria-label={filtersOpen ? 'Hide filters' : 'Show filters'}
+                                colorPalette={theme.colorPalette}
+                                aria-label={
+                                    filtersOpen ? t('Lobby.hideFilters') : t('Lobby.showFilters')
+                                }
                                 variant="ghost"
                                 size="sm"
                             >
@@ -302,8 +357,9 @@ export default function LobbyPage() {
                         <Stack padding="4" gap="3">
                             <Box position="relative">
                                 <Input
+                                    colorPalette={theme.colorPalette}
                                     pl="8"
-                                    placeholder="User name"
+                                    placeholder={t('Lobby.searchPlaceholder')}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     aria-label="Search users"
@@ -328,7 +384,7 @@ export default function LobbyPage() {
                                     width="200px"
                                 >
                                     <SelectTrigger clearable={countryFilter !== 'ALL'}>
-                                        <SelectValueText placeholder="All countries" />
+                                        <SelectValueText placeholder={t('Lobby.allCountries')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {countryOptions.map((option) => (
@@ -345,10 +401,10 @@ export default function LobbyPage() {
                                     width="200px"
                                 >
                                     <SelectTrigger clearable={eloFilter !== 'ALL'}>
-                                        <SelectValueText placeholder="All ELO" />
+                                        <SelectValueText placeholder={t('Lobby.elo.all')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {ELO_OPTIONS.map((option) => (
+                                        {localizedEloOptions.map((option) => (
                                             <SelectItem key={option.value} item={option}>
                                                 {option.label}
                                             </SelectItem>
@@ -362,11 +418,14 @@ export default function LobbyPage() {
                 <Box borderTopWidth="1px" borderColor="gray.700" />
                 <Stack flex="1" overflowY="auto" padding="4" gap="2">
                     <Text fontSize="sm" color="gray.500">
-                        Showing {filteredUsers.length} of {lobbyRoster.length} users
+                        {t('Lobby.showingUsers', {
+                            count: filteredUsers.length,
+                            total: lobbyRoster.length,
+                        })}
                     </Text>
                     {filteredUsers.length === 0 ? (
                         <Text fontSize="sm" color="gray.500">
-                            No users match the current filters.
+                            {t('Lobby.noMatches')}
                         </Text>
                     ) : (
                         filteredUsers.map((user) => <UserCardSmall key={user.uid} user={user} />)
