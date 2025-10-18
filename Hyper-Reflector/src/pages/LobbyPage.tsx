@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
-import { Send, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Send, Search, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
 
@@ -46,6 +46,7 @@ export default function LobbyPage() {
     const [countryFilter, setCountryFilter] = useState('ALL')
     const [eloFilter, setEloFilter] = useState<EloFilter>('ALL')
     const [filtersOpen, setFiltersOpen] = useState(true)
+    const [showScrollButton, setShowScrollButton] = useState(false)
     const lobbyRoster = useMemo<TUser[]>(() => {
         if (lobbyUsers.length) {
             return lobbyUsers
@@ -173,9 +174,44 @@ export default function LobbyPage() {
     const boxRef = useRef<HTMLDivElement | null>(null)
     useAutoScrollOnNewContent(boxRef, [chatMessages.length])
 
+    const scrollChatToBottom = (behavior: ScrollBehavior = 'smooth') => {
+        const el = boxRef.current
+        if (!el) return
+        el.scrollTo({ top: el.scrollHeight, behavior })
+        setShowScrollButton(false)
+    }
+
+    useEffect(() => {
+        const el = boxRef.current
+        if (!el) return
+        const handleScroll = () => {
+            const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+            setShowScrollButton(distanceFromBottom > 120)
+        }
+        handleScroll()
+        el.addEventListener('scroll', handleScroll)
+        return () => el.removeEventListener('scroll', handleScroll)
+    }, [])
+
+    useEffect(() => {
+        const el = boxRef.current
+        if (!el) return
+        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+        if (distanceFromBottom <= 24) {
+            setShowScrollButton(false)
+        }
+    }, [chatMessages.length])
+
     return (
         <Box display="flex" maxH="100%" minH="100%">
-            <Box display="flex" flexDirection="column" maxH="100%" minH="100%" flex="8">
+            <Box
+                display="flex"
+                flexDirection="column"
+                maxH="100%"
+                minH="100%"
+                flex="8"
+                position="relative"
+            >
                 <Stack
                     key="chat"
                     scrollbarWidth="thin"
@@ -214,6 +250,14 @@ export default function LobbyPage() {
                         <Button id="message-send-btn" onClick={sendMessage}>
                             <Send />
                         </Button>
+                        <IconButton
+                            aria-label="Scroll to newest message"
+                            onClick={() => scrollChatToBottom()}
+                            size="sm"
+                            variant="solid"
+                        >
+                            <ArrowDown size={16} />
+                        </IconButton>
                     </Flex>
                 </Stack>
             </Box>
