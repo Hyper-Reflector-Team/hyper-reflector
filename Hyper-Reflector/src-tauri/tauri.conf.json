@@ -14,7 +14,8 @@
       {
         "title": "hyper-reflector",
         "width": 1100,
-        "height": 650
+        "height": 650,
+        "devtools": false
       }
     ],
     "security": {
