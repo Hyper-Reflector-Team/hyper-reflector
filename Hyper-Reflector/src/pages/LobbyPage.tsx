@@ -45,7 +45,7 @@ export default function LobbyPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [countryFilter, setCountryFilter] = useState('ALL')
     const [eloFilter, setEloFilter] = useState<EloFilter>('ALL')
-    const [filtersOpen, setFiltersOpen] = useState(true)
+    const [filtersOpen, setFiltersOpen] = useState(false)
     const [showScrollButton, setShowScrollButton] = useState(false)
     const lobbyRoster = useMemo<TUser[]>(() => {
         if (lobbyUsers.length) {
@@ -250,16 +250,26 @@ export default function LobbyPage() {
                         <Button id="message-send-btn" onClick={sendMessage}>
                             <Send />
                         </Button>
-                        <IconButton
-                            aria-label="Scroll to newest message"
-                            onClick={() => scrollChatToBottom()}
-                            size="sm"
-                            variant="solid"
-                        >
-                            <ArrowDown size={16} />
-                        </IconButton>
                     </Flex>
                 </Stack>
+                <Box
+                    position="absolute"
+                    bottom="40px"
+                    right="20px"
+                    transition="opacity 0.2s ease, transform 0.2s ease"
+                    opacity={showScrollButton ? 1 : 0}
+                    pointerEvents={showScrollButton ? 'auto' : 'none'}
+                    transform={showScrollButton ? 'translateY(0)' : 'translateY(8px)'}
+                >
+                    <IconButton
+                        aria-label="Scroll to newest message"
+                        onClick={() => scrollChatToBottom()}
+                        size="sm"
+                        variant="solid"
+                    >
+                        <ArrowDown size={16} />
+                    </IconButton>
+                </Box>
             </Box>
             <Box
                 display="flex"

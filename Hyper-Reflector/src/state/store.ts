@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { TUser } from '../types/user'
 
+const MAX_CHAT_MESSAGES = 50
+
 type SettingsState = {
     ggpoDelay: string
     setGgpoDelay: (d: string) => void
@@ -52,12 +54,15 @@ type MessageState = {
     clear: () => void
 }
 
+const trimMessages = (messages: TMessage[]) =>
+    messages.length > MAX_CHAT_MESSAGES ? messages.slice(-MAX_CHAT_MESSAGES) : messages
+
 export const useMessageStore = create<MessageState>()((set) => ({
     chatMessages: [],
     addChatMessage: (msg) =>
-        set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+        set((s) => ({ chatMessages: trimMessages([...s.chatMessages, msg]) })),
     addBatch: (msgs) =>
-        set((s) => ({ chatMessages: [...s.chatMessages, ...msgs] })),
+        set((s) => ({ chatMessages: trimMessages([...s.chatMessages, ...msgs]) })),
     updateMessage: (id, patch) =>
         set((s) => ({
             chatMessages: s.chatMessages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
