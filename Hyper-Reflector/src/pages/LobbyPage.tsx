@@ -1,6 +1,18 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMessageStore, useUserStore } from '../state/store'
-import { Stack, Box, Button, Input, Flex, Text, createListCollection } from '@chakra-ui/react'
+import {
+    Stack,
+    Box,
+    Button,
+    Input,
+    Flex,
+    Text,
+    IconButton,
+    CollapsibleContent,
+    CollapsibleRoot,
+    CollapsibleTrigger,
+    createListCollection,
+} from '@chakra-ui/react'
 import type { SelectValueChangeDetails } from '@chakra-ui/react'
 import {
     SelectContent,
@@ -9,7 +21,7 @@ import {
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
-import { Send, Search } from 'lucide-react'
+import { Send, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
 
@@ -33,6 +45,7 @@ export default function LobbyPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [countryFilter, setCountryFilter] = useState('ALL')
     const [eloFilter, setEloFilter] = useState<EloFilter>('ALL')
+    const [filtersOpen, setFiltersOpen] = useState(true)
     const lobbyRoster = useMemo<TUser[]>(() => {
         if (lobbyUsers.length) {
             return lobbyUsers
@@ -212,69 +225,91 @@ export default function LobbyPage() {
                 flex="2"
                 overflow="hidden"
             >
-                <Stack padding="4">
-                    <Box position="relative">
-                        <Input
-                            pl="8"
-                            placeholder="User name"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            aria-label="Search users"
-                        />
-                        <Box
-                            pointerEvents="none"
-                            position="absolute"
-                            insetY="0"
-                            left="3"
-                            display="flex"
-                            alignItems="center"
-                            color="gray.500"
-                        >
-                            <Search size={16} />
-                        </Box>
-                    </Box>
-                    <Flex gap="2" flexWrap="wrap">
-                        <SelectRoot<SelectOption>
-                            collection={countryCollection}
-                            value={[countryFilter]}
-                            onValueChange={handleCountryChange}
-                            width="200px"
-                        >
-                            <SelectTrigger clearable={countryFilter !== 'ALL'}>
-                                <SelectValueText placeholder="All countries" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {countryOptions.map((option) => (
-                                    <SelectItem key={option.value} item={option}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </SelectRoot>
-                        <SelectRoot<SelectOption>
-                            collection={eloCollection}
-                            value={[eloFilter]}
-                            onValueChange={handleEloChange}
-                            width="200px"
-                        >
-                            <SelectTrigger clearable={eloFilter !== 'ALL'}>
-                                <SelectValueText placeholder="All ELO" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {ELO_OPTIONS.map((option) => (
-                                    <SelectItem key={option.value} item={option}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </SelectRoot>
+                <CollapsibleRoot
+                    open={filtersOpen}
+                    onOpenChange={({ open }) => setFiltersOpen(open)}
+                    width="100%"
+                >
+                    <Flex align="center" justify="space-between" px="4" py="2">
+                        <Text fontSize="sm" fontWeight="semibold">
+                            Filters
+                        </Text>
+                        <CollapsibleTrigger asChild>
+                            <IconButton
+                                aria-label={filtersOpen ? 'Hide filters' : 'Show filters'}
+                                variant="ghost"
+                                size="sm"
+                            >
+                                {filtersOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </IconButton>
+                        </CollapsibleTrigger>
                     </Flex>
+                    <CollapsibleContent>
+                        <Stack padding="4" gap="3">
+                            <Box position="relative">
+                                <Input
+                                    pl="8"
+                                    placeholder="User name"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    aria-label="Search users"
+                                />
+                                <Box
+                                    pointerEvents="none"
+                                    position="absolute"
+                                    insetY="0"
+                                    left="3"
+                                    display="flex"
+                                    alignItems="center"
+                                    color="gray.500"
+                                >
+                                    <Search size={16} />
+                                </Box>
+                            </Box>
+                            <Flex gap="2" flexWrap="wrap">
+                                <SelectRoot<SelectOption>
+                                    collection={countryCollection}
+                                    value={[countryFilter]}
+                                    onValueChange={handleCountryChange}
+                                    width="200px"
+                                >
+                                    <SelectTrigger clearable={countryFilter !== 'ALL'}>
+                                        <SelectValueText placeholder="All countries" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {countryOptions.map((option) => (
+                                            <SelectItem key={option.value} item={option}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </SelectRoot>
+                                <SelectRoot<SelectOption>
+                                    collection={eloCollection}
+                                    value={[eloFilter]}
+                                    onValueChange={handleEloChange}
+                                    width="200px"
+                                >
+                                    <SelectTrigger clearable={eloFilter !== 'ALL'}>
+                                        <SelectValueText placeholder="All ELO" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {ELO_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} item={option}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </SelectRoot>
+                            </Flex>
+                        </Stack>
+                    </CollapsibleContent>
+                </CollapsibleRoot>
+                <Box borderTopWidth="1px" borderColor="gray.700" />
+                <Stack flex="1" overflowY="auto" padding="4" gap="2">
                     <Text fontSize="sm" color="gray.500">
                         Showing {filteredUsers.length} of {lobbyRoster.length} users
                     </Text>
-                </Stack>
-                <Box borderTopWidth="1px" borderColor="gray.700" />
-                <Stack flex="1" overflowY="auto" padding="4">
                     {filteredUsers.length === 0 ? (
                         <Text fontSize="sm" color="gray.500">
                             No users match the current filters.
