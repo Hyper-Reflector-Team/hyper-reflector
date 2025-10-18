@@ -1,49 +1,49 @@
 {
   "Settings": {
     "GGPO": {
-      "title": "GGPO Settings (ja)",
-      "desc": "Choose your netplay experience (ja)",
-      "label": "Delay - Higher is smoother but more input lag (ja)",
-      "placeholder": "Select Delay (ja)"
+      "title": "GGPO設定",
+      "desc": "ネットプレーの体験を選択してください",
+      "label": "ディレイ ― 高いほど動作は滑らかですが入力遅延が増えます",
+      "placeholder": "ディレイを選択"
     },
     "Language": {
-      "placeholder": "Select Language (ja)",
+      "placeholder": "言語を選択",
       "title": "言語",
-      "en": "English",
+      "en": "英語",
       "ja": "日本語"
     },
     "Notification": {
-      "title": "Notification Settings (ja)",
-      "desc": " Choose how the application notifies you of events (ja)",
-      "challengeSound": "Challenge Sound (ja)",
-      "setCustomChallenge": "Set custom challenge sound (ja)",
-      "messageSound": "@ Message Sound (ja)",
-      "setCustomMessage": "Set custom @ message sound (ja)"
+      "title": "通知設定",
+      "desc": "アプリがイベントを通知する方法を選択します",
+      "challengeSound": "対戦リクエスト音",
+      "setCustomChallenge": "対戦リクエスト音をカスタム設定",
+      "messageSound": "メンション通知音",
+      "setCustomMessage": "メンション通知音をカスタム設定"
     },
     "Theme": {
-      "title": "Theme Settings (ja)",
-      "desc": "Change the visual style of the application (ja)",
-      "darkMode": "Mode, (ja)",
-      "select": "Select Theme (ja)"
+      "title": "テーマ設定",
+      "desc": "アプリケーションの見た目を変更します",
+      "darkMode": "モード",
+      "select": "テーマを選択"
     },
     "Emu": {
-      "title": "Emulator Settings (ja)",
-      "desc": "Warning this is deprecated and will be removed (ja)",
-      "setEmuPath": "Set Custom Emulator Path (ja)"
+      "title": "エミュレーター設定",
+      "desc": "警告: この機能は非推奨で今後削除されます",
+      "setEmuPath": "エミュレーターのパスを設定"
     },
     "Danger": {
-      "title": "Danger (ja)",
-      "reset": "Reset to Defaults (ja)",
-      "logOut": "Log Out (ja)"
+      "title": "注意",
+      "reset": "初期設定に戻す",
+      "logOut": "ログアウト"
     }
   },
   "Lab": {
-    "title": "The Lab (ja)",
-    "currentPath": "Current path: (ja)",
-    "start": "Start Training (ja)",
-    "setLua": "Set custom training lua (ja)",
-    "dialogLua": "Select lua file (ja)",
-    "errorPath": "Failed to open dialog (ja)"
+    "title": "ラボ",
+    "currentPath": "現在のパス: ",
+    "start": "トレーニングを開始",
+    "setLua": "トレーニングLuaを設定",
+    "dialogLua": "Luaファイルを選択",
+    "errorPath": "ダイアログを開けませんでした"
   },
   "Lobby": {
     "filters": "フィルター",
@@ -56,9 +56,9 @@
     "hideFilters": "フィルターを隠す",
     "showFilters": "フィルターを表示",
     "elo": {
-      "all": "すべてのELO",
+      "all": "すべてのレート",
       "rookie": "1500未満",
-      "intermediate": "1500～1999",
+      "intermediate": "1500〜1999",
       "expert": "2000以上"
     }
   }
