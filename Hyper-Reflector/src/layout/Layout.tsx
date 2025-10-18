@@ -140,7 +140,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         height={'48px'}
                         bgColor={'bg.muted'}
                         alignItems={'center'}
-                        justifyContent={'space-between'}
+                        justifyContent={'right'}
                         px="4"
                     >
                         <UserCard />
