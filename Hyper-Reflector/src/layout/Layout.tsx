@@ -1,4 +1,6 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ReactElement, useCallback, useEffect, useMemo, useRef } from 'react'
+//@ts-ignore // keys exists
+import keys from '../private/keys'
 import { useNavigate } from '@tanstack/react-router'
 import {
     Box,
@@ -8,13 +10,11 @@ import {
     Text,
     Flex,
     Drawer,
-    Dialog,
     useDisclosure,
     VStack,
     HStack,
     Button,
     Switch,
-    Input,
 } from '@chakra-ui/react'
 import { DEFAULT_LOBBY_ID, useMessageStore, useSettingsStore, useUserStore } from '../state/store'
 import type { LobbySummary } from '../state/store'
@@ -23,11 +23,9 @@ import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
 import { Bell, FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
-import keys from '../private/keys'
+import { LobbyManagerDialog } from './components/LobbyManagerDialog'
 import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
 import { buildMentionRegexes } from '../utils/chatFormatting'
-import { Field } from '../components/chakra/ui/field'
-import { PasswordInput } from '../components/chakra/ui/password-input'
 import { toaster } from '../components/chakra/ui/toaster'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
@@ -89,11 +87,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     } = useDisclosure()
     const signalSocketRef = useRef<WebSocket | null>(null)
     const { playSound: playSoundFile } = useTauriSoundPlayer()
-    const [createLobbyName, setCreateLobbyName] = useState('')
-    const [createLobbyPrivate, setCreateLobbyPrivate] = useState(false)
-    const [createLobbyPass, setCreateLobbyPass] = useState('')
-    const [createLobbyError, setCreateLobbyError] = useState('')
-    const [joinPasses, setJoinPasses] = useState<Record<string, string>>({})
 
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
@@ -160,24 +153,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         })
     }, [lobbyList])
 
-    const createDisabled = useMemo(() => {
-        const trimmed = createLobbyName.trim()
-        if (!globalUser) return true
-        if (!trimmed.length) return true
-        if (trimmed.length < LOBBY_NAME_MIN_LENGTH || trimmed.length > LOBBY_NAME_MAX_LENGTH) {
-            return true
-        }
-        if (trimmed === DEFAULT_LOBBY_ID) {
-            return true
-        }
-        if (createLobbyPrivate) {
-            const pass = createLobbyPass.trim()
-            if (!pass.length) return true
-            if (pass.length > 150) return true
-        }
-        return false
-    }, [createLobbyName, createLobbyPrivate, createLobbyPass, globalUser])
-
     const currentLobbyIdRef = useRef(currentLobbyId || DEFAULT_LOBBY_ID)
 
     useEffect(() => {
@@ -189,7 +164,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             setCurrentLobbyId(DEFAULT_LOBBY_ID)
             setLobbyList([])
             setLobbyUsers([])
-            setJoinPasses({})
             clearChatMessages()
             closeLobbyManager()
         }
@@ -203,32 +177,26 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     ])
 
     const handleLobbyManagerOpen = useCallback(() => {
-        setCreateLobbyError('')
         openLobbyManager()
     }, [openLobbyManager])
 
     const handleLobbyManagerClose = useCallback(() => {
-        setCreateLobbyError('')
         closeLobbyManager()
     }, [closeLobbyManager])
 
     const handleJoinLobby = useCallback(
-        (lobby: LobbySummary, pass: string) => {
+        (lobby: LobbySummary, pass: string): string | null => {
             if (!globalUser) {
                 toaster.error({
                     title: 'Unable to change lobby',
                     description: 'Please log in before joining a lobby.',
                 })
-                return
+                return 'Please log in before joining a lobby.'
             }
 
             const trimmedPass = lobby.isPrivate ? pass.trim() : ''
             if (lobby.isPrivate && !trimmedPass.length) {
-                toaster.error({
-                    title: 'Password required',
-                    description: `Enter the password for ${lobby.name}.`,
-                })
-                return
+                return 'Password required for private lobby.'
             }
 
             const payloadUser = { ...globalUser, lobbyId: lobby.name }
@@ -241,136 +209,107 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             })
 
             if (!sent) {
-                toaster.error({
-                    title: 'Unable to reach lobby server',
-                    description: 'Please try again once the connection is re-established.',
-                })
-                return
+                return 'Unable to reach lobby server. Please try again.'
             }
 
             setCurrentLobbyId(lobby.name)
             clearChatMessages()
             setLobbyUsers([])
-            if (lobby.isPrivate) {
-                setJoinPasses((prev) => {
-                    if (!prev[lobby.name]) return prev
-                    const next = { ...prev }
-                    delete next[lobby.name]
-                    return next
+            toaster.success({
+                title: 'Lobby joined',
+                description: lobby.name,
+            })
+            return null
+        },
+        [clearChatMessages, globalUser, sendSocketMessage, setCurrentLobbyId, setLobbyUsers]
+    )
+
+    const handleCreateLobby = useCallback(
+        (input: { name: string; isPrivate: boolean; pass: string }): string | null => {
+            if (!globalUser) {
+                toaster.error({
+                    title: 'Unable to create lobby',
+                    description: 'Please log in before creating a lobby.',
                 })
+                return 'Please log in before creating a lobby.'
             }
-            handleLobbyManagerClose()
+
+            const trimmedName = input.name.trim()
+            if (!trimmedName.length) {
+                return 'Lobby name is required.'
+            }
+            if (
+                trimmedName.length < LOBBY_NAME_MIN_LENGTH ||
+                trimmedName.length > LOBBY_NAME_MAX_LENGTH
+            ) {
+                return `Lobby name must be between ${LOBBY_NAME_MIN_LENGTH} and ${LOBBY_NAME_MAX_LENGTH} characters.`
+            }
+
+            if (trimmedName === DEFAULT_LOBBY_ID) {
+                return 'Choose a different name from the default lobby.'
+            }
+
+            if (lobbyNameMatcher.hasMatch(trimmedName)) {
+                return 'Lobby name contains inappropriate language.'
+            }
+
+            const trimmedPass = input.isPrivate ? input.pass.trim() : ''
+            if (input.isPrivate && !trimmedPass.length) {
+                return 'Private lobbies require a password.'
+            }
+
+            if (input.isPrivate && trimmedPass.length > 150) {
+                return 'Passwords are limited to 150 characters.'
+            }
+
+            const exists = availableLobbies.some(
+                (lobby) => lobby.name.toLowerCase() === trimmedName.toLowerCase()
+            )
+            if (exists) {
+                return 'A lobby with that name already exists.'
+            }
+
+            const payloadUser = { ...globalUser, lobbyId: trimmedName }
+            const sent = sendSocketMessage({
+                type: 'createLobby',
+                lobbyId: trimmedName,
+                pass: trimmedPass,
+                isPrivate: input.isPrivate,
+                user: payloadUser,
+            })
+
+            if (!sent) {
+                return 'Unable to reach lobby server. Please try again.'
+            }
+
+            const optimisticLobby: LobbySummary = {
+                name: trimmedName,
+                users: 1,
+                isPrivate: input.isPrivate,
+            }
+
+            const current = useUserStore.getState().lobbies
+            const next = [...current.filter((lobby) => lobby.name !== trimmedName), optimisticLobby]
+            setLobbyList(next)
+            setCurrentLobbyId(trimmedName)
+            clearChatMessages()
+            setLobbyUsers([])
+            toaster.success({
+                title: 'Lobby created',
+                description: trimmedName,
+            })
+            return null
         },
         [
+            availableLobbies,
             clearChatMessages,
             globalUser,
-            handleLobbyManagerClose,
             sendSocketMessage,
             setCurrentLobbyId,
+            setLobbyList,
             setLobbyUsers,
         ]
     )
-
-    const handleCreateLobby = useCallback(() => {
-        if (!globalUser) {
-            toaster.error({
-                title: 'Unable to create lobby',
-                description: 'Please log in before creating a lobby.',
-            })
-            return
-        }
-
-        const trimmedName = createLobbyName.trim()
-        if (
-            trimmedName.length < LOBBY_NAME_MIN_LENGTH ||
-            trimmedName.length > LOBBY_NAME_MAX_LENGTH
-        ) {
-            setCreateLobbyError(
-                `Lobby name must be between ${LOBBY_NAME_MIN_LENGTH} and ${LOBBY_NAME_MAX_LENGTH} characters.`
-            )
-            return
-        }
-
-        const exists = availableLobbies.some(
-            (lobby) => lobby.name.toLowerCase() === trimmedName.toLowerCase()
-        )
-        if (exists) {
-            setCreateLobbyError('A lobby with that name already exists.')
-            return
-        }
-
-        if (trimmedName === DEFAULT_LOBBY_ID) {
-            setCreateLobbyError('Choose a different name from the default lobby.')
-            return
-        }
-
-        if (lobbyNameMatcher.hasMatch(trimmedName)) {
-            setCreateLobbyError('Lobby name contains inappropriate language.')
-            return
-        }
-
-        const trimmedPass = createLobbyPrivate ? createLobbyPass.trim() : ''
-        if (createLobbyPrivate && !trimmedPass.length) {
-            setCreateLobbyError('Private lobbies require a password.')
-            return
-        }
-
-        if (createLobbyPrivate && trimmedPass.length > 150) {
-            setCreateLobbyError('Passwords are limited to 150 characters.')
-            return
-        }
-
-        const optimisticLobby: LobbySummary = {
-            name: trimmedName,
-            users: 1,
-            isPrivate: createLobbyPrivate,
-        }
-
-        const payloadUser = { ...globalUser, lobbyId: trimmedName }
-        const sent = sendSocketMessage({
-            type: 'createLobby',
-            lobbyId: trimmedName,
-            pass: trimmedPass,
-            isPrivate: createLobbyPrivate,
-            user: payloadUser,
-        })
-
-        if (!sent) {
-            toaster.error({
-                title: 'Unable to reach lobby server',
-                description: 'Please try again once the connection is re-established.',
-            })
-            return
-        }
-
-        const current = useUserStore.getState().lobbies
-        const next = [...current.filter((lobby) => lobby.name !== trimmedName), optimisticLobby]
-        setLobbyList(next)
-        setCurrentLobbyId(trimmedName)
-        clearChatMessages()
-        setLobbyUsers([])
-        setCreateLobbyName('')
-        setCreateLobbyPass('')
-        setCreateLobbyPrivate(false)
-        setCreateLobbyError('')
-        handleLobbyManagerClose()
-        toaster.success({
-            title: 'Lobby created',
-            description: trimmedName,
-        })
-    }, [
-        availableLobbies,
-        clearChatMessages,
-        createLobbyName,
-        createLobbyPass,
-        createLobbyPrivate,
-        globalUser,
-        handleLobbyManagerClose,
-        sendSocketMessage,
-        setCurrentLobbyId,
-        setLobbyList,
-        setLobbyUsers,
-    ])
 
     const notificationItems = useMemo(() => {
         if (!Array.isArray(chatMessages)) return []
@@ -574,12 +513,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         setSignalStatus,
     ])
 
-    useEffect(() => {
-        if (lobbyManagerOpen) {
-            setCreateLobbyError('')
-        }
-    }, [lobbyManagerOpen])
-
     return (
         <>
             <Box display="flex" bgImage={`url(${bgImage})`} bgBlendMode={'color-dodge'}>
@@ -642,11 +575,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         height={'48px'}
                         bgColor={'bg.muted'}
                         alignItems={'center'}
-                        justifyContent={'flex-end'}
                         px="4"
                         gap="3"
+                        justifyContent="space-between"
                     >
-                        <UserCard />
                         {globalLoggedIn ? (
                             <Button
                                 size="sm"
@@ -657,35 +589,38 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 Lobby: {currentLobbyId || DEFAULT_LOBBY_ID}
                             </Button>
                         ) : null}
-                        <Box position="relative">
-                            <IconButton
-                                colorPalette={accentColor}
-                                width={'40px'}
-                                height={'40px'}
-                                onClick={openNotifications}
-                                aria-label="Open notifications"
-                            >
-                                <Bell />
-                            </IconButton>
-                            {unreadCount > 0 ? (
-                                <Box
-                                    position="absolute"
-                                    top="-4px"
-                                    right="-4px"
-                                    minWidth="18px"
-                                    height="18px"
-                                    borderRadius="full"
-                                    bg={`${accentColor}.500`}
-                                    color="white"
-                                    fontSize="xs"
-                                    display="flex"
-                                    alignItems="center"
-                                    justifyContent="center"
-                                    px="1"
+                        <Box display="flex">
+                            <UserCard />
+                            <Box position="relative" top="1.5">
+                                <IconButton
+                                    colorPalette={accentColor}
+                                    width={'40px'}
+                                    height={'40px'}
+                                    onClick={openNotifications}
+                                    aria-label="Open notifications"
                                 >
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </Box>
-                            ) : null}
+                                    <Bell />
+                                </IconButton>
+                                {unreadCount > 0 ? (
+                                    <Box
+                                        position="absolute"
+                                        top="-4px"
+                                        right="-4px"
+                                        minWidth="18px"
+                                        height="18px"
+                                        borderRadius="full"
+                                        bg={`${accentColor}.500`}
+                                        color="white"
+                                        fontSize="xs"
+                                        display="flex"
+                                        alignItems="center"
+                                        justifyContent="center"
+                                        px="1"
+                                    >
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </Box>
+                                ) : null}
+                            </Box>
                         </Box>
                     </Flex>
                     <Box
@@ -731,182 +666,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     </Box>
                 </Stack>
             </Box>
-            <Dialog.Root
-                open={lobbyManagerOpen}
-                onOpenChange={({ open }) => {
-                    if (!open) {
-                        handleLobbyManagerClose()
-                    }
-                }}
-            >
-                <Dialog.Backdrop />
-                <Dialog.Positioner>
-                    <Dialog.Content maxW="lg">
-                        <Dialog.CloseTrigger />
-                        <Dialog.Header>
-                            <Dialog.Title>Manage Lobbies</Dialog.Title>
-                            <Dialog.Description>
-                                Switch between active rooms or create a new lobby for your group.
-                            </Dialog.Description>
-                        </Dialog.Header>
-                        <Dialog.Body>
-                            <Stack gap="4">
-                                <Box>
-                                    <Text fontWeight="semibold">Current lobby</Text>
-                                    <Text fontSize="sm" color="gray.500">
-                                        {currentLobbyId || DEFAULT_LOBBY_ID}
-                                    </Text>
-                                </Box>
-                                <Box height="1px" bg="border" />
-                                <Stack gap="3">
-                                    <Text fontWeight="semibold">Available lobbies</Text>
-                                    {availableLobbies.length === 0 ? (
-                                        <Text fontSize="sm" color="gray.500">
-                                            No lobbies found. Create one below.
-                                        </Text>
-                                    ) : (
-                                        availableLobbies.map((lobby) => {
-                                            const isCurrent = lobby.name === currentLobbyId
-                                            const passValue = joinPasses[lobby.name] ?? ''
-                                            const joinDisabled =
-                                                isCurrent ||
-                                                !globalUser ||
-                                                (lobby.isPrivate ? !passValue.trim() : false)
+            <LobbyManagerDialog
+                isOpen={lobbyManagerOpen}
+                onClose={handleLobbyManagerClose}
+                accentColor={accentColor}
+                currentLobbyId={currentLobbyId || DEFAULT_LOBBY_ID}
+                availableLobbies={availableLobbies}
+                lobbyNameMaxLength={LOBBY_NAME_MAX_LENGTH}
+                onJoinLobby={handleJoinLobby}
+                onCreateLobby={handleCreateLobby}
+            />
 
-                                            return (
-                                                <Box
-                                                    key={lobby.name}
-                                                    borderWidth="1px"
-                                                    borderRadius="md"
-                                                    padding="3"
-                                                    bg="bg.canvas"
-                                                >
-                                                    <Flex
-                                                        justifyContent="space-between"
-                                                        gap="3"
-                                                        alignItems="center"
-                                                    >
-                                                        <Box>
-                                                            <Text fontWeight="medium">
-                                                                {lobby.name}
-                                                            </Text>
-                                                            <Text fontSize="xs" color="gray.500">
-                                                                {`${lobby.users ?? 0} users | ${
-                                                                    lobby.isPrivate
-                                                                        ? 'Private'
-                                                                        : 'Public'
-                                                                }`}
-                                                            </Text>
-                                                        </Box>
-                                                        <Button
-                                                            size="sm"
-                                                            colorPalette={accentColor}
-                                                            variant="solid"
-                                                            disabled={joinDisabled}
-                                                            onClick={() =>
-                                                                handleJoinLobby(lobby, passValue)
-                                                            }
-                                                        >
-                                                            {isCurrent
-                                                                ? 'Current'
-                                                                : lobby.isPrivate
-                                                                  ? 'Join (Private)'
-                                                                  : 'Join'}
-                                                        </Button>
-                                                    </Flex>
-                                                    {lobby.isPrivate ? (
-                                                        <Box mt="3">
-                                                            <Field label="Password" required>
-                                                                <PasswordInput
-                                                                    value={passValue}
-                                                                    onChange={(event) => {
-                                                                        const next =
-                                                                            event.target.value
-                                                                        setJoinPasses((prev) => ({
-                                                                            ...prev,
-                                                                            [lobby.name]: next,
-                                                                        }))
-                                                                    }}
-                                                                />
-                                                            </Field>
-                                                        </Box>
-                                                    ) : null}
-                                                </Box>
-                                            )
-                                        })
-                                    )}
-                                </Stack>
-                                <Box height="1px" bg="border" />
-                                <Stack gap="3">
-                                    <Text fontWeight="semibold">Create a lobby</Text>
-                                    <Field label="Lobby name" required>
-                                        <Input
-                                            value={createLobbyName}
-                                            onChange={(event) => {
-                                                setCreateLobbyName(event.target.value)
-                                                if (createLobbyError) setCreateLobbyError('')
-                                            }}
-                                            maxLength={LOBBY_NAME_MAX_LENGTH}
-                                            placeholder="Enter a lobby name"
-                                        />
-                                    </Field>
-                                    <Switch.Root
-                                        size="md"
-                                        display="flex"
-                                        alignItems="center"
-                                        justifyContent="space-between"
-                                        gap="2"
-                                        checked={createLobbyPrivate}
-                                        onCheckedChange={(event) => {
-                                            setCreateLobbyPrivate(event.checked)
-                                            if (!event.checked) {
-                                                setCreateLobbyPass('')
-                                            }
-                                            if (createLobbyError) setCreateLobbyError('')
-                                        }}
-                                    >
-                                        <Switch.HiddenInput />
-                                        <Switch.Label>Private lobby</Switch.Label>
-                                        <Switch.Control>
-                                            <Switch.Thumb />
-                                        </Switch.Control>
-                                    </Switch.Root>
-                                    {createLobbyPrivate ? (
-                                        <Field label="Password" required>
-                                            <PasswordInput
-                                                value={createLobbyPass}
-                                                onChange={(event) => {
-                                                    setCreateLobbyPass(event.target.value)
-                                                    if (createLobbyError) setCreateLobbyError('')
-                                                }}
-                                                maxLength={150}
-                                                placeholder="Set a lobby password"
-                                            />
-                                        </Field>
-                                    ) : null}
-                                    {createLobbyError ? (
-                                        <Text fontSize="sm" color="red.400">
-                                            {createLobbyError}
-                                        </Text>
-                                    ) : null}
-                                    <Button
-                                        colorPalette={accentColor}
-                                        onClick={handleCreateLobby}
-                                        disabled={createDisabled}
-                                    >
-                                        Create lobby
-                                    </Button>
-                                </Stack>
-                            </Stack>
-                        </Dialog.Body>
-                        <Dialog.Footer>
-                            <Button variant="outline" onClick={handleLobbyManagerClose}>
-                                Close
-                            </Button>
-                        </Dialog.Footer>
-                    </Dialog.Content>
-                </Dialog.Positioner>
-            </Dialog.Root>
             <Drawer.Root
                 open={notificationsOpen}
                 onOpenChange={({ open }) => {
@@ -914,7 +684,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         closeNotifications()
                     }
                 }}
-                // placement="right"
                 size="sm"
             >
                 <Drawer.Backdrop />
