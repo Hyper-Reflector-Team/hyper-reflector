@@ -27,7 +27,7 @@ let peerConnection: RTCPeerConnection = null
 let currentUsers: any[] = [] // we use this to map through all users in a room
 
 // Updates for online
-const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:3003` // set for online env
+const SOCKET_ADDRESS = `ws://${keys.COTURN_IP}:${keys.SIGNAL_PORT ?? 3003}` // set for online env
 
 const gows = new WebSocket(`ws://${keys.COTURN_IP}:8890/ws`) // go web socks
 

@@ -1,4 +1,4 @@
-import { ReactElement, useMemo } from 'react'
+import { ReactElement, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
     Box,
@@ -19,6 +19,7 @@ import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
 import { Bell, FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
+import keys from '../private/keys'
 
 const CHALLENGE_ACCEPT_LABEL = 'Accept'
 const CHALLENGE_DECLINE_LABEL = 'Decline'
@@ -42,11 +43,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const navigate = useNavigate()
     const globalLoggedIn = useUserStore((s) => s.globalLoggedIn)
     const globalUser = useUserStore((s) => s.globalUser)
+    const setSignalStatus = useUserStore((s) => s.setSignalStatus)
     const chatMessages = useMessageStore((s) => s.chatMessages)
     const theme = useSettingsStore((s) => s.theme)
     const accentColor = theme?.colorPalette ?? 'orange'
     const { t } = useTranslation()
     const notificationsDisclosure = useDisclosure()
+    const signalSocketRef = useRef<WebSocket | null>(null)
 
     const handleChallengeResponse = (messageId: string, accepted: boolean) => {
         console.log('Challenge response', { messageId, accepted })
@@ -77,6 +80,69 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const changeRoute = (route: string) => {
         navigate({ to: route })
     }
+
+    useEffect(() => {
+        if (!globalLoggedIn || !globalUser) {
+            setSignalStatus('disconnected')
+            if (signalSocketRef.current) {
+                signalSocketRef.current.close()
+                signalSocketRef.current = null
+            }
+            return
+        }
+
+        setSignalStatus('connecting')
+        const socketUrl = `ws://${keys.COTURN_IP}:${keys.SIGNAL_PORT ?? '3003'}`
+        const socket = new WebSocket(socketUrl)
+        signalSocketRef.current = socket
+        let didError = false
+
+        socket.onopen = () => {
+            setSignalStatus('connected')
+            try {
+                socket.send(
+                    JSON.stringify({
+                        type: 'join',
+                        user: { ...globalUser },
+                    })
+                )
+            } catch (error) {
+                console.error('Failed to send join message to signal server:', error)
+            }
+        }
+
+        socket.onerror = (event) => {
+            didError = true
+            console.error('Signal server websocket error:', event)
+            setSignalStatus('error')
+        }
+
+        socket.onclose = () => {
+            signalSocketRef.current = null
+            if (!didError) {
+                setSignalStatus('disconnected')
+            }
+        }
+
+        socket.onmessage = (event) => {
+            try {
+                const payload = JSON.parse(event.data)
+                if (payload?.type === 'connected-users') {
+                    console.log(
+                        `Signal server connected-users payload received (${payload.users?.length ?? 0})`
+                    )
+                }
+            } catch {
+                // ignore non-JSON payloads
+            }
+        }
+
+        return () => {
+            socket.close()
+            signalSocketRef.current = null
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [globalLoggedIn, globalUser])
 
     return (
         <>

@@ -27,13 +27,17 @@ type SettingsState = {
     setAppLanguage: (code: string) => void
 }
 
+type SignalStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+
 type UserState = {
     globalUser: TUser | undefined
     globalLoggedIn: boolean
     lobbyUsers: TUser[]
+    signalStatus: SignalStatus
     setGlobalUser: (user: TUser | undefined) => void
     setGlobalLoggedIn: (info: boolean) => void
     setLobbyUsers: (users: TUser[]) => void
+    setSignalStatus: (status: SignalStatus) => void
 }
 
 type TMessage = {
@@ -76,9 +80,11 @@ export const useUserStore = create<UserState>((set) => ({
     globalUser: undefined,
     globalLoggedIn: false,
     lobbyUsers: [],
+    signalStatus: 'disconnected',
     setGlobalUser: (user) => set({ globalUser: user }),
     setGlobalLoggedIn: (info) => set({ globalLoggedIn: info }),
     setLobbyUsers: (users) => set({ lobbyUsers: users }),
+    setSignalStatus: (status) => set({ signalStatus: status }),
 }))
 
 
