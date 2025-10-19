@@ -25,6 +25,7 @@ import {
 import { Send, Search, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
+import { highlightMentions } from '../utils/chatFormatting'
 
 const MAX_MESSAGE_LENGTH = 60
 
@@ -58,6 +59,19 @@ export default function LobbyPage() {
         }
         return globalUser ? [globalUser] : []
     }, [globalUser, lobbyUsers])
+
+    const mentionHandles = useMemo(() => {
+        const handles = new Set<string>()
+        lobbyRoster.forEach((user) => {
+            if (user.userName?.trim()) handles.add(user.userName.trim())
+            if (Array.isArray(user.knownAliases)) {
+                user.knownAliases.forEach((alias) => {
+                    if (alias?.trim()) handles.add(alias.trim())
+                })
+            }
+        })
+        return Array.from(handles)
+    }, [lobbyRoster])
 
     const countryCodes = useMemo(() => {
         const codes = new Set<string>()
@@ -257,6 +271,10 @@ export default function LobbyPage() {
                 >
                     {chatMessages.map((msg) => {
                         const isSelf = msg.userName === globalUser?.userName
+                        const messageHtml = highlightMentions(
+                            msg.text ?? 'failed message',
+                            mentionHandles
+                        )
 
                         return (
                             <Stack bgColor={'bg.emphasized'} padding={'2'} key={msg.id + 'lobby'}>
@@ -271,7 +289,7 @@ export default function LobbyPage() {
                                         {formatChatTimestamp(msg.timeStamp)}
                                     </Text>
                                 </Flex>
-                                <Box>{msg.text || 'failed message'}</Box>
+                                <Box dangerouslySetInnerHTML={{ __html: messageHtml }} />
                             </Stack>
                         )
                     })}

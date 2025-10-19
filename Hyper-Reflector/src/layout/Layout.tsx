@@ -12,6 +12,7 @@ import {
     VStack,
     HStack,
     Button,
+    Switch,
 } from '@chakra-ui/react'
 import { useMessageStore, useSettingsStore, useUserStore } from '../state/store'
 import { useTranslation } from 'react-i18next'
@@ -20,6 +21,8 @@ import hrLogo from '../assets/logo.svg'
 import { Bell, FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
 import keys from '../private/keys'
+import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
+import { buildMentionRegexes } from '../utils/chatFormatting'
 
 const CHALLENGE_ACCEPT_LABEL = 'Accept'
 const CHALLENGE_DECLINE_LABEL = 'Decline'
@@ -46,18 +49,47 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const setSignalStatus = useUserStore((s) => s.setSignalStatus)
     const chatMessages = useMessageStore((s) => s.chatMessages)
     const theme = useSettingsStore((s) => s.theme)
+    const notificationsMuted = useSettingsStore((s) => s.notificationsMuted)
+    const setNotificationsMuted = useSettingsStore((s) => s.setNotificationsMuted)
+    const notifChallengeSoundEnabled = useSettingsStore((s) => s.notifChallengeSound)
+    const notifChallengeSoundPath = useSettingsStore((s) => s.notifChallengeSoundPath)
+    const notifMentionSoundEnabled = useSettingsStore((s) => s.notifiAtSound)
+    const notifMentionSoundPath = useSettingsStore((s) => s.notifAtSoundPath)
     const accentColor = theme?.colorPalette ?? 'orange'
     const { t } = useTranslation()
     const notificationsDisclosure = useDisclosure()
     const signalSocketRef = useRef<WebSocket | null>(null)
+    const { playSound: playSoundFile } = useTauriSoundPlayer()
 
     const handleChallengeResponse = (messageId: string, accepted: boolean) => {
         console.log('Challenge response', { messageId, accepted })
     }
 
-    const notificationItems = useMemo(() => {
+    const mentionHandles = useMemo(() => {
+        const handles = new Set<string>()
         const username = globalUser?.userName?.trim()
-        const usernameHandle = username ? `@${username.toLowerCase()}` : undefined
+        if (username) handles.add(username)
+
+        const aliases = Array.isArray(globalUser?.knownAliases)
+            ? (globalUser?.knownAliases as string[])
+            : []
+
+        aliases.forEach((alias) => {
+            if (typeof alias === 'string' && alias.trim()) {
+                handles.add(alias.trim())
+            }
+        })
+
+        return Array.from(handles)
+    }, [globalUser?.userName, globalUser?.knownAliases])
+
+    const mentionMatchers = useMemo(
+        () => buildMentionRegexes(mentionHandles, 'i'),
+        [mentionHandles]
+    )
+
+    const notificationItems = useMemo(() => {
+        if (!Array.isArray(chatMessages)) return []
 
         return chatMessages
             .filter((msg) => {
@@ -65,17 +97,53 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     return true
                 }
 
-                if (!usernameHandle || !msg.text) {
+                if (!msg.text || !mentionMatchers.length) {
                     return false
                 }
 
-                return msg.text.toLowerCase().includes(usernameHandle)
+                return mentionMatchers.some((matcher) => {
+                    matcher.lastIndex = 0
+                    return matcher.test(msg.text)
+                })
             })
             .slice()
             .sort((a, b) => (b.timeStamp ?? 0) - (a.timeStamp ?? 0))
-    }, [chatMessages, globalUser])
+    }, [chatMessages, mentionMatchers])
 
     const unreadCount = notificationItems.length
+    const prevNotificationCountRef = useRef<number>(notificationItems.length)
+
+    useEffect(() => {
+        const previousCount = prevNotificationCountRef.current
+        if (notificationItems.length <= previousCount) {
+            prevNotificationCountRef.current = notificationItems.length
+            return
+        }
+
+        const newItems = notificationItems.slice(previousCount)
+        prevNotificationCountRef.current = notificationItems.length
+
+        if (notificationsMuted) return
+
+        newItems.forEach((item) => {
+            if (item.role === 'challenge') {
+                if (!notifChallengeSoundEnabled || !notifChallengeSoundPath) return
+
+                void playSoundFile(notifChallengeSoundPath)
+            } else {
+                if (!notifMentionSoundEnabled || !notifMentionSoundPath) return
+                void playSoundFile(notifMentionSoundPath)
+            }
+        })
+    }, [
+        notificationItems,
+        notificationsMuted,
+        notifChallengeSoundEnabled,
+        notifChallengeSoundPath,
+        notifMentionSoundEnabled,
+        notifMentionSoundPath,
+        playSoundFile,
+    ])
 
     const changeRoute = (route: string) => {
         navigate({ to: route })
@@ -298,6 +366,25 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         <Drawer.CloseTrigger />
                         <Drawer.Header>
                             <Drawer.Title>{NOTIFICATIONS_TITLE}</Drawer.Title>
+                            <Switch.Root
+                                colorPalette={accentColor}
+                                size="md"
+                                mt="2"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="space-between"
+                                gap="2"
+                                checked={notificationsMuted}
+                                onCheckedChange={(event) => setNotificationsMuted(event.checked)}
+                            >
+                                <Switch.HiddenInput />
+                                <Switch.Label fontSize="sm" color="gray.400">
+                                    Mute notifications
+                                </Switch.Label>
+                                <Switch.Control>
+                                    <Switch.Thumb />
+                                </Switch.Control>
+                            </Switch.Root>
                         </Drawer.Header>
                         <Drawer.Body>
                             <VStack align="stretch">

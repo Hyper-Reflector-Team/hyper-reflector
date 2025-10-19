@@ -19,6 +19,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../state/store'
 import { Check, Moon, Play, Square, Sun, Volume2, VolumeX, X, LogOut } from 'lucide-react'
 import { toaster } from '../components/chakra/ui/toaster'
+import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
 
 const MARGIN_SECTION = '12px'
 
@@ -44,6 +45,7 @@ export default function SettingsPage() {
     const emulatorPath = useSettingsStore((s) => s.emulatorPath)
     const setAppLanguage = useSettingsStore((s) => s.setAppLanguage)
     const appLanguage = useSettingsStore((s) => s.appLanguage)
+    const { playSound: playSoundFile } = useTauriSoundPlayer()
 
     const themes = createListCollection({
         items: [
@@ -122,8 +124,12 @@ export default function SettingsPage() {
     }
 
     const playSound = async (type: string) => {
-        if (type === 'challenge') await invoke('play_sound', { path: notifChallengeSoundPath })
-        if (type === 'at') await invoke('play_sound', { path: notifAtSoundPath })
+        if (type === 'challenge') {
+            await playSoundFile(notifChallengeSoundPath)
+        }
+        if (type === 'at') {
+            await playSoundFile(notifAtSoundPath)
+        }
     }
 
     const pauseSound = async () => {

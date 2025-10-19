@@ -15,6 +15,8 @@ type SettingsState = {
     setNotifAtSound: (on: boolean) => void
     notifAtSoundPath: string
     setNotifAtSoundPath: (path: string) => void
+    notificationsMuted: boolean
+    setNotificationsMuted: (on: boolean) => void
     darkMode: boolean
     setDarkMode: (on: boolean) => void
     theme: { colorPalette: string, name: string }
@@ -101,6 +103,8 @@ export const useSettingsStore = create<SettingsState>()(
             setNotifAtSound: (on) => set({ notifiAtSound: on }),
             notifAtSoundPath: '',
             setNotifAtSoundPath: (path) => set({ notifAtSoundPath: path }),
+            notificationsMuted: false,
+            setNotificationsMuted: (on) => set({ notificationsMuted: on }),
             emulatorPath: '',
             setEmulatorPath: (path) => set({ emulatorPath: path }),
             darkMode: true,
