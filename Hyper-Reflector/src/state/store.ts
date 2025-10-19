@@ -2,6 +2,15 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { TUser } from '../types/user'
 
+export const DEFAULT_LOBBY_ID = 'Hyper Reflector'
+
+export type LobbySummary = {
+    name: string
+    users: number
+    pass?: string
+    isPrivate?: boolean
+}
+
 const MAX_CHAT_MESSAGES = 50
 
 type SettingsState = {
@@ -36,10 +45,14 @@ type UserState = {
     globalLoggedIn: boolean
     lobbyUsers: TUser[]
     signalStatus: SignalStatus
+    currentLobbyId: string
+    lobbies: LobbySummary[]
     setGlobalUser: (user: TUser | undefined) => void
     setGlobalLoggedIn: (info: boolean) => void
     setLobbyUsers: (users: TUser[]) => void
     setSignalStatus: (status: SignalStatus) => void
+    setCurrentLobbyId: (id: string) => void
+    setLobbies: (lobbies: LobbySummary[]) => void
 }
 
 type TMessage = {
@@ -83,10 +96,14 @@ export const useUserStore = create<UserState>((set) => ({
     globalLoggedIn: false,
     lobbyUsers: [],
     signalStatus: 'disconnected',
+    currentLobbyId: DEFAULT_LOBBY_ID,
+    lobbies: [],
     setGlobalUser: (user) => set({ globalUser: user }),
     setGlobalLoggedIn: (info) => set({ globalLoggedIn: info }),
     setLobbyUsers: (users) => set({ lobbyUsers: users }),
     setSignalStatus: (status) => set({ signalStatus: status }),
+    setCurrentLobbyId: (id) => set({ currentLobbyId: id || DEFAULT_LOBBY_ID }),
+    setLobbies: (lobbies) => set({ lobbies }),
 }))
 
 
