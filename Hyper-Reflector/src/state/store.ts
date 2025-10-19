@@ -55,7 +55,7 @@ type UserState = {
     setLobbies: (lobbies: LobbySummary[]) => void
 }
 
-type TMessage = {
+export type TMessage = {
     id: string
     role: 'user' | 'system' | 'challenge'
     text: string
@@ -71,6 +71,7 @@ type MessageState = {
     updateMessage: (id: string, patch: Partial<TMessage>) => void
     removeMessage: (id: string) => void
     clear: () => void
+    removeMessagesByIds: (ids: string[]) => void
 }
 
 const trimMessages = (messages: TMessage[]) =>
@@ -89,6 +90,10 @@ export const useMessageStore = create<MessageState>()((set) => ({
     removeMessage: (id) =>
         set((s) => ({ chatMessages: s.chatMessages.filter((m) => m.id !== id) })),
     clear: () => set({ chatMessages: [] }),
+    removeMessagesByIds: (ids) =>
+        set((s) => ({
+            chatMessages: s.chatMessages.filter((m) => !ids.includes(m.id)),
+        })),
 }))
 
 export const useUserStore = create<UserState>((set) => ({

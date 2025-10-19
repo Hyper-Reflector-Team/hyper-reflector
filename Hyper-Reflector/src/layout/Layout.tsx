@@ -17,7 +17,8 @@ import {
     Switch,
 } from '@chakra-ui/react'
 import { DEFAULT_LOBBY_ID, useMessageStore, useSettingsStore, useUserStore } from '../state/store'
-import type { LobbySummary } from '../state/store'
+import type { LobbySummary, TMessage } from '../state/store'
+import type { TUser } from '../types/user'
 import { useTranslation } from 'react-i18next'
 import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
@@ -28,6 +29,8 @@ import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
 import { buildMentionRegexes } from '../utils/chatFormatting'
 import { toaster } from '../components/chakra/ui/toaster'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
+
+import { initWebRTC, startCall, answerCall, declineCall as webrtcDeclineCall, closeConnectionWithUser } from '../webRTC/WebPeer'
 
 const CHALLENGE_ACCEPT_LABEL = 'Accept'
 const CHALLENGE_DECLINE_LABEL = 'Decline'
@@ -40,6 +43,134 @@ const lobbyNameMatcher = new RegExpMatcher({
     ...englishDataset.build(),
     ...englishRecommendedTransformers,
 })
+
+const FALLBACK_USER_TITLE: TUser['userTitle'] = {
+    bgColor: '#1f1f24',
+    border: '#37373f',
+    color: '#f2f2f7',
+    title: 'Contender',
+}
+
+const MOCK_CHALLENGE_USER: TUser = {
+    uid: 'mock-opponent',
+    userName: 'Mock Opponent',
+    accountElo: 1625,
+    countryCode: 'US',
+    gravEmail: '',
+    knownAliases: ['TrainingBot', 'MockOpponent'],
+    pingLat: 37.7749,
+    pingLon: -122.4194,
+    userEmail: 'mock@hyper-reflector.test',
+    userProfilePic: '',
+    userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Partner' },
+    winstreak: 0,
+}
+
+const normalizeSocketUser = (candidate: any): TUser | null => {
+    if (!candidate || typeof candidate.uid !== 'string') {
+        return null
+    }
+
+    const uid = candidate.uid.trim()
+    if (!uid.length) {
+        return null
+    }
+
+    const aliases = Array.isArray(candidate.knownAliases)
+        ? candidate.knownAliases
+              .map((alias: unknown) => (typeof alias === 'string' ? alias.trim() : ''))
+              .filter((alias: string): alias is string => Boolean(alias.length))
+        : []
+
+    const titleSource =
+        candidate.userTitle && typeof candidate.userTitle === 'object'
+            ? candidate.userTitle
+            : FALLBACK_USER_TITLE
+
+    const userTitle = {
+        bgColor:
+            typeof titleSource.bgColor === 'string' && titleSource.bgColor.length
+                ? titleSource.bgColor
+                : FALLBACK_USER_TITLE.bgColor,
+        border:
+            typeof titleSource.border === 'string' && titleSource.border.length
+                ? titleSource.border
+                : FALLBACK_USER_TITLE.border,
+        color:
+            typeof titleSource.color === 'string' && titleSource.color.length
+                ? titleSource.color
+                : FALLBACK_USER_TITLE.color,
+        title:
+            typeof titleSource.title === 'string' && titleSource.title.length
+                ? titleSource.title
+                : FALLBACK_USER_TITLE.title,
+    }
+
+    return {
+        uid,
+        userName:
+            typeof candidate.userName === 'string' && candidate.userName.trim().length
+                ? candidate.userName.trim()
+                : uid,
+        accountElo:
+            typeof candidate.accountElo === 'number' && Number.isFinite(candidate.accountElo)
+                ? candidate.accountElo
+                : 0,
+        countryCode:
+            typeof candidate.countryCode === 'string' && candidate.countryCode.trim().length
+                ? candidate.countryCode.trim().toUpperCase()
+                : 'XX',
+        gravEmail:
+            typeof candidate.gravEmail === 'string'
+                ? candidate.gravEmail
+                : typeof candidate.email === 'string'
+                ? candidate.email
+                : '',
+        knownAliases: aliases,
+        pingLat: typeof candidate.pingLat === 'number' ? candidate.pingLat : 0,
+        pingLon: typeof candidate.pingLon === 'number' ? candidate.pingLon : 0,
+        userEmail:
+            typeof candidate.userEmail === 'string'
+                ? candidate.userEmail
+                : typeof candidate.email === 'string'
+                ? candidate.email
+                : '',
+        userProfilePic:
+            typeof candidate.userProfilePic === 'string' ? candidate.userProfilePic : '',
+        userTitle,
+        winstreak:
+            typeof candidate.winstreak === 'number'
+                ? candidate.winstreak
+                : typeof candidate.winStreak === 'number'
+                ? candidate.winStreak
+                : 0,
+    }
+}
+
+const appendMockUser = (users: TUser[]): TUser[] => {
+    if (users.some((user) => user.uid === MOCK_CHALLENGE_USER.uid)) {
+        return users
+    }
+
+    return [
+        ...users,
+        {
+            ...MOCK_CHALLENGE_USER,
+            userTitle: { ...MOCK_CHALLENGE_USER.userTitle },
+            knownAliases: [...MOCK_CHALLENGE_USER.knownAliases],
+        },
+    ]
+}
+
+type SendMessageEventDetail = {
+    text: string
+    onSuccess?: () => void
+    onError?: (message: string) => void
+}
+
+type ChallengeEventDetail = {
+    targetUid: string
+}
 
 const formatTimestamp = (timestamp?: number) => {
     if (!timestamp) {
@@ -88,6 +219,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const signalSocketRef = useRef<WebSocket | null>(null)
     const { playSound: playSoundFile } = useTauriSoundPlayer()
 
+    const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
+    const opponentUidRef = useRef<string | null>(null)
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
         if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -224,6 +357,58 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         [clearChatMessages, globalUser, sendSocketMessage, setCurrentLobbyId, setLobbyUsers]
     )
 
+    const startChallenge = useCallback(
+        async (targetUid: string) => {
+            if (!globalUser?.uid) {
+                toaster.error({
+                    title: 'Unable to challenge',
+                    description: 'Please log in before sending challenges.',
+                })
+                return
+            }
+
+            const socket = signalSocketRef.current
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                toaster.error({
+                    title: 'Unable to challenge',
+                    description: 'Signal server is not connected.',
+                })
+                return
+            }
+
+            try {
+                if (opponentUidRef.current) {
+                    closeConnectionWithUser(opponentUidRef.current)
+                    opponentUidRef.current = null
+                }
+                if (peerConnectionRef.current) {
+                    try {
+                        peerConnectionRef.current.close()
+                    } catch (error) {
+                        console.error('Failed to close previous peer connection:', error)
+                    }
+                    peerConnectionRef.current = null
+                }
+
+                const peer = await initWebRTC(globalUser.uid, targetUid, socket)
+                peerConnectionRef.current = peer
+                opponentUidRef.current = targetUid
+                await startCall(peer, socket, targetUid, globalUser.uid, true)
+                toaster.success({
+                    title: 'Challenge sent',
+                    description: 'Waiting for opponent to respond.',
+                })
+            } catch (error) {
+                console.error('Failed to initiate challenge:', error)
+                toaster.error({
+                    title: 'Challenge failed',
+                    description: 'Unable to initiate WebRTC call.',
+                })
+            }
+        },
+        [globalUser?.uid]
+    )
+
     const handleCreateLobby = useCallback(
         (input: { name: string; isPrivate: boolean; pass: string }): string | null => {
             if (!globalUser) {
@@ -311,7 +496,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         ]
     )
 
-    const notificationItems = useMemo(() => {
+    const notificationItems: TMessage[] = useMemo(() => {
         if (!Array.isArray(chatMessages)) return []
 
         return chatMessages
@@ -332,6 +517,34 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             .slice()
             .sort((a, b) => (b.timeStamp ?? 0) - (a.timeStamp ?? 0))
     }, [chatMessages, mentionMatchers])
+
+    const handleClearNotifications = useCallback(() => {
+        if (!notificationItems.length) {
+            return
+        }
+
+        const ids = notificationItems.map((item) => item.id)
+        const socket = signalSocketRef.current
+        if (socket && globalUser?.uid) {
+            const challengeTargets = notificationItems
+                .filter((item) => item.role === 'challenge')
+                .map((item) => {
+                    const sender = (item as any).sender || {}
+                    return sender.uid || sender.userUID || sender.id || null
+                })
+                .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
+
+            challengeTargets.forEach((uid) => {
+                webrtcDeclineCall(socket, uid, globalUser.uid).catch((error) => {
+                    console.error('Failed to decline challenge for', uid, error)
+                })
+            })
+        }
+
+        useMessageStore.getState().removeMessagesByIds(ids)
+        closeNotifications()
+        toaster.success({ title: 'Notifications cleared' })
+    }, [closeNotifications, globalUser?.uid, notificationItems])
 
     const unreadCount = notificationItems.length
     const prevNotificationCountRef = useRef<number>(notificationItems.length)
@@ -367,6 +580,55 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         notifMentionSoundPath,
         playSoundFile,
     ])
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<SendMessageEventDetail>).detail
+            if (!detail) return
+
+            const trimmed = detail.text?.trim()
+            if (!trimmed) {
+                detail.onError?.('Message cannot be empty.')
+                return
+            }
+
+            if (!globalUser?.uid) {
+                detail.onError?.('Please log in before chatting.')
+                return
+            }
+
+            const messageId = `${globalUser.uid ?? 'message'}-${Date.now()}`
+            const payload = {
+                type: 'sendMessage',
+                message: trimmed,
+                messageId,
+                sender: { ...globalUser, lobbyId: currentLobbyIdRef.current || DEFAULT_LOBBY_ID },
+            }
+
+            const sent = sendSocketMessage(payload)
+            if (!sent) {
+                detail.onError?.('Unable to reach message server.')
+                return
+            }
+
+            detail.onSuccess?.()
+        }
+
+        window.addEventListener('ws:send-message', handler as EventListener)
+        return () => window.removeEventListener('ws:send-message', handler as EventListener)
+    }, [globalUser, sendSocketMessage])
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<ChallengeEventDetail>).detail
+            if (!detail?.targetUid) return
+
+            void startChallenge(detail.targetUid)
+        }
+
+        window.addEventListener('lobby:challenge-user', handler as EventListener)
+        return () => window.removeEventListener('lobby:challenge-user', handler as EventListener)
+    }, [startChallenge])
 
     const changeRoute = (route: string) => {
         navigate({ to: route })
@@ -412,12 +674,21 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
         socket.onclose = () => {
             signalSocketRef.current = null
+            if (peerConnectionRef.current) {
+                try {
+                    peerConnectionRef.current.close()
+                } catch (error) {
+                    console.error('Failed to close peer connection:', error)
+                }
+                peerConnectionRef.current = null
+                opponentUidRef.current = null
+            }
             if (!didError) {
                 setSignalStatus('disconnected')
             }
         }
 
-        socket.onmessage = (event) => {
+        socket.onmessage = async (event) => {
             try {
                 const payload = JSON.parse(event.data)
                 if (!payload || typeof payload.type !== 'string') return
@@ -425,9 +696,44 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 switch (payload.type) {
                     case 'connected-users':
                         if (Array.isArray(payload.users)) {
-                            setLobbyUsers(payload.users)
+                            const normalizedUsers = payload.users
+                                .map((entry: unknown) => normalizeSocketUser(entry))
+                                .filter((user): user is TUser => Boolean(user))
+                            setLobbyUsers(appendMockUser(normalizedUsers))
                         }
                         break
+                    case 'getRoomMessage': {
+                        if (typeof payload.message === 'undefined') {
+                            break
+                        }
+
+                        const textMessage = String(payload.message)
+                        const sender = payload.sender || {}
+                        const normalizedSender = normalizeSocketUser(sender)
+                        const timeStamp =
+                            typeof payload.timeStamp === 'number' ? payload.timeStamp : Date.now()
+                        const messageId =
+                            typeof payload.id === 'string' && payload.id.length
+                                ? payload.id
+                                : normalizedSender?.uid
+                                ? `${normalizedSender.uid}-${timeStamp}`
+                                : `message-${timeStamp}`
+                        const message: TMessage = {
+                            id: messageId,
+                            role: 'user',
+                            text: textMessage,
+                            timeStamp,
+                            userName:
+                                normalizedSender?.userName ||
+                                sender.userName ||
+                                sender.name ||
+                                sender.uid ||
+                                'Unknown user',
+                        }
+
+                        useMessageStore.getState().addChatMessage(message)
+                        break
+                    }
                     case 'lobby-user-counts': {
                         const updates = Array.isArray(payload.updates) ? payload.updates : []
                         const lobbyMap = new Map<string, LobbySummary>()
@@ -483,6 +789,67 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             }
                         }
                         break
+                    case 'webrtc-ping-offer': {
+                        if (!globalUser?.uid || !payload.from || !payload.offer) {
+                            break
+                        }
+
+                        try {
+                            const peer = await initWebRTC(globalUser.uid, payload.from, socket)
+                            peerConnectionRef.current = peer
+                            opponentUidRef.current = payload.from
+                            await peer.setRemoteDescription(new RTCSessionDescription(payload.offer))
+                            toaster.info({
+                                title: 'Incoming challenge',
+                                description: `User ${payload.from} wants to play.`,
+                            })
+                            await answerCall(peer, socket, payload.from, globalUser.uid)
+                        } catch (error) {
+                            console.error('Failed to handle incoming offer:', error)
+                        }
+                        break
+                    }
+                    case 'webrtc-ping-answer': {
+                        if (!payload.from || !payload.answer) {
+                            break
+                        }
+
+                        try {
+                            if (peerConnectionRef.current) {
+                                await peerConnectionRef.current.setRemoteDescription(
+                                    new RTCSessionDescription(payload.answer)
+                                )
+                                opponentUidRef.current = payload.from
+                            }
+                        } catch (error) {
+                            console.error('Failed to handle answer:', error)
+                        }
+                        break
+                    }
+                    case 'webrtc-ping-candidate': {
+                        if (!payload.candidate) {
+                            break
+                        }
+
+                        try {
+                            if (peerConnectionRef.current) {
+                                await peerConnectionRef.current.addIceCandidate(
+                                    new RTCIceCandidate(payload.candidate)
+                                )
+                            }
+                        } catch (error) {
+                            console.error('Failed to add ICE candidate:', error)
+                        }
+                        break
+                    }
+                    case 'webrtc-ping-decline': {
+                        if (payload.from) {
+                            closeConnectionWithUser(payload.from)
+                            opponentUidRef.current = null
+                            toaster.info({ title: 'Challenge declined', description: `User ${payload.from} is unavailable.` })
+                        }
+                        break
+                    }
                     case 'error':
                         if (payload.message) {
                             toaster.error({
@@ -691,7 +1058,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     <Drawer.Content>
                         <Drawer.CloseTrigger />
                         <Drawer.Header>
-                            <Drawer.Title>{NOTIFICATIONS_TITLE}</Drawer.Title>
+                            <Flex justify="space-between" align="center" gap="3">
+                                <Drawer.Title>{NOTIFICATIONS_TITLE}</Drawer.Title>
+                                <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    onClick={() => handleClearNotifications()}
+                                    disabled={notificationItems.length === 0}
+                                >
+                                    Clear
+                                </Button>
+                            </Flex>
                             <Switch.Root
                                 colorPalette={accentColor}
                                 size="md"
@@ -792,3 +1169,4 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         </>
     )
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useMessageStore, useUserStore, useSettingsStore } from '../state/store'
 import { useTranslation } from 'react-i18next'
 import {
@@ -25,6 +25,7 @@ import {
 import { Send, Search, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
+import { toaster } from '../components/chakra/ui/toaster'
 import { highlightMentions } from '../utils/chatFormatting'
 
 const MAX_MESSAGE_LENGTH = 60
@@ -46,7 +47,6 @@ export default function LobbyPage() {
     const globalUser = useUserStore((s) => s.globalUser)
     const lobbyUsers = useUserStore((s) => s.lobbyUsers)
     const chatMessages = useMessageStore((s) => s.chatMessages)
-    const addChatMessage = useMessageStore((s) => s.addChatMessage)
     const [message, setMessage] = useState('')
     const [searchQuery, setSearchQuery] = useState('')
     const [countryFilter, setCountryFilter] = useState('ALL')
@@ -131,7 +131,7 @@ export default function LobbyPage() {
         endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
     }, [])
 
-    const sendMessage = () => {
+    const sendMessage = useCallback(() => {
         const trimmed = message.trim()
         if (!trimmed.length) {
             return
@@ -141,15 +141,22 @@ export default function LobbyPage() {
             return
         }
 
-        addChatMessage({
-            userName: globalUser?.userName || 'Unknown User',
-            id: globalUser ? Date.now() + globalUser?.userName : Date.now() + 'Unknown User',
-            role: 'user',
-            text: trimmed,
-            timeStamp: Date.now(),
-        })
-        setMessage('')
-    }
+        window.dispatchEvent(
+            new CustomEvent('ws:send-message', {
+                detail: {
+                    text: trimmed,
+                    onSuccess: () => setMessage(''),
+                    onError: (error?: string) => {
+                        if (!error) return
+                        toaster.error({
+                            title: 'Unable to send message',
+                            description: error,
+                        })
+                    },
+                },
+            })
+        )
+    }, [message])
 
     function useAutoScrollOnNewContent(
         ref: React.RefObject<HTMLElement | null>,
@@ -447,7 +454,20 @@ export default function LobbyPage() {
                             {t('Lobby.noMatches')}
                         </Text>
                     ) : (
-                        filteredUsers.map((user) => <UserCardSmall key={user.uid} user={user} />)
+                        filteredUsers.map((user) => (
+                            <UserCardSmall
+                                key={user.uid}
+                                user={user}
+                                isSelf={user.uid === globalUser?.uid}
+                                onChallenge={(target) =>
+                                    window.dispatchEvent(
+                                        new CustomEvent('lobby:challenge-user', {
+                                            detail: { targetUid: target.uid },
+                                        })
+                                    )
+                                }
+                            />
+                        ))
                     )}
                 </Stack>
             </Box>
