@@ -66,6 +66,43 @@ const MOCK_CHALLENGE_USER: TUser = {
     winstreak: 0,
 }
 
+const lobbySlug = (value: string) =>
+    value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'lobby'
+
+const buildMockForLobby = (lobbyId: string): TUser | null => {
+    const normalized = lobbyId.trim()
+    if (!normalized.length) return null
+
+    if (normalized === DEFAULT_LOBBY_ID) {
+        return MOCK_CHALLENGE_USER
+    }
+
+    const slug = lobbySlug(normalized)
+    const aliasPrefix = normalized.split(' ')[0] || 'Rival'
+    const baseElo = 1500 + Math.min(slug.length * 23, 300)
+
+    return {
+        uid: `mock-${slug}`,
+        userName: `${normalized} Rival`,
+        accountElo: baseElo,
+        countryCode: 'GB',
+        gravEmail: '',
+        knownAliases: [`${aliasPrefix}Rival`, `${aliasPrefix}Bot`],
+        pingLat: 51.5072,
+        pingLon: -0.1276,
+        userEmail: `mock+${slug}@hyper-reflector.test`,
+        userProfilePic: '',
+        userTitle: {
+            ...FALLBACK_USER_TITLE,
+            title: 'Local Challenger',
+        },
+        winstreak: 0,
+    }
+}
+
 const normalizeSocketUser = (candidate: any): TUser | null => {
     if (!candidate || typeof candidate.uid !== 'string') {
         return null
@@ -147,17 +184,22 @@ const normalizeSocketUser = (candidate: any): TUser | null => {
     }
 }
 
-const appendMockUser = (users: TUser[]): TUser[] => {
-    if (users.some((user) => user.uid === MOCK_CHALLENGE_USER.uid)) {
+const appendMockUser = (users: TUser[], lobbyId: string): TUser[] => {
+    const mockUser = buildMockForLobby(lobbyId)
+    if (!mockUser) {
+        return users
+    }
+
+    if (users.some((user) => user.uid === mockUser.uid)) {
         return users
     }
 
     return [
         ...users,
         {
-            ...MOCK_CHALLENGE_USER,
-            userTitle: { ...MOCK_CHALLENGE_USER.userTitle },
-            knownAliases: [...MOCK_CHALLENGE_USER.knownAliases],
+            ...mockUser,
+            userTitle: { ...mockUser.userTitle },
+            knownAliases: [...mockUser.knownAliases],
         },
     ]
 }
@@ -699,7 +741,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             const normalizedUsers = payload.users
                                 .map((entry: unknown) => normalizeSocketUser(entry))
                                 .filter((user): user is TUser => Boolean(user))
-                            setLobbyUsers(appendMockUser(normalizedUsers))
+                            const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+                            setLobbyUsers(appendMockUser(normalizedUsers, activeLobbyId))
                         }
                         break
                     case 'getRoomMessage': {
