@@ -42,7 +42,7 @@ export async function startProxyMatch({
     serverPort,
     gameName,
 }: ProxyMatchArgs): Promise<void> {
-    const { emulatorPath, ggpoDelay } = useSettingsStore.getState()
+    const { emulatorPath, ggpoDelay, trainingPath } = useSettingsStore.getState()
     const { globalUser } = useUserStore.getState()
 
     if (!globalUser?.uid) {
@@ -53,7 +53,7 @@ export async function startProxyMatch({
         return
     }
 
-    if (!emulatorPath) {
+    if (!emulatorPath || !emulatorPath.trim().length) {
         toaster.error({
             title: 'Emulator path missing',
             description: 'Set your emulator path in settings before starting a match.',
@@ -63,6 +63,21 @@ export async function startProxyMatch({
 
     const resolvedServerHost = serverHost || keys.COTURN_IP
     const parsedServerPort = Number(serverPort ?? keys.PUNCH_PORT ?? 33334)
+    const romName =
+        typeof gameName === 'string' && gameName.trim().length ? gameName.trim() : 'sfiii3nr1'
+    const playerIndex = (playerSlot + 1) as 1 | 2
+    const delayValue = Number.parseInt(ggpoDelay || '0', 10) || 0
+
+    const emulatorArgs = buildEmulatorArgs({
+        emulatorPath,
+        playerIndex,
+        localPort: 7000,
+        remotePort: 7001,
+        playerName: globalUser.userName || globalUser.userEmail || 'Player',
+        delay: delayValue,
+        luaPath: trainingPath,
+        rom: romName,
+    })
 
     try {
         await invoke('start_proxy', {
@@ -73,10 +88,13 @@ export async function startProxyMatch({
                 server_host: resolvedServerHost,
                 server_port: parsedServerPort,
                 emulator_path: emulatorPath,
-                player: playerSlot + 1,
-                delay: Number.parseInt(ggpoDelay || '0', 10) || 0,
+                emulator_game_port: 7000,
+                emulator_listen_port: 7001,
+                emulator_args: emulatorArgs,
+                player: playerIndex,
+                delay: delayValue,
                 user_name: globalUser.userName || globalUser.userEmail || 'Player',
-                game_name: gameName ?? null,
+                game_name: romName,
             },
         })
     } catch (error) {
@@ -97,7 +115,7 @@ export async function startMockMatch({
     const { emulatorPath, ggpoDelay, trainingPath } = useSettingsStore.getState()
     const { globalUser } = useUserStore.getState()
 
-    if (!emulatorPath) {
+    if (!emulatorPath || !emulatorPath.trim().length) {
         toaster.error({
             title: 'Emulator path missing',
             description: 'Set your emulator path in settings before starting a mock match.',
@@ -107,51 +125,50 @@ export async function startMockMatch({
 
     const playerName = globalUser?.userName || globalUser?.userEmail || 'Player 1'
     const opponentDisplayName = opponentName || 'Mock Opponent'
-    const baseGameName = (gameName && gameName.trim().length ? gameName : 'sfiii3nr1') || 'sfiii3nr1'
+    const romName =
+        typeof gameName === 'string' && gameName.trim().length ? gameName.trim() : 'sfiii3nr1'
     const delay = Number.parseInt(ggpoDelay || '0', 10) || 0
 
-    const matchOffset = Math.abs(hashString(matchId ?? `${Date.now()}`)) % 1000
-    const localBasePort = 7100 + matchOffset
-    const playerOnePorts = {
-        local: localBasePort,
-        remote: localBasePort + 1,
-    }
-    const playerTwoPorts = {
-        local: localBasePort + 1,
-        remote: localBasePort,
-    }
+    const primaryPorts =
+        playerSlot === 0
+            ? { local: 7000, remote: 7001 }
+            : { local: 7001, remote: 7000 }
+    const opponentPorts =
+        playerSlot === 0
+            ? { local: 7001, remote: 7000 }
+            : { local: 7000, remote: 7001 }
 
-    const playerOneArgs = buildEmulatorArgs({
+    const playerArgs = buildEmulatorArgs({
         emulatorPath,
-        playerIndex: playerSlot === 0 ? 1 : 2,
-        localPort: playerSlot === 0 ? playerOnePorts.local : playerTwoPorts.local,
-        remotePort: playerSlot === 0 ? playerOnePorts.remote : playerTwoPorts.remote,
+        playerIndex: (playerSlot === 0 ? 1 : 2) as 1 | 2,
+        localPort: primaryPorts.local,
+        remotePort: primaryPorts.remote,
         playerName,
         delay,
         luaPath: trainingPath,
-        gameName: baseGameName,
+        rom: romName,
     })
 
-    const playerTwoArgs = buildEmulatorArgs({
+    const opponentArgs = buildEmulatorArgs({
         emulatorPath,
-        playerIndex: playerSlot === 0 ? 2 : 1,
-        localPort: playerSlot === 0 ? playerTwoPorts.local : playerOnePorts.local,
-        remotePort: playerSlot === 0 ? playerTwoPorts.remote : playerOnePorts.remote,
+        playerIndex: (playerSlot === 0 ? 2 : 1) as 1 | 2,
+        localPort: opponentPorts.local,
+        remotePort: opponentPorts.remote,
         playerName: opponentDisplayName,
         delay,
         luaPath: trainingPath,
-        gameName: baseGameName,
+        rom: romName,
     })
 
     try {
         await Promise.all([
             invoke('launch_emulator', {
-                exe_path: emulatorPath,
-                args: playerOneArgs,
+                exePath: emulatorPath,
+                args: playerArgs,
             }),
             invoke('launch_emulator', {
-                exe_path: emulatorPath,
-                args: playerTwoArgs,
+                exePath: emulatorPath,
+                args: opponentArgs,
             }),
         ])
         toaster.success({
@@ -175,7 +192,7 @@ type BuildArgsOptions = {
     playerName: string
     delay: number
     luaPath?: string
-    gameName: string
+    rom: string
 }
 
 function buildEmulatorArgs({
@@ -186,13 +203,13 @@ function buildEmulatorArgs({
     playerName,
     delay,
     luaPath,
-    gameName,
+    rom,
 }: BuildArgsOptions): string[] {
     const normalizedPath = emulatorPath.toLowerCase()
     const args: string[] = []
 
     if (normalizedPath.endsWith('fs-fbneo.exe') || normalizedPath.endsWith('fs-fbneo')) {
-        args.push('--rom', gameName)
+        args.push('--rom', rom)
         if (luaPath && luaPath.trim().length) {
             args.push('--lua', luaPath)
         }
@@ -213,7 +230,7 @@ function buildEmulatorArgs({
     }
 
     if (normalizedPath.endsWith('fcadefbneo.exe') || normalizedPath.endsWith('fcadefbneo')) {
-        const connection = `quark:direct,${gameName},${localPort},127.0.0.1,${remotePort},${playerIndex},${delay},0`
+        const connection = `quark:direct,${rom},${localPort},127.0.0.1,${remotePort},${playerIndex},${delay},0`
         args.push(connection)
         if (luaPath && luaPath.trim().length) {
             args.push('--lua', luaPath)
@@ -227,7 +244,7 @@ function buildEmulatorArgs({
 
     args.push(
         '--rom',
-        gameName,
+        rom,
         '--player',
         String(playerIndex),
         '-n',
@@ -241,13 +258,4 @@ function buildEmulatorArgs({
     )
 
     return args
-}
-
-function hashString(input: string): number {
-    let hash = 0
-    for (let i = 0; i < input.length; i += 1) {
-        hash = (hash << 5) - hash + input.charCodeAt(i)
-        hash |= 0
-    }
-    return hash
 }

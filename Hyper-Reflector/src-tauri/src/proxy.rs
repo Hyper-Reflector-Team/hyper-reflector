@@ -52,6 +52,7 @@ pub struct StartArgs {
     // ports (defaults to 7000/7001 like your code)
     pub emulator_game_port: Option<u16>, // where emulator expects its peer (default 7000)
     pub emulator_listen_port: Option<u16>, // where we listen for emulator (default 7001)
+    pub emulator_args: Vec<String>, // exact CLI args to launch emulator
 }
 
 pub struct ProxyRuntime {
@@ -252,23 +253,28 @@ impl ProxyRuntime {
             .emit_to(EventTarget::any(), "proxy-log", format!("Port busy"));
 
         let mut cmd = TokioCommand::new(&self.args.emulator_path);
+        let mut provided_args = self.args.emulator_args.clone();
+
+        if provided_args.is_empty() {
+            provided_args = vec![
+                "--local-port".to_string(),
+                emu_game_port.to_string(),
+                "--remote-ip".to_string(),
+                "127.0.0.1".to_string(),
+                "--remote-port".to_string(),
+                emu_listen_port.to_string(),
+                "--player".to_string(),
+                self.args.player.to_string(),
+                "--delay".to_string(),
+                self.args.delay.to_string(),
+                "--name".to_string(),
+                self.args.user_name.clone(),
+            ];
+        }
 
         // Example args – replace with what FBNeo needs in your environment:
         //   --local-port 7000 --remote-ip 127.0.0.1 --remote-port <emu_listener_port> --player N --delay D --name user
-        cmd.args([
-            "--local-port",
-            &emu_game_port.to_string(),
-            "--remote-ip",
-            "127.0.0.1",
-            "--remote-port",
-            &emu_listen_port.to_string(),
-            "--player",
-            &self.args.player.to_string(),
-            "--delay",
-            &self.args.delay.to_string(),
-            "--name",
-            &self.args.user_name,
-        ]);
+        cmd.args(provided_args);
 
         let child = cmd.spawn()?;
         *self.child.lock().await = Some(child);
