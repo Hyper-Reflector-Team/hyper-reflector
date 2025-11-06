@@ -148,6 +148,13 @@ async fn start_training_mode(
     Ok(())
 }
 
+#[tauri::command]
+async fn launch_emulator(app: tauri::AppHandle, exe_path: String, args: Vec<String>) -> Result<(), String> {
+    let command = app.shell().command(exe_path).args(args);
+    let (_rx, _child) = command.spawn().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 
 //Just for testing
 #[tauri::command]
@@ -181,6 +188,7 @@ pub fn run() {
             stop_sound,
             greet,
             start_training_mode,
+            launch_emulator,
             run_custom_process,
             start_proxy,
             stop_proxy,

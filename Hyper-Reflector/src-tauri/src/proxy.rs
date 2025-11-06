@@ -42,6 +42,7 @@ pub struct StartArgs {
     pub peer_uid: String,
     pub server_host: String,
     pub server_port: u16,
+    pub match_id: Option<String>,
     // emulator settings
     pub emulator_path: String,     // absolute path to your emulator binary
     pub player: u8,                // proxyStartData.player + 1

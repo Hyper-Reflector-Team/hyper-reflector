@@ -40,6 +40,7 @@ import {
     MOCK_ACTION_INTERVAL_MS,
     MOCK_CHALLENGE_LINES,
     MOCK_CHALLENGE_USER,
+    MOCK_CHALLENGE_USER_TWO,
     MOCK_CHAT_LINES,
     normalizeSocketUser,
 } from './helpers/mockUsers'
@@ -63,11 +64,19 @@ import {
     declineCall as webrtcDeclineCall,
     closeConnectionWithUser,
 } from '../webRTC/WebPeer'
+import { isMockUserId, startMockMatch, startProxyMatch } from '../match'
 
 const lobbyNameMatcher = new RegExpMatcher({
     ...englishDataset.build(),
     ...englishRecommendedTransformers,
 })
+
+function resolveMockDisplayName(uid?: string | null) {
+    if (!uid) return 'Mock Opponent'
+    if (uid === MOCK_CHALLENGE_USER.uid) return MOCK_CHALLENGE_USER.userName
+    if (uid === MOCK_CHALLENGE_USER_TWO.uid) return MOCK_CHALLENGE_USER_TWO.userName
+    return 'Mock Opponent'
+}
 
 type SendMessageEventDetail = {
     text: string
@@ -131,6 +140,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const opponentUidRef = useRef<string | null>(null)
     const mockActionIndexRef = useRef(0)
     const globalUserRef = useRef<TUser | undefined>(globalUser)
+    const sentMatchRequestRef = useRef<Set<string>>(new Set())
     const declineChallengeWithSocket = useCallback(
         (targetId: string, challengerId: string) => {
             const socket = signalSocketRef.current
@@ -204,6 +214,37 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         declineChallenge: declineChallengeWithSocket,
                     })
                 }
+
+                const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+                const normalizedLobby = activeLobbyId.trim().toLowerCase()
+                const inferredGameName =
+                    normalizedLobby === 'vampire' ? 'vsavj' : undefined
+
+                const involvesMock =
+                    isMockUserId(challengerId) || isMockUserId(opponentId)
+
+                if (involvesMock) {
+                    const mockUid = isMockUserId(challengerId) ? challengerId : opponentId
+                    const mockName = resolveMockDisplayName(mockUid)
+                    const localPlayerSlot: 0 | 1 =
+                        globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
+
+                    void startMockMatch({
+                        matchId: messageId,
+                        opponentName: mockName,
+                        gameName: inferredGameName ?? null,
+                        playerSlot: localPlayerSlot,
+                    })
+                } else if (globalUser?.uid && opponentId && globalUser.uid === opponentId) {
+                    sendSocketMessage({
+                        type: 'request-match',
+                        challengerId,
+                        opponentId,
+                        requestedBy: globalUser.uid,
+                        lobbyId: activeLobbyId,
+                        gameName: inferredGameName,
+                    })
+                }
             } else {
                 toaster.info({
                     title: 'Challenge declined',
@@ -211,7 +252,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [cancelPendingChallengesInvolving, declineChallengeWithSocket, globalUser?.uid, globalUser?.userName]
+        [
+            cancelPendingChallengesInvolving,
+            declineChallengeWithSocket,
+            globalUser?.uid,
+            globalUser?.userName,
+            sendSocketMessage,
+        ]
     )
 
     const mentionHandles = useMemo(() => {
@@ -395,6 +442,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 const peer = await initWebRTC(globalUser.uid, targetUid, socket)
                 peerConnectionRef.current = peer
                 opponentUidRef.current = targetUid
+                sentMatchRequestRef.current.delete(targetUid)
                 await startCall(peer, socket, targetUid, globalUser.uid, true)
                 toaster.success({
                     title: 'Challenge sent',
@@ -1066,6 +1114,90 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         } catch (error) {
                             console.error('Failed to handle answer:', error)
                         }
+
+                        const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+                        const normalizedLobby = activeLobbyId.trim().toLowerCase()
+                        const inferredGameName =
+                            normalizedLobby === 'vampire' ? 'vsavj' : undefined
+                        const requesterUid = globalUserRef.current?.uid
+
+                        if (
+                            requesterUid &&
+                            payload.from &&
+                            !isMockUserId(payload.from) &&
+                            !sentMatchRequestRef.current.has(payload.from)
+                        ) {
+                            sendSocketMessage({
+                                type: 'request-match',
+                                challengerId: requesterUid,
+                                opponentId: payload.from,
+                                requestedBy: requesterUid,
+                                lobbyId: activeLobbyId,
+                                gameName: inferredGameName,
+                            })
+                            sentMatchRequestRef.current.add(payload.from)
+                        }
+                        break
+                    }
+                    case 'match-start': {
+                        const matchId = typeof payload.matchId === 'string' ? payload.matchId : undefined
+                        const opponentUid =
+                            typeof payload.opponentUid === 'string' ? payload.opponentUid : undefined
+                        const rawPlayerSlot =
+                            typeof payload.playerSlot === 'number' || typeof payload.playerSlot === 'string'
+                                ? Number(payload.playerSlot)
+                                : undefined
+
+                        if (!matchId || !opponentUid || rawPlayerSlot === undefined) {
+                            break
+                        }
+
+                        const normalizedSlot: 0 | 1 = rawPlayerSlot === 0 ? 0 : 1
+                        const serverHost =
+                            typeof payload.serverHost === 'string' && payload.serverHost.length
+                                ? payload.serverHost
+                                : undefined
+                        const serverPort =
+                            typeof payload.serverPort === 'number' || typeof payload.serverPort === 'string'
+                                ? Number(payload.serverPort)
+                                : undefined
+                        const gameName =
+                            typeof payload.gameName === 'string' && payload.gameName.length
+                                ? payload.gameName
+                                : undefined
+
+                        try {
+                            await startProxyMatch({
+                                matchId,
+                                opponentUid,
+                                playerSlot: normalizedSlot,
+                                serverHost,
+                                serverPort,
+                                gameName,
+                            })
+                            sentMatchRequestRef.current.delete(opponentUid)
+                        } catch (error) {
+                            console.error('Failed to launch proxy match:', error)
+                            toaster.error({
+                                title: 'Unable to start match',
+                                description: 'Encountered an error launching the emulator.',
+                            })
+                        }
+                        break
+                    }
+                    case 'match-start-error': {
+                        if (typeof payload?.reason === 'string') {
+                            toaster.error({
+                                title: 'Unable to start match',
+                                description: payload.reason,
+                            })
+                        }
+                        if (typeof payload?.opponentId === 'string') {
+                            sentMatchRequestRef.current.delete(payload.opponentId)
+                        }
+                        if (typeof payload?.challengerId === 'string') {
+                            sentMatchRequestRef.current.delete(payload.challengerId)
+                        }
                         break
                     }
                     case 'webrtc-ping-candidate': {
@@ -1088,6 +1220,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         if (payload.from) {
                             closeConnectionWithUser(payload.from)
                             opponentUidRef.current = null
+                            sentMatchRequestRef.current.delete(payload.from)
                             toaster.info({
                                 title: 'Challenge declined',
                                 description: `User ${payload.from} is unavailable.`,
