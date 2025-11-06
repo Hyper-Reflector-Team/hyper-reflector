@@ -608,8 +608,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
         const runMockInteraction = () => {
             const mockUser =
-                buildMockForLobby(currentLobbyIdRef.current || DEFAULT_LOBBY_ID) ||
-                MOCK_CHALLENGE_USER
+                buildMockForLobby(
+                    currentLobbyIdRef.current || DEFAULT_LOBBY_ID,
+                    mockActionIndexRef.current
+                ) || MOCK_CHALLENGE_USER
             const now = Date.now()
             const addChatMessage = useMessageStore.getState().addChatMessage
             const shouldChallenge = Math.random() < 0.4
