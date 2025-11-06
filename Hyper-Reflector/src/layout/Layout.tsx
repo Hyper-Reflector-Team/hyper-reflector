@@ -141,6 +141,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const mockActionIndexRef = useRef(0)
     const globalUserRef = useRef<TUser | undefined>(globalUser)
     const sentMatchRequestRef = useRef<Set<string>>(new Set())
+    const [isInMatch, setIsInMatch] = useState(false)
+    const isInMatchRef = useRef(false)
     const declineChallengeWithSocket = useCallback(
         (targetId: string, challengerId: string) => {
             const socket = signalSocketRef.current
@@ -157,6 +159,44 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     useEffect(() => {
         globalUserRef.current = globalUser || undefined
     }, [globalUser])
+
+    useEffect(() => {
+        isInMatchRef.current = isInMatch
+    }, [isInMatch])
+
+    const markMatchEnded = useCallback(() => {
+        if (!isInMatchRef.current) return
+        isInMatchRef.current = false
+        setIsInMatch(false)
+        sentMatchRequestRef.current.clear()
+    }, [])
+
+    const markMatchStarted = useCallback(
+        (opponentUid?: string | null) => {
+            if (opponentUid) {
+                opponentUidRef.current = opponentUid
+            }
+            isInMatchRef.current = true
+            setIsInMatch(true)
+
+            const challengerId = globalUser?.uid
+            const participantIds = [challengerId, opponentUid].filter(
+                (id): id is string => Boolean(id)
+            )
+
+            if (participantIds.length) {
+                cancelPendingChallengesInvolving({
+                    participantIds,
+                    excludeMessageIds: [],
+                    reason: AUTO_RESOLVE_RESPONDER,
+                    currentUserId: globalUser?.uid,
+                    declineChallenge: declineChallengeWithSocket,
+                })
+            }
+        },
+        [cancelPendingChallengesInvolving, declineChallengeWithSocket, globalUser?.uid]
+    )
+
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
         if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -229,11 +269,19 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     const localPlayerSlot: 0 | 1 =
                         globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
 
+                    markMatchStarted(mockUid)
                     void startMockMatch({
                         matchId: messageId,
                         opponentName: mockName,
                         gameName: inferredGameName ?? null,
                         playerSlot: localPlayerSlot,
+                    }).catch((error) => {
+                        console.error('Failed to start mock match:', error)
+                        markMatchEnded()
+                        toaster.error({
+                            title: 'Unable to start match',
+                            description: 'Encountered an error launching the emulator.',
+                        })
                     })
                 } else if (globalUser?.uid && opponentId && globalUser.uid === opponentId) {
                     sendSocketMessage({
@@ -257,6 +305,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             declineChallengeWithSocket,
             globalUser?.uid,
             globalUser?.userName,
+            markMatchEnded,
+            markMatchStarted,
             sendSocketMessage,
         ]
     )
@@ -401,6 +451,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
     const startChallenge = useCallback(
         async (targetUid: string) => {
+            if (isInMatchRef.current) {
+                toaster.info({
+                    title: 'Already in a match',
+                    description: 'Finish your current match before starting a new challenge.',
+                })
+                return
+            }
+
             if (!globalUser?.uid) {
                 toaster.error({
                     title: 'Unable to challenge',
@@ -415,6 +473,31 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 currentUserId: globalUser.uid,
                 declineChallenge: declineChallengeWithSocket,
             })
+
+            if (isMockUserId(targetUid)) {
+                const lobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+                const normalizedLobby = lobbyId.trim().toLowerCase()
+                const inferredGameName = normalizedLobby === 'vampire' ? 'vsavj' : undefined
+                const mockName = resolveMockDisplayName(targetUid)
+
+                markMatchStarted(targetUid)
+                try {
+                    await startMockMatch({
+                        matchId: `mock-${Date.now()}`,
+                        opponentName: mockName,
+                        gameName: inferredGameName ?? null,
+                        playerSlot: 0,
+                    })
+                } catch (error) {
+                    console.error('Failed to start mock challenge:', error)
+                    markMatchEnded()
+                    toaster.error({
+                        title: 'Unable to start mock match',
+                        description: 'Encountered an error launching the emulator.',
+                    })
+                }
+                return
+            }
 
             const socket = signalSocketRef.current
             if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -456,7 +539,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [declineChallengeWithSocket, globalUser?.uid]
+        [
+            declineChallengeWithSocket,
+            globalUser?.uid,
+            markMatchEnded,
+            markMatchStarted,
+        ]
     )
 
     const handleCreateLobby = useCallback(
@@ -805,6 +893,23 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         return () => window.removeEventListener('lobby:challenge-user', handler as EventListener)
     }, [startChallenge])
 
+    useEffect(() => {
+        const maybeApi = (window as any)?.api
+        const handleEndMatch = () => markMatchEnded()
+
+        if (maybeApi?.on && typeof maybeApi.on === 'function') {
+            maybeApi.on('endMatchUI', handleEndMatch)
+            maybeApi.on('endMatch', handleEndMatch)
+        }
+
+        return () => {
+            if (maybeApi?.removeListener && typeof maybeApi.removeListener === 'function') {
+                maybeApi.removeListener('endMatchUI', handleEndMatch)
+                maybeApi.removeListener('endMatch', handleEndMatch)
+            }
+        }
+    }, [markMatchEnded])
+
     const changeRoute = (route: string) => {
         navigate({ to: route })
     }
@@ -854,6 +959,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             didError = true
             console.error('Signal server websocket error:', event)
             setSignalStatus('error')
+            markMatchEnded()
         }
 
         socket.onclose = () => {
@@ -867,6 +973,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 peerConnectionRef.current = null
                 opponentUidRef.current = null
             }
+            markMatchEnded()
             if (!didError) {
                 setSignalStatus('disconnected')
             }
@@ -1080,6 +1187,19 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             break
                         }
 
+                        if (isInMatchRef.current) {
+                            try {
+                                webrtcDeclineCall(socket, payload.from, currentUserSnapshot.uid)
+                            } catch (error) {
+                                console.error('Failed to auto-decline incoming challenge while in a match:', error)
+                            }
+                            toaster.info({
+                                title: 'Already in a match',
+                                description: `You are currently busy and cannot accept ${payload.from}'s challenge.`,
+                            })
+                            break
+                        }
+
                         try {
                             const peer = await initWebRTC(currentUserSnapshot.uid, payload.from, socket)
                             peerConnectionRef.current = peer
@@ -1167,6 +1287,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 : undefined
 
                         try {
+                            markMatchStarted(opponentUid)
                             await startProxyMatch({
                                 matchId,
                                 opponentUid,
@@ -1178,6 +1299,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             sentMatchRequestRef.current.delete(opponentUid)
                         } catch (error) {
                             console.error('Failed to launch proxy match:', error)
+                            markMatchEnded()
                             toaster.error({
                                 title: 'Unable to start match',
                                 description: 'Encountered an error launching the emulator.',
@@ -1186,6 +1308,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         break
                     }
                     case 'match-start-error': {
+                        markMatchEnded()
                         if (typeof payload?.reason === 'string') {
                             toaster.error({
                                 title: 'Unable to start match',
@@ -1252,6 +1375,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         clearChatMessages,
         globalLoggedIn,
         globalUser?.uid,
+        markMatchEnded,
+        markMatchStarted,
         setCurrentLobbyId,
         setLobbyList,
         setLobbyUsers,
