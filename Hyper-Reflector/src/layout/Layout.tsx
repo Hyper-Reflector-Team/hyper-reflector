@@ -29,6 +29,32 @@ import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
 import { buildMentionRegexes } from '../utils/chatFormatting'
 import { toaster } from '../components/chakra/ui/toaster'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
+import {
+    cancelPendingChallengesForChallenger,
+    cancelPendingChallengesInvolving,
+    normalizeChallengeParticipants,
+} from './helpers/challenges'
+import {
+    appendMockUser,
+    buildMockForLobby,
+    MOCK_ACTION_INTERVAL_MS,
+    MOCK_CHALLENGE_LINES,
+    MOCK_CHALLENGE_USER,
+    MOCK_CHAT_LINES,
+    normalizeSocketUser,
+} from './helpers/mockUsers'
+import { formatTimestamp } from './helpers/time'
+import { STATUS_COLOR_MAP, STATUS_LABEL_MAP } from './helpers/status'
+import {
+    AUTO_DECLINE_RESPONDER,
+    AUTO_RESOLVE_RESPONDER,
+    CHALLENGE_ACCEPT_LABEL,
+    CHALLENGE_DECLINE_LABEL,
+    LOBBY_NAME_MAX_LENGTH,
+    LOBBY_NAME_MIN_LENGTH,
+    NOTIFICATIONS_TITLE,
+    NO_NOTIFICATIONS_MESSAGE,
+} from './helpers/constants'
 
 import {
     initWebRTC,
@@ -38,209 +64,10 @@ import {
     closeConnectionWithUser,
 } from '../webRTC/WebPeer'
 
-const CHALLENGE_ACCEPT_LABEL = 'Accept'
-const CHALLENGE_DECLINE_LABEL = 'Decline'
-const NOTIFICATIONS_TITLE = 'Notifications'
-const NO_NOTIFICATIONS_MESSAGE = 'You have no notifications yet.'
-const LOBBY_NAME_MIN_LENGTH = 4
-const LOBBY_NAME_MAX_LENGTH = 16
-
 const lobbyNameMatcher = new RegExpMatcher({
     ...englishDataset.build(),
     ...englishRecommendedTransformers,
 })
-
-const FALLBACK_USER_TITLE: TUser['userTitle'] = {
-    bgColor: '#1f1f24',
-    border: '#37373f',
-    color: '#f2f2f7',
-    title: 'Contender',
-}
-
-const MOCK_CHALLENGE_USER: TUser = {
-    uid: 'mock-opponent',
-    userName: 'Mock Opponent',
-    accountElo: 1625,
-    countryCode: 'US',
-    gravEmail: '',
-    knownAliases: ['TrainingBot', 'MockOpponent'],
-    pingLat: 37.7749,
-    pingLon: -122.4194,
-    userEmail: 'mock@hyper-reflector.test',
-    userProfilePic: '',
-    userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Partner' },
-    winstreak: 0,
-}
-
-const MOCK_CHAT_LINES = [
-    'Hey @{player}, ready for a quick set?',
-    'I have a new combo to test on you, @{player}.',
-    'Your defense is looking sharp @{player}, mind if I poke at it?',
-    'Anyone else here? Guess it is you and me @{player}.',
-]
-
-const MOCK_CHALLENGE_LINES = [
-    'wants to run a FT3 if you are up for it.',
-    'is sending over a challenge request right now.',
-    'thinks you owe them a rematch.',
-]
-
-const MOCK_ACTION_INTERVAL_MS = 20_000
-
-const AUTO_DECLINE_RESPONDER = 'System (auto-cancelled)'
-const AUTO_RESOLVE_RESPONDER = 'System (other challenge resolved)'
-
-const STATUS_COLOR_MAP = {
-    connected: 'green.400',
-    connecting: 'yellow.400',
-    error: 'red.400',
-    disconnected: 'gray.400',
-} as const
-
-const STATUS_LABEL_MAP = {
-    connected: 'WS Connected',
-    connecting: 'WS Connecting...',
-    error: 'WS Error',
-    disconnected: 'WS Offline',
-} as const
-
-const lobbySlug = (value: string) =>
-    value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'lobby'
-
-const buildMockForLobby = (lobbyId: string): TUser | null => {
-    const normalized = lobbyId.trim()
-    if (!normalized.length) return null
-
-    if (normalized === DEFAULT_LOBBY_ID) {
-        return MOCK_CHALLENGE_USER
-    }
-
-    const slug = lobbySlug(normalized)
-    const aliasPrefix = normalized.split(' ')[0] || 'Rival'
-    const baseElo = 1500 + Math.min(slug.length * 23, 300)
-
-    return {
-        uid: `mock-${slug}`,
-        userName: `${normalized} Rival`,
-        accountElo: baseElo,
-        countryCode: 'GB',
-        gravEmail: '',
-        knownAliases: [`${aliasPrefix}Rival`, `${aliasPrefix}Bot`],
-        pingLat: 51.5072,
-        pingLon: -0.1276,
-        userEmail: `mock+${slug}@hyper-reflector.test`,
-        userProfilePic: '',
-        userTitle: {
-            ...FALLBACK_USER_TITLE,
-            title: 'Local Challenger',
-        },
-        winstreak: 0,
-    }
-}
-
-const normalizeSocketUser = (candidate: any): TUser | null => {
-    if (!candidate || typeof candidate.uid !== 'string') {
-        return null
-    }
-
-    const uid = candidate.uid.trim()
-    if (!uid.length) {
-        return null
-    }
-
-    const aliases = Array.isArray(candidate.knownAliases)
-        ? candidate.knownAliases
-              .map((alias: unknown) => (typeof alias === 'string' ? alias.trim() : ''))
-              .filter((alias: string): alias is string => Boolean(alias.length))
-        : []
-
-    const titleSource =
-        candidate.userTitle && typeof candidate.userTitle === 'object'
-            ? candidate.userTitle
-            : FALLBACK_USER_TITLE
-
-    const userTitle = {
-        bgColor:
-            typeof titleSource.bgColor === 'string' && titleSource.bgColor.length
-                ? titleSource.bgColor
-                : FALLBACK_USER_TITLE.bgColor,
-        border:
-            typeof titleSource.border === 'string' && titleSource.border.length
-                ? titleSource.border
-                : FALLBACK_USER_TITLE.border,
-        color:
-            typeof titleSource.color === 'string' && titleSource.color.length
-                ? titleSource.color
-                : FALLBACK_USER_TITLE.color,
-        title:
-            typeof titleSource.title === 'string' && titleSource.title.length
-                ? titleSource.title
-                : FALLBACK_USER_TITLE.title,
-    }
-
-    return {
-        uid,
-        userName:
-            typeof candidate.userName === 'string' && candidate.userName.trim().length
-                ? candidate.userName.trim()
-                : uid,
-        accountElo:
-            typeof candidate.accountElo === 'number' && Number.isFinite(candidate.accountElo)
-                ? candidate.accountElo
-                : 0,
-        countryCode:
-            typeof candidate.countryCode === 'string' && candidate.countryCode.trim().length
-                ? candidate.countryCode.trim().toUpperCase()
-                : 'XX',
-        gravEmail:
-            typeof candidate.gravEmail === 'string'
-                ? candidate.gravEmail
-                : typeof candidate.email === 'string'
-                  ? candidate.email
-                  : '',
-        knownAliases: aliases,
-        pingLat: typeof candidate.pingLat === 'number' ? candidate.pingLat : 0,
-        pingLon: typeof candidate.pingLon === 'number' ? candidate.pingLon : 0,
-        userEmail:
-            typeof candidate.userEmail === 'string'
-                ? candidate.userEmail
-                : typeof candidate.email === 'string'
-                  ? candidate.email
-                  : '',
-        userProfilePic:
-            typeof candidate.userProfilePic === 'string' ? candidate.userProfilePic : '',
-        userTitle,
-        winstreak:
-            typeof candidate.winstreak === 'number'
-                ? candidate.winstreak
-                : typeof candidate.winStreak === 'number'
-                  ? candidate.winStreak
-                  : 0,
-    }
-}
-
-const appendMockUser = (users: TUser[], lobbyId: string): TUser[] => {
-    const mockUser = buildMockForLobby(lobbyId)
-    if (!mockUser) {
-        return users
-    }
-
-    if (users.some((user) => user.uid === mockUser.uid)) {
-        return users
-    }
-
-    return [
-        ...users,
-        {
-            ...mockUser,
-            userTitle: { ...mockUser.userTitle },
-            knownAliases: [...mockUser.knownAliases],
-        },
-    ]
-}
 
 type SendMessageEventDetail = {
     text: string
@@ -261,83 +88,6 @@ type ChallengeResponseDetail = {
     messageId: string
     accepted: boolean
     responderName?: string
-}
-
-type ChallengeParticipants = {
-    challengerId?: string
-    opponentId?: string
-}
-
-const toCleanString = (value: unknown): string | undefined => {
-    if (typeof value === 'string') {
-        const trimmed = value.trim()
-        return trimmed.length ? trimmed : undefined
-    }
-
-    if (value && typeof value === 'object') {
-        const uid = (value as Record<string, unknown>).uid
-        if (typeof uid === 'string' && uid.trim().length) {
-            return uid.trim()
-        }
-        const id = (value as Record<string, unknown>).id
-        if (typeof id === 'string' && id.trim().length) {
-            return id.trim()
-        }
-    }
-
-    return undefined
-}
-
-const tryCandidates = (...candidates: unknown[]): string | undefined => {
-    for (const candidate of candidates) {
-        const resolved = toCleanString(candidate)
-        if (resolved) {
-            return resolved
-        }
-    }
-    return undefined
-}
-
-const resolveChallengeParticipants = (message: TMessage | undefined): ChallengeParticipants => {
-    if (!message) {
-        return {}
-    }
-
-    const challengerId = tryCandidates(
-        message.challengeChallengerId,
-        (message as any).challengerId,
-        (message as any).challengerUID,
-        (message as any).challenger,
-        (message as any).callerId,
-        (message as any).sender,
-        (message as any).from
-    )
-
-    const opponentId = tryCandidates(
-        message.challengeOpponentId,
-        (message as any).opponentId,
-        (message as any).opponentUID,
-        (message as any).opponent,
-        (message as any).targetUid,
-        (message as any).targetId,
-        (message as any).calleeId,
-        (message as any).to
-    )
-
-    return { challengerId, opponentId }
-}
-
-const formatTimestamp = (timestamp?: number) => {
-    if (!timestamp) {
-        return ''
-    }
-
-    try {
-        const date = new Date(timestamp)
-        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
-    } catch {
-        return ''
-    }
 }
 
 export default function Layout({ children }: { children: ReactElement[] }) {
@@ -379,6 +129,18 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
     const opponentUidRef = useRef<string | null>(null)
     const mockActionIndexRef = useRef(0)
+    const declineChallengeWithSocket = useCallback(
+        (targetId: string, challengerId: string) => {
+            const socket = signalSocketRef.current
+            if (!socket) {
+                return
+            }
+            webrtcDeclineCall(socket, targetId, challengerId).catch((error) => {
+                console.error('Failed to auto-decline challenge:', error)
+            })
+        },
+        [signalSocketRef]
+    )
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
         if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -395,111 +157,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         }
     }, [])
 
-    const cancelPendingChallengesForChallenger = useCallback(
-        (challengerId: string, options?: { excludeOpponentId?: string; reason?: string }) => {
-            if (!challengerId) {
-                return
-            }
-
-            const { chatMessages, updateMessage } = useMessageStore.getState()
-            const socket = signalSocketRef.current
-            const reason = options?.reason ?? AUTO_DECLINE_RESPONDER
-
-            chatMessages.forEach((message) => {
-                if (message.role !== 'challenge' || message.challengeStatus) {
-                    return
-                }
-
-                const { challengerId: messageChallenger, opponentId } =
-                    resolveChallengeParticipants(message)
-
-                if (messageChallenger !== challengerId) {
-                    return
-                }
-
-                if (options?.excludeOpponentId && opponentId === options.excludeOpponentId) {
-                    return
-                }
-
-                updateMessage(message.id, {
-                    challengeStatus: 'declined',
-                    challengeResponder: reason,
-                    challengeChallengerId: messageChallenger,
-                    challengeOpponentId: opponentId,
-                })
-
-                if (socket && globalUser?.uid === challengerId && opponentId) {
-                    webrtcDeclineCall(socket, opponentId, challengerId).catch((error) => {
-                        console.error('Failed to auto-decline previous challenge:', error)
-                    })
-                }
-            })
-        },
-        [globalUser?.uid]
-    )
-
-    const cancelPendingChallengesInvolving = useCallback(
-        (
-            participantIds: string[],
-            options?: { excludeMessageIds?: string[]; reason?: string }
-        ) => {
-            if (!Array.isArray(participantIds) || participantIds.length === 0) {
-                return
-            }
-
-            const { chatMessages, updateMessage } = useMessageStore.getState()
-            const socket = signalSocketRef.current
-            const reason = options?.reason ?? AUTO_DECLINE_RESPONDER
-            const excludedIds = new Set(options?.excludeMessageIds ?? [])
-
-            chatMessages.forEach((message) => {
-                if (message.role !== 'challenge' || message.challengeStatus) {
-                    return
-                }
-
-                if (excludedIds.has(message.id)) {
-                    return
-                }
-
-                const { challengerId, opponentId } = resolveChallengeParticipants(message)
-                if (!challengerId && !opponentId) {
-                    return
-                }
-
-                const involvesParticipant = participantIds.some(
-                    (id) => id && (id === challengerId || id === opponentId)
-                )
-
-                if (!involvesParticipant) {
-                    return
-                }
-
-                updateMessage(message.id, {
-                    challengeStatus: 'declined',
-                    challengeResponder: reason,
-                    challengeChallengerId: challengerId,
-                    challengeOpponentId: opponentId,
-                })
-
-                if (socket && globalUser?.uid) {
-                    const otherParty =
-                        globalUser.uid === challengerId
-                            ? opponentId
-                            : globalUser.uid === opponentId
-                              ? challengerId
-                              : undefined
-
-                    if (otherParty && otherParty !== globalUser.uid) {
-                        webrtcDeclineCall(socket, otherParty, globalUser.uid).catch((error) => {
-                            console.error('Failed to auto-decline challenge for participant:', error)
-                        })
-                    }
-                }
-            })
-        },
-        [globalUser?.uid]
-    )
-
     const handleChallengeResponse = useCallback(
         (messageId: string, accepted: boolean, responderName?: string) => {
             const responder =
@@ -510,24 +167,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
             const { chatMessages, updateMessage } = useMessageStore.getState()
             const targetMessage = chatMessages.find((message) => message.id === messageId)
-            let { challengerId, opponentId } = resolveChallengeParticipants(targetMessage)
-
-            if (!challengerId) {
-                challengerId = toCleanString((targetMessage as any)?.sender)
-            }
-            if (!opponentId) {
-                opponentId =
-                    toCleanString((targetMessage as any)?.opponent) ||
-                    toCleanString((targetMessage as any)?.targetUid) ||
-                    toCleanString((targetMessage as any)?.targetId) ||
-                    (globalUser?.uid && globalUser.uid !== challengerId ? globalUser.uid : undefined)
-            }
-            if (!challengerId && globalUser?.uid) {
-                challengerId = globalUser.uid
-            }
-            if (!opponentId && globalUser?.uid) {
-                opponentId = globalUser.uid
-            }
+            const { challengerId, opponentId } = normalizeChallengeParticipants(
+                targetMessage,
+                globalUser?.uid
+            )
 
             updateMessage(messageId, {
                 challengeStatus: status,
@@ -547,9 +190,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 )
 
                 if (participantIds.length) {
-                    cancelPendingChallengesInvolving(participantIds, {
+                    cancelPendingChallengesInvolving({
+                        participantIds,
                         excludeMessageIds: [messageId],
                         reason: AUTO_RESOLVE_RESPONDER,
+                        currentUserId: globalUser?.uid,
+                        declineChallenge: declineChallengeWithSocket,
                     })
                 }
             } else {
@@ -559,7 +205,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [cancelPendingChallengesInvolving, globalUser?.uid, globalUser?.userName]
+        [cancelPendingChallengesInvolving, declineChallengeWithSocket, globalUser?.uid, globalUser?.userName]
     )
 
     const mentionHandles = useMemo(() => {
@@ -710,7 +356,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 return
             }
 
-            cancelPendingChallengesForChallenger(globalUser.uid)
+            cancelPendingChallengesForChallenger({
+                challengerId: globalUser.uid,
+                reason: AUTO_DECLINE_RESPONDER,
+                currentUserId: globalUser.uid,
+                declineChallenge: declineChallengeWithSocket,
+            })
 
             const socket = signalSocketRef.current
             if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -751,7 +402,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [cancelPendingChallengesForChallenger, globalUser?.uid]
+        [declineChallengeWithSocket, globalUser?.uid]
     )
 
     const handleCreateLobby = useCallback(
