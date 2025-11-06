@@ -354,7 +354,7 @@ export default function LobbyPage() {
                 flexDirection="column"
                 maxH="100%"
                 minH="100%"
-                flex="2"
+                flex="3"
                 overflow="hidden"
             >
                 <CollapsibleRoot

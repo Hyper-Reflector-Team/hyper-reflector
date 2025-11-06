@@ -30,7 +30,13 @@ import { buildMentionRegexes } from '../utils/chatFormatting'
 import { toaster } from '../components/chakra/ui/toaster'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 
-import { initWebRTC, startCall, answerCall, declineCall as webrtcDeclineCall, closeConnectionWithUser } from '../webRTC/WebPeer'
+import {
+    initWebRTC,
+    startCall,
+    answerCall,
+    declineCall as webrtcDeclineCall,
+    closeConnectionWithUser,
+} from '../webRTC/WebPeer'
 
 const CHALLENGE_ACCEPT_LABEL = 'Accept'
 const CHALLENGE_DECLINE_LABEL = 'Decline'
@@ -161,8 +167,8 @@ const normalizeSocketUser = (candidate: any): TUser | null => {
             typeof candidate.gravEmail === 'string'
                 ? candidate.gravEmail
                 : typeof candidate.email === 'string'
-                ? candidate.email
-                : '',
+                  ? candidate.email
+                  : '',
         knownAliases: aliases,
         pingLat: typeof candidate.pingLat === 'number' ? candidate.pingLat : 0,
         pingLon: typeof candidate.pingLon === 'number' ? candidate.pingLon : 0,
@@ -170,8 +176,8 @@ const normalizeSocketUser = (candidate: any): TUser | null => {
             typeof candidate.userEmail === 'string'
                 ? candidate.userEmail
                 : typeof candidate.email === 'string'
-                ? candidate.email
-                : '',
+                  ? candidate.email
+                  : '',
         userProfilePic:
             typeof candidate.userProfilePic === 'string' ? candidate.userProfilePic : '',
         userTitle,
@@ -179,8 +185,8 @@ const normalizeSocketUser = (candidate: any): TUser | null => {
             typeof candidate.winstreak === 'number'
                 ? candidate.winstreak
                 : typeof candidate.winStreak === 'number'
-                ? candidate.winStreak
-                : 0,
+                  ? candidate.winStreak
+                  : 0,
     }
 }
 
@@ -740,7 +746,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         if (Array.isArray(payload.users)) {
                             const normalizedUsers = payload.users
                                 .map((entry: unknown) => normalizeSocketUser(entry))
-                                .filter((user): user is TUser => Boolean(user))
+                                .filter((user: any): user is TUser => Boolean(user)) // TODO this typing is strange
                             const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
                             setLobbyUsers(appendMockUser(normalizedUsers, activeLobbyId))
                         }
@@ -759,8 +765,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             typeof payload.id === 'string' && payload.id.length
                                 ? payload.id
                                 : normalizedSender?.uid
-                                ? `${normalizedSender.uid}-${timeStamp}`
-                                : `message-${timeStamp}`
+                                  ? `${normalizedSender.uid}-${timeStamp}`
+                                  : `message-${timeStamp}`
                         const message: TMessage = {
                             id: messageId,
                             role: 'user',
@@ -841,7 +847,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             const peer = await initWebRTC(globalUser.uid, payload.from, socket)
                             peerConnectionRef.current = peer
                             opponentUidRef.current = payload.from
-                            await peer.setRemoteDescription(new RTCSessionDescription(payload.offer))
+                            await peer.setRemoteDescription(
+                                new RTCSessionDescription(payload.offer)
+                            )
                             toaster.info({
                                 title: 'Incoming challenge',
                                 description: `User ${payload.from} wants to play.`,
@@ -889,7 +897,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         if (payload.from) {
                             closeConnectionWithUser(payload.from)
                             opponentUidRef.current = null
-                            toaster.info({ title: 'Challenge declined', description: `User ${payload.from} is unavailable.` })
+                            toaster.info({
+                                title: 'Challenge declined',
+                                description: `User ${payload.from} is unavailable.`,
+                            })
                         }
                         break
                     }
@@ -1212,4 +1223,3 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         </>
     )
 }
-
