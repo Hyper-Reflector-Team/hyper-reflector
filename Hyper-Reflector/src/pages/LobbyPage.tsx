@@ -61,6 +61,7 @@ export default function LobbyPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [countryFilter, setCountryFilter] = useState('ALL')
     const [eloFilter, setEloFilter] = useState<EloFilter>('ALL')
+    const mutedUsers = useSettingsStore((s) => s.mutedUsers)
     const [pingFilter, setPingFilter] = useState<PingFilter>('ALL')
     const [filtersOpen, setFiltersOpen] = useState(false)
     const [showScrollButton, setShowScrollButton] = useState(false)
@@ -240,6 +241,21 @@ export default function LobbyPage() {
         }
     }
 
+    const visibleChatMessages = useMemo(
+        () =>
+            chatMessages.filter((msg) => {
+                const senderId =
+                    msg.senderUid ||
+                    msg.challengeChallengerId ||
+                    (typeof (msg as any).senderId === 'string' ? (msg as any).senderId : undefined)
+                if (senderId && mutedUsers.includes(senderId)) {
+                    return false
+                }
+                return true
+            }),
+        [chatMessages, mutedUsers]
+    )
+
     const filteredUsers = useMemo(() => {
         const query = searchQuery.trim().toLowerCase()
 
@@ -294,7 +310,7 @@ export default function LobbyPage() {
 
     const endRef = useRef<HTMLDivElement>(null)
     const boxRef = useRef<HTMLDivElement | null>(null)
-    useAutoScrollOnNewContent(boxRef, [chatMessages.length])
+    useAutoScrollOnNewContent(boxRef, [visibleChatMessages.length])
 
     const scrollChatToBottom = (behavior: ScrollBehavior = 'smooth') => {
         const el = boxRef.current
@@ -322,7 +338,7 @@ export default function LobbyPage() {
         if (distanceFromBottom <= 24) {
             setShowScrollButton(false)
         }
-    }, [chatMessages.length])
+    }, [visibleChatMessages.length])
 
     return (
         <Box display="flex" maxH="100%" minH="100%">
@@ -342,7 +358,7 @@ export default function LobbyPage() {
                     overflowY={'scroll'}
                     ref={boxRef}
                 >
-                    {chatMessages.map((msg) => {
+                    {visibleChatMessages.map((msg) => {
                         const isSelf = msg.userName === globalUser?.userName
                         const isChallenge = msg.role === 'challenge'
                         const challengeStatus = msg.challengeStatus

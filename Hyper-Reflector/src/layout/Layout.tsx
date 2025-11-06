@@ -35,7 +35,7 @@ import {
     normalizeChallengeParticipants,
 } from './helpers/challenges'
 import {
-    appendMockUser,
+    appendMockUsers,
     buildMockForLobby,
     MOCK_ACTION_INTERVAL_MS,
     MOCK_CHALLENGE_LINES,
@@ -111,6 +111,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const notifChallengeSoundPath = useSettingsStore((s) => s.notifChallengeSoundPath)
     const notifMentionSoundEnabled = useSettingsStore((s) => s.notifiAtSound)
     const notifMentionSoundPath = useSettingsStore((s) => s.notifAtSoundPath)
+    const mutedUsers = useSettingsStore((s) => s.mutedUsers)
     const accentColor = theme?.colorPalette ?? 'orange'
     const { t } = useTranslation()
     const {
@@ -508,6 +509,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 return
             }
 
+            const senderId =
+                msg.senderUid ||
+                msg.challengeChallengerId ||
+                (typeof (msg as any).senderId === 'string' ? (msg as any).senderId : undefined)
+
+            if (senderId && mutedUsers.includes(senderId)) {
+                return
+            }
+
             if (msg.role === 'challenge') {
                 entries.push({ message: msg, kind: 'challenge' })
                 return
@@ -533,7 +543,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             const bTime = b.message.timeStamp ?? 0
             return bTime - aTime
         })
-    }, [chatMessages, mentionMatchers, dismissedNotificationIds])
+    }, [chatMessages, mentionMatchers, dismissedNotificationIds, mutedUsers])
 
     const handleClearNotifications = useCallback(() => {
         if (!notificationEntries.length) {
@@ -557,7 +567,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 .filter((entry) => entry.kind === 'challenge')
                 .map((entry) => {
                     const sender = (entry.message as any).sender || {}
-                    return sender.uid || sender.userUID || sender.id || null
+                    return (
+                        entry.message.challengeChallengerId ||
+                        sender.uid ||
+                        sender.userUID ||
+                        sender.id ||
+                        null
+                    )
                 })
                 .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
 
@@ -611,6 +627,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             return
         }
 
+        const viewerSnapshot = globalUserRef.current
         const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
         if (activeLobbyId.toLowerCase() !== 'debug') {
             return
@@ -635,14 +652,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     timeStamp: now,
                     userName: mockUser.userName,
                     sender: mockUser,
+                    senderUid: mockUser.uid,
                     challengeChallengerId: mockUser.uid,
-                    challengeOpponentId: globalUser?.uid,
+                    challengeOpponentId: viewerSnapshot?.uid,
                 }
                 addChatMessage(challengeMessage)
-                toaster.info({
-                    title: 'Challenge incoming',
-                    description: `${mockUser.userName} ${challengeLine}`,
-                })
+                if (!mutedUsers.includes(mockUser.uid)) {
+                    toaster.info({
+                        title: 'Challenge incoming',
+                        description: `${mockUser.userName} ${challengeLine}`,
+                    })
+                }
                 mockActionIndexRef.current += 1
                 return
             }
@@ -653,13 +673,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
             const chatTemplate =
                 MOCK_CHAT_LINES[mockActionIndexRef.current % MOCK_CHAT_LINES.length]
-            const playerName = (globalUser?.userName ?? 'friend').trim() || 'friend'
+            const playerName = (viewerSnapshot?.userName ?? 'friend').trim() || 'friend'
             const chatMessage: TMessage = {
                 id: `mock-message-${now}`,
                 role: 'user',
                 text: chatTemplate.replace('{player}', playerName),
                 timeStamp: now,
                 userName: mockUser.userName,
+                senderUid: mockUser.uid,
             }
             addChatMessage(chatMessage)
             mockActionIndexRef.current += 1
@@ -668,7 +689,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         runMockInteraction()
         const intervalId = window.setInterval(runMockInteraction, MOCK_ACTION_INTERVAL_MS)
         return () => window.clearInterval(intervalId)
-    }, [globalLoggedIn, globalUser?.uid, globalUser?.userName, hasRealOpponent])
+    }, [globalLoggedIn, globalUser?.uid, currentLobbyId, hasRealOpponent, mutedUsers])
 
     const statusColor =
         STATUS_COLOR_MAP[signalStatus] ?? STATUS_COLOR_MAP.disconnected
@@ -817,7 +838,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 .map((entry: unknown) => normalizeSocketUser(entry))
                                 .filter((user: any): user is TUser => Boolean(user)) // TODO this typing is strange
                             const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
-                            setLobbyUsers(appendMockUser(normalizedUsers, activeLobbyId))
+                            const injections = appendMockUsers(
+                                normalizedUsers,
+                                activeLobbyId,
+                                currentUserSnapshot
+                            )
+                            setLobbyUsers(injections.users)
+                            if (injections.viewer && injections.viewer !== currentUserSnapshot) {
+                                useUserStore.getState().setGlobalUser(injections.viewer)
+                            }
                         }
                         break
                     case 'getRoomMessage': {
@@ -841,6 +870,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             role: 'user',
                             text: textMessage,
                             timeStamp,
+                            senderUid: normalizedSender?.uid,
                             userName:
                                 normalizedSender?.userName ||
                                 sender.userName ||
@@ -1009,10 +1039,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             await peer.setRemoteDescription(
                                 new RTCSessionDescription(payload.offer)
                             )
-                            toaster.info({
-                                title: 'Incoming challenge',
-                                description: `User ${payload.from} wants to play.`,
-                            })
+                            if (!mutedUsers.includes(payload.from)) {
+                                toaster.info({
+                                    title: 'Incoming challenge',
+                                    description: `User ${payload.from} wants to play.`,
+                                })
+                            }
                             await answerCall(peer, socket, payload.from, currentUserSnapshot.uid)
                         } catch (error) {
                             console.error('Failed to handle incoming offer:', error)

@@ -36,6 +36,9 @@ type SettingsState = {
     setTrainingPath: (path: string) => void
     appLanguage: string
     setAppLanguage: (code: string) => void
+    mutedUsers: string[]
+    toggleMutedUser: (uid: string) => void
+    isUserMuted: (uid: string) => boolean
 }
 
 type SignalStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -62,6 +65,7 @@ export type TMessage = {
     timeStamp: number
     status?: 'sending' | 'sent' | 'failed'
     userName?: string
+    senderUid?: string
     challengeStatus?: 'accepted' | 'declined'
     challengeResponder?: string
     challengeChallengerId?: string
@@ -118,7 +122,7 @@ export const useUserStore = create<UserState>((set) => ({
 
 export const useSettingsStore = create<SettingsState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             ggpoDelay: '0',
             setGgpoDelay: (d) => set({ ggpoDelay: d }),
             notifChallengeSound: true,
@@ -141,6 +145,21 @@ export const useSettingsStore = create<SettingsState>()(
             setTrainingPath: (path) => set({ trainingPath: path }),
             appLanguage: '',
             setAppLanguage: (code) => set({ appLanguage: code }),
+            mutedUsers: [],
+            toggleMutedUser: (uid) =>
+                set((state) => {
+                    if (!uid) return state
+                    const current = state.mutedUsers || []
+                    if (current.includes(uid)) {
+                        return { mutedUsers: current.filter((userId) => userId !== uid) }
+                    }
+                    return { mutedUsers: [...current, uid] }
+                }),
+            isUserMuted: (uid) => {
+                if (!uid) return false
+                const current = get().mutedUsers || []
+                return current.includes(uid)
+            },
         }),
         {
             name: 'settings',

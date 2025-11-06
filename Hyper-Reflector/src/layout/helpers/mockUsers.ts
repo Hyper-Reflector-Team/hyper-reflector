@@ -1,5 +1,4 @@
 import type { TUser } from '../../types/user'
-import { DEFAULT_LOBBY_ID } from '../../state/store'
 
 export const FALLBACK_USER_TITLE: TUser['userTitle'] = {
     bgColor: '#1f1f24',
@@ -55,12 +54,6 @@ export const MOCK_CHALLENGE_LINES = [
 ]
 
 export const MOCK_ACTION_INTERVAL_MS = 5000 // every 5 seconds do a random interaction
-
-export const lobbySlug = (value: string) =>
-    value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'lobby'
 
 export const buildMockForLobby = (lobbyId: string, index = 0): TUser | null => {
     const normalized = lobbyId.trim().toLowerCase()
@@ -207,28 +200,75 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
     return resolvedUser
 }
 
-export const appendMockUser = (users: TUser[], lobbyId: string): TUser[] => {
+export const appendMockUsers = (
+    users: TUser[],
+    lobbyId: string,
+    viewer?: TUser | null
+): { users: TUser[]; viewer?: TUser } => {
     if (!lobbyId || lobbyId.toLowerCase() !== 'debug') {
-        return users
+        return { users, viewer: viewer || undefined }
     }
 
     const candidateUsers = [MOCK_CHALLENGE_USER, MOCK_CHALLENGE_USER_TWO]
+    const expanded = [...users]
+    const existingIds = new Set(expanded.map((user) => user.uid))
 
-    const existingIds = new Set(users.map((user) => user.uid))
-    const mocksToAdd = candidateUsers.filter((mock) => !existingIds.has(mock.uid))
-
-    if (!mocksToAdd.length) {
-        return users
+    let viewerSnapshot = viewer ? { ...viewer } : undefined
+    if (viewerSnapshot) {
+        viewerSnapshot.lastKnownPings = Array.isArray(viewerSnapshot.lastKnownPings)
+            ? viewerSnapshot.lastKnownPings.filter((entry) =>
+                  candidateUsers.every((mock) => mock.uid !== entry.id)
+              )
+            : []
     }
 
-    const expanded = [...users]
-    mocksToAdd.forEach((mock) => {
-        expanded.push({
+    candidateUsers.forEach((mock, index) => {
+        const pingValue = index === 0 ? 46 : 128
+        const isUnstable = index === 1
+
+        const mockClone: TUser = {
             ...mock,
-            userTitle: { ...mock.userTitle },
-            knownAliases: [...mock.knownAliases],
-        })
+            ping: pingValue,
+            lastKnownPings: viewer?.uid
+                ? [
+                      ...(Array.isArray(mock.lastKnownPings) ? mock.lastKnownPings : []),
+                      {
+                          id: viewer.uid,
+                          ping: pingValue,
+                          isUnstable,
+                          countryCode: viewer.countryCode,
+                      },
+                  ]
+                : mock.lastKnownPings,
+        }
+
+        if (!existingIds.has(mock.uid)) {
+            expanded.push(mockClone)
+            existingIds.add(mock.uid)
+        } else {
+            const idx = expanded.findIndex((user) => user.uid === mock.uid)
+            if (idx >= 0) {
+                expanded[idx] = {
+                    ...expanded[idx],
+                    ping: pingValue,
+                    lastKnownPings: mockClone.lastKnownPings,
+                }
+            }
+        }
+
+        if (viewerSnapshot?.uid) {
+            const existingRecords = Array.isArray(viewerSnapshot.lastKnownPings)
+                ? viewerSnapshot.lastKnownPings.filter((entry) => entry.id !== mock.uid)
+                : []
+            viewerSnapshot = {
+                ...viewerSnapshot,
+                lastKnownPings: [
+                    ...existingRecords,
+                    { id: mock.uid, ping: pingValue, isUnstable, countryCode: mock.countryCode },
+                ],
+            }
+        }
     })
 
-    return expanded
+    return { users: expanded, viewer: viewerSnapshot }
 }

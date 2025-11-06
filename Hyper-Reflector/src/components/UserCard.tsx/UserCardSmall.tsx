@@ -5,7 +5,7 @@ import { Tooltip } from '../chakra/ui/tooltip'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 import { TUser } from '../../types/user'
 import TitleBadge from './TitleBadge'
-import { useUserStore } from '../../state/store'
+import { useUserStore, useSettingsStore } from '../../state/store'
 import { resolvePingBetweenUsers } from '../../utils/ping'
 
 type UserCardSmallProps = {
@@ -18,6 +18,9 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
     const [menuOpen, setMenuOpen] = useState(false)
     const isInteractive = Boolean(!isSelf && user)
     const viewer = useUserStore((state) => state.globalUser)
+    const mutedUsers = useSettingsStore((state) => state.mutedUsers)
+    const toggleMutedUser = useSettingsStore((state) => state.toggleMutedUser)
+    const isMuted = Boolean(user && mutedUsers.includes(user.uid))
 
     useEffect(() => {
         setMenuOpen(false)
@@ -44,6 +47,13 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
         event.stopPropagation()
         if (!isInteractive || !onChallenge) return
         onChallenge(user)
+        setMenuOpen(false)
+    }
+
+    const handleToggleMute = (event: MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation()
+        if (!user) return
+        toggleMutedUser(user.uid)
         setMenuOpen(false)
     }
 
@@ -83,7 +93,7 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
                     </Text>
                     <TitleBadge title={user.userTitle} />
                     <Text fontSize="xs" color="gray.500">
-                        {isSelf ? 'This is you' : `ELO ${user.accountElo}`}
+                        ELO {user.accountElo}
                     </Text>
                     {pingLabel ? (
                         <Text
@@ -110,13 +120,21 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
             {menuOpen && isInteractive ? (
                 <Box paddingX="3" paddingBottom="3">
                     <Stack spacing="2">
-                        {user.knownAliases.length ? (
-                            <Text fontSize="xs" color="gray.400">
-                                Also known as: {user.knownAliases.join(', ')}
-                            </Text>
-                        ) : null}
+                       {user.knownAliases.length ? (
+                           <Text fontSize="xs" color="gray.400">
+                               Also known as: {user.knownAliases.join(', ')}
+                           </Text>
+                       ) : null}
                         <Button size="sm" colorPalette="orange" onClick={handleChallenge}>
                             Challenge player
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={isMuted ? 'solid' : 'outline'}
+                            colorPalette={isMuted ? 'green' : 'neutral'}
+                            onClick={handleToggleMute}
+                        >
+                            {isMuted ? 'Unmute player' : 'Mute player'}
                         </Button>
                     </Stack>
                 </Box>
