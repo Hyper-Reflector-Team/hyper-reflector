@@ -4,6 +4,7 @@ import type { KeyboardEvent, MouseEvent } from 'react'
 import { Tooltip } from '../chakra/ui/tooltip'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 import { TUser } from '../../types/user'
+import TitleBadge from './TitleBadge'
 
 type UserCardSmallProps = {
     user: TUser | undefined
@@ -70,6 +71,7 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
                     <Text fontWeight="semibold" fontSize="sm">
                         {user.userName}
                     </Text>
+                    <TitleBadge title={user.userTitle} />
                     <Text fontSize="xs" color="gray.500">
                         {isSelf ? 'This is you' : `ELO ${user.accountElo}`}
                     </Text>
