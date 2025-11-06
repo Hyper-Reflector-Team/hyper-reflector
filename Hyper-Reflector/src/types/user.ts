@@ -10,8 +10,12 @@ export type TUser = {
     countryCode: string
     gravEmail: string
     knownAliases: string[]
-    pingLat: number
-    pingLon: number
+    pingLat?: number | null
+    pingLon?: number | null
+    lastKnownPings?: Array<{ id: string; ping: number | string; isUnstable?: boolean; countryCode?: string }>
+    stability?: boolean
+    ip?: string
+    ping?: number
     uid: string
     userEmail: string // should remove
     userName: string

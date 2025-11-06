@@ -129,6 +129,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
     const opponentUidRef = useRef<string | null>(null)
     const mockActionIndexRef = useRef(0)
+    const globalUserRef = useRef<TUser | undefined>(globalUser)
     const declineChallengeWithSocket = useCallback(
         (targetId: string, challengerId: string) => {
             const socket = signalSocketRef.current
@@ -141,6 +142,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         },
         [signalSocketRef]
     )
+
+    useEffect(() => {
+        globalUserRef.current = globalUser || undefined
+    }, [globalUser])
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
         if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -606,12 +611,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             return
         }
 
+        const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+        if (activeLobbyId.toLowerCase() !== 'debug') {
+            return
+        }
+
         const runMockInteraction = () => {
             const mockUser =
-                buildMockForLobby(
-                    currentLobbyIdRef.current || DEFAULT_LOBBY_ID,
-                    mockActionIndexRef.current
-                ) || MOCK_CHALLENGE_USER
+                buildMockForLobby(activeLobbyId, mockActionIndexRef.current) || MOCK_CHALLENGE_USER
             const now = Date.now()
             const addChatMessage = useMessageStore.getState().addChatMessage
             const shouldChallenge = Math.random() < 0.4
@@ -734,7 +741,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     }
 
     useEffect(() => {
-        if (!globalLoggedIn || !globalUser) {
+        const userSnapshot = globalUserRef.current
+
+        if (!globalLoggedIn || !userSnapshot) {
             setSignalStatus('disconnected')
             if (signalSocketRef.current) {
                 signalSocketRef.current.close()
@@ -751,13 +760,20 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
         socket.onopen = () => {
             setSignalStatus('connected')
+            const latestUser = globalUserRef.current
+            if (!latestUser) {
+                console.warn('Socket opened but no user snapshot available')
+                socket.close()
+                return
+            }
+
             const lobbyToJoin = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
             setCurrentLobbyId(lobbyToJoin)
             try {
                 socket.send(
                     JSON.stringify({
                         type: 'join',
-                        user: { ...globalUser, lobbyId: lobbyToJoin },
+                        user: { ...latestUser, lobbyId: lobbyToJoin },
                     })
                 )
             } catch (error) {
@@ -791,6 +807,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             try {
                 const payload = JSON.parse(event.data)
                 if (!payload || typeof payload.type !== 'string') return
+
+                const currentUserSnapshot = globalUserRef.current
 
                 switch (payload.type) {
                     case 'connected-users':
@@ -832,6 +850,96 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         }
 
                         useMessageStore.getState().addChatMessage(message)
+                        break
+                    }
+                    case 'update-user-pinged': {
+                        const data = payload.data
+                        if (!data || typeof data !== 'object') {
+                            break
+                        }
+
+                        const userStore = useUserStore.getState()
+                        const currentGlobal = userStore.globalUser
+
+                        if (data.isNewPing) {
+                            const peerId =
+                                typeof data.id === 'string'
+                                    ? data.id
+                                    : typeof data.id === 'number'
+                                      ? String(data.id)
+                                      : undefined
+                            if (peerId && currentGlobal) {
+                                const existingPings = Array.isArray(currentGlobal.lastKnownPings)
+                                    ? currentGlobal.lastKnownPings
+                                    : []
+                                const filtered = existingPings.filter((entry) => entry.id !== peerId)
+                                const rawPing = data.ping
+                                const numericPing =
+                                    typeof rawPing === 'number'
+                                        ? rawPing
+                                        : typeof rawPing === 'string'
+                                          ? Number(rawPing)
+                                          : undefined
+                                const nextViewer = {
+                                    ...currentGlobal,
+                                    lastKnownPings: [
+                                        ...filtered,
+                                        {
+                                            id: peerId,
+                                            ping:
+                                                typeof numericPing === 'number' &&
+                                                Number.isFinite(numericPing)
+                                                    ? numericPing
+                                                    : rawPing ?? 0,
+                                            isUnstable: Boolean(data.isUnstable),
+                                            countryCode:
+                                                typeof data.countryCode === 'string'
+                                                    ? data.countryCode
+                                                    : undefined,
+                                        },
+                                    ],
+                                }
+                                userStore.setGlobalUser(nextViewer)
+                            }
+                            break
+                        }
+
+                        if (currentGlobal) {
+                            const updatedGlobal = {
+                                ...currentGlobal,
+                                pingLat:
+                                    typeof (data as any).pingLat === 'number'
+                                        ? (data as any).pingLat
+                                        : currentGlobal.pingLat,
+                                pingLon:
+                                    typeof (data as any).pingLon === 'number'
+                                        ? (data as any).pingLon
+                                        : currentGlobal.pingLon,
+                                countryCode:
+                                    typeof (data as any).countryCode === 'string' &&
+                                    (data as any).countryCode.length
+                                        ? (data as any).countryCode
+                                        : currentGlobal.countryCode,
+                                lastKnownPings: Array.isArray((data as any).lastKnownPings)
+                                    ? (data as any).lastKnownPings
+                                    : currentGlobal.lastKnownPings,
+                            }
+                            userStore.setGlobalUser(updatedGlobal)
+
+                            const updatedLobbyUsers = userStore.lobbyUsers.map((entry) => {
+                                if (entry.uid !== updatedGlobal.uid) {
+                                    return entry
+                                }
+                                return {
+                                    ...entry,
+                                    pingLat: updatedGlobal.pingLat,
+                                    pingLon: updatedGlobal.pingLon,
+                                    countryCode: updatedGlobal.countryCode,
+                                    lastKnownPings: updatedGlobal.lastKnownPings,
+                                }
+                            })
+                            userStore.setLobbyUsers(updatedLobbyUsers)
+                        }
                         break
                     }
                     case 'lobby-user-counts': {
@@ -890,12 +998,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         }
                         break
                     case 'webrtc-ping-offer': {
-                        if (!globalUser?.uid || !payload.from || !payload.offer) {
+                        if (!currentUserSnapshot?.uid || !payload.from || !payload.offer) {
                             break
                         }
 
                         try {
-                            const peer = await initWebRTC(globalUser.uid, payload.from, socket)
+                            const peer = await initWebRTC(currentUserSnapshot.uid, payload.from, socket)
                             peerConnectionRef.current = peer
                             opponentUidRef.current = payload.from
                             await peer.setRemoteDescription(
@@ -905,7 +1013,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 title: 'Incoming challenge',
                                 description: `User ${payload.from} wants to play.`,
                             })
-                            await answerCall(peer, socket, payload.from, globalUser.uid)
+                            await answerCall(peer, socket, payload.from, currentUserSnapshot.uid)
                         } catch (error) {
                             console.error('Failed to handle incoming offer:', error)
                         }
@@ -978,7 +1086,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     }, [
         clearChatMessages,
         globalLoggedIn,
-        globalUser,
+        globalUser?.uid,
         setCurrentLobbyId,
         setLobbyList,
         setLobbyUsers,

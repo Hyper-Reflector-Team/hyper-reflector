@@ -21,6 +21,7 @@ export const MOCK_CHALLENGE_USER: TUser = {
     userProfilePic: '',
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Partner' },
     winstreak: 0,
+    lastKnownPings: [{ id: 'mock-opponent-2', ping: 92 }],
 }
 
 export const MOCK_CHALLENGE_USER_TWO: TUser = {
@@ -36,6 +37,8 @@ export const MOCK_CHALLENGE_USER_TWO: TUser = {
     userProfilePic: '',
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Rival' },
     winstreak: 0,
+    stability: true,
+    lastKnownPings: [{ id: 'mock-opponent', ping: 92 }],
 }
 
 export const MOCK_CHAT_LINES = [
@@ -60,34 +63,10 @@ export const lobbySlug = (value: string) =>
         .replace(/^-+|-+$/g, '') || 'lobby'
 
 export const buildMockForLobby = (lobbyId: string, index = 0): TUser | null => {
-    const normalized = lobbyId.trim()
-    if (!normalized.length) return null
+    const normalized = lobbyId.trim().toLowerCase()
+    if (!normalized.length || normalized !== 'debug') return null
 
-    if (normalized === DEFAULT_LOBBY_ID) {
-        return index % 2 === 0 ? MOCK_CHALLENGE_USER : MOCK_CHALLENGE_USER_TWO
-    }
-
-    const slug = lobbySlug(normalized)
-    const aliasPrefix = normalized.split(' ')[0] || 'Rival'
-    const baseElo = 1500 + Math.min(slug.length * 23, 300)
-
-    return {
-        uid: `mock-${slug}`,
-        userName: `${normalized} Rival`,
-        accountElo: baseElo,
-        countryCode: 'GB',
-        gravEmail: '',
-        knownAliases: [`${aliasPrefix}Rival`, `${aliasPrefix}Bot`],
-        pingLat: 51.5072,
-        pingLon: -0.1276,
-        userEmail: `mock+${slug}@hyper-reflector.test`,
-        userProfilePic: '',
-        userTitle: {
-            ...FALLBACK_USER_TITLE,
-            title: 'Local Challenger',
-        },
-        winstreak: 0,
-    }
+    return index % 2 === 0 ? MOCK_CHALLENGE_USER : MOCK_CHALLENGE_USER_TWO
 }
 
 export const normalizeSocketUser = (candidate: any): TUser | null => {
@@ -130,7 +109,49 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                 : FALLBACK_USER_TITLE.title,
     }
 
-    return {
+    const lastKnownPings =
+        Array.isArray(candidate.lastKnownPings) && candidate.lastKnownPings.length
+            ? candidate.lastKnownPings
+                  .map((entry: any) => {
+                      if (!entry) return null
+                      const id =
+                          typeof entry.id === 'string'
+                              ? entry.id
+                              : typeof entry.id === 'number'
+                                ? String(entry.id)
+                                : undefined
+                      if (!id) return null
+                      const rawPing = entry.ping
+                      const numericPing =
+                          typeof rawPing === 'number'
+                              ? rawPing
+                              : typeof rawPing === 'string'
+                                ? Number(rawPing)
+                                : undefined
+                      return {
+                          id,
+                          ping:
+                              typeof numericPing === 'number' && Number.isFinite(numericPing)
+                                  ? numericPing
+                                  : rawPing ?? 0,
+                          isUnstable: Boolean(entry.isUnstable),
+                          countryCode:
+                              typeof entry.countryCode === 'string' ? entry.countryCode : undefined,
+                      }
+                  })
+                  .filter(
+                      (
+                          entry
+                      ): entry is {
+                          id: string
+                          ping: number | string
+                          isUnstable?: boolean
+                          countryCode?: string
+                      } => Boolean(entry)
+                  )
+            : undefined
+
+    const resolvedUser: TUser = {
         uid,
         userName:
             typeof candidate.userName === 'string' && candidate.userName.trim().length
@@ -151,8 +172,17 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                     ? candidate.email
                     : '',
         knownAliases: aliases,
-        pingLat: typeof candidate.pingLat === 'number' ? candidate.pingLat : 0,
-        pingLon: typeof candidate.pingLon === 'number' ? candidate.pingLon : 0,
+        pingLat: typeof candidate.pingLat === 'number' ? candidate.pingLat : undefined,
+        pingLon: typeof candidate.pingLon === 'number' ? candidate.pingLon : undefined,
+        ping:
+            typeof candidate.ping === 'number'
+                ? candidate.ping
+                : typeof candidate.ping === 'string'
+                  ? Number(candidate.ping) || undefined
+                  : undefined,
+        stability:
+            typeof candidate.stability === 'boolean' ? candidate.stability : undefined,
+        ip: typeof candidate.ip === 'string' ? candidate.ip : undefined,
         userEmail:
             typeof candidate.userEmail === 'string'
                 ? candidate.userEmail
@@ -169,9 +199,19 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                     ? candidate.winStreak
                     : 0,
     }
+
+    if (lastKnownPings) {
+        resolvedUser.lastKnownPings = lastKnownPings
+    }
+
+    return resolvedUser
 }
 
 export const appendMockUser = (users: TUser[], lobbyId: string): TUser[] => {
+    if (!lobbyId || lobbyId.toLowerCase() !== 'debug') {
+        return users
+    }
+
     const candidateUsers = [MOCK_CHALLENGE_USER, MOCK_CHALLENGE_USER_TWO]
 
     const existingIds = new Set(users.map((user) => user.uid))

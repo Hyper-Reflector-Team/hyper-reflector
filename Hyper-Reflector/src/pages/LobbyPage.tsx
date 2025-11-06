@@ -27,10 +27,12 @@ import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
 import { toaster } from '../components/chakra/ui/toaster'
 import { highlightMentions } from '../utils/chatFormatting'
+import { resolvePingBetweenUsers } from '../utils/ping'
 
 const MAX_MESSAGE_LENGTH = 60
 
 type EloFilter = 'ALL' | 'ROOKIE' | 'INTERMEDIATE' | 'EXPERT'
+type PingFilter = 'ALL' | 'FAST' | 'MODERATE' | 'SLOW' | 'UNKNOWN'
 
 type SelectOption = { label: string; value: string }
 
@@ -39,6 +41,14 @@ const ELO_OPTION_DEFS: Array<{ value: EloFilter; labelKey: string }> = [
     { value: 'ROOKIE', labelKey: 'Lobby.elo.rookie' },
     { value: 'INTERMEDIATE', labelKey: 'Lobby.elo.intermediate' },
     { value: 'EXPERT', labelKey: 'Lobby.elo.expert' },
+]
+
+const PING_OPTION_DEFS: Array<{ value: PingFilter; labelKey: string; fallback: string }> = [
+    { value: 'ALL', labelKey: 'Lobby.ping.all', fallback: 'All pings' },
+    { value: 'FAST', labelKey: 'Lobby.ping.fast', fallback: '< 80 ms' },
+    { value: 'MODERATE', labelKey: 'Lobby.ping.moderate', fallback: '80 - 160 ms' },
+    { value: 'SLOW', labelKey: 'Lobby.ping.slow', fallback: '> 160 ms' },
+    { value: 'UNKNOWN', labelKey: 'Lobby.ping.unknown', fallback: 'Ping unknown' },
 ]
 
 export default function LobbyPage() {
@@ -51,6 +61,7 @@ export default function LobbyPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [countryFilter, setCountryFilter] = useState('ALL')
     const [eloFilter, setEloFilter] = useState<EloFilter>('ALL')
+    const [pingFilter, setPingFilter] = useState<PingFilter>('ALL')
     const [filtersOpen, setFiltersOpen] = useState(false)
     const [showScrollButton, setShowScrollButton] = useState(false)
     const lobbyRoster = useMemo<TUser[]>(() => {
@@ -118,6 +129,25 @@ export default function LobbyPage() {
         [localizedEloOptions]
     )
 
+    const localizedPingOptions = useMemo<SelectOption[]>(
+        () =>
+            PING_OPTION_DEFS.map(({ value, labelKey, fallback }) => ({
+                value,
+                label: t(labelKey, { defaultValue: fallback }),
+            })),
+        [t]
+    )
+
+    const pingCollection = useMemo(
+        () =>
+            createListCollection<SelectOption>({
+                items: localizedPingOptions,
+                itemToValue: (item) => item.value,
+                itemToString: (item) => item.label,
+            }),
+        [localizedPingOptions]
+    )
+
     useEffect(() => {
         if (
             countryFilter !== 'ALL' &&
@@ -126,6 +156,15 @@ export default function LobbyPage() {
             setCountryFilter('ALL')
         }
     }, [countryFilter, countryOptions])
+
+    useEffect(() => {
+        if (
+            pingFilter !== 'ALL' &&
+            !localizedPingOptions.some((option) => option.value === pingFilter)
+        ) {
+            setPingFilter('ALL')
+        }
+    }, [localizedPingOptions, pingFilter])
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
@@ -184,6 +223,11 @@ export default function LobbyPage() {
         setEloFilter(next)
     }
 
+    const handlePingChange = (details: SelectValueChangeDetails<SelectOption>) => {
+        const next = (details.items[0]?.value as PingFilter | undefined) ?? 'ALL'
+        setPingFilter(next)
+    }
+
     const formatChatTimestamp = (timestamp?: number) => {
         if (!timestamp) {
             return ''
@@ -221,10 +265,32 @@ export default function LobbyPage() {
                         matchesElo = true
                         break
                 }
-                return matchesSearch && matchesCountry && matchesElo
+
+                const pingInfo = resolvePingBetweenUsers(user, globalUser)
+                const pingValue = pingInfo.ping
+                let matchesPing = true
+                switch (pingFilter) {
+                    case 'FAST':
+                        matchesPing = pingValue !== null && pingValue < 80
+                        break
+                    case 'MODERATE':
+                        matchesPing = pingValue !== null && pingValue >= 80 && pingValue <= 160
+                        break
+                    case 'SLOW':
+                        matchesPing = pingValue !== null && pingValue > 160
+                        break
+                    case 'UNKNOWN':
+                        matchesPing = pingValue === null
+                        break
+                    default:
+                        matchesPing = true
+                        break
+                }
+
+                return matchesSearch && matchesCountry && matchesElo && matchesPing
             })
             .sort((a, b) => a.userName.localeCompare(b.userName))
-    }, [countryFilter, eloFilter, lobbyRoster, searchQuery])
+    }, [countryFilter, eloFilter, globalUser, lobbyRoster, pingFilter, searchQuery])
 
     const endRef = useRef<HTMLDivElement>(null)
     const boxRef = useRef<HTMLDivElement | null>(null)
@@ -487,6 +553,25 @@ export default function LobbyPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {localizedEloOptions.map((option) => (
+                                            <SelectItem key={option.value} item={option}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </SelectRoot>
+                                <SelectRoot<SelectOption>
+                                    collection={pingCollection}
+                                    value={[pingFilter]}
+                                    onValueChange={handlePingChange}
+                                    width="200px"
+                                >
+                                    <SelectTrigger clearable={pingFilter !== 'ALL'}>
+                                        <SelectValueText
+                                            placeholder={t('Lobby.ping.all', { defaultValue: 'All pings' })}
+                                        />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {localizedPingOptions.map((option) => (
                                             <SelectItem key={option.value} item={option}>
                                                 {option.label}
                                             </SelectItem>

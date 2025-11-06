@@ -1,10 +1,12 @@
 import { Avatar, Box, Button, Flex, Stack, Text } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { Tooltip } from '../chakra/ui/tooltip'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 import { TUser } from '../../types/user'
 import TitleBadge from './TitleBadge'
+import { useUserStore } from '../../state/store'
+import { resolvePingBetweenUsers } from '../../utils/ping'
 
 type UserCardSmallProps = {
     user: TUser | undefined
@@ -15,6 +17,7 @@ type UserCardSmallProps = {
 export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSmallProps) {
     const [menuOpen, setMenuOpen] = useState(false)
     const isInteractive = Boolean(!isSelf && user)
+    const viewer = useUserStore((state) => state.globalUser)
 
     useEffect(() => {
         setMenuOpen(false)
@@ -43,6 +46,13 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
         onChallenge(user)
         setMenuOpen(false)
     }
+
+    const pingInfo = useMemo(() => resolvePingBetweenUsers(user, viewer), [user, viewer])
+    const pingLabel = useMemo(() => {
+        if (pingInfo.ping === null) return undefined
+        const value = Math.round(pingInfo.ping)
+        return `${value} ms`
+    }, [pingInfo.ping])
 
     return (
         <Stack
@@ -75,6 +85,18 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
                     <Text fontSize="xs" color="gray.500">
                         {isSelf ? 'This is you' : `ELO ${user.accountElo}`}
                     </Text>
+                    {pingLabel ? (
+                        <Text
+                            fontSize="xs"
+                            color={pingInfo.isUnstable ? 'orange.300' : 'gray.400'}
+                        >
+                            Ping {pingLabel}
+                        </Text>
+                    ) : (
+                        <Text fontSize="xs" color="gray.600">
+                            Ping unknown
+                        </Text>
+                    )}
                 </Stack>
                 <Tooltip content={`${user.countryCode || 'Unknown'}`} openDelay={200} closeDelay={100}>
                     <div>
