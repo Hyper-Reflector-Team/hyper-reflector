@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect, useMemo, useRef } from 'react'
+import { ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 //@ts-ignore // keys exists
 import keys from '../private/keys'
 import { useNavigate } from '@tanstack/react-router'
@@ -22,7 +22,7 @@ import type { TUser } from '../types/user'
 import { useTranslation } from 'react-i18next'
 import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
-import { Bell, FlaskConical, LucideHome, MessageCircle, Settings } from 'lucide-react'
+import { Bell, BellOff, FlaskConical, LucideHome, MessageCircle, Settings, Swords } from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
 import { LobbyManagerDialog } from './components/LobbyManagerDialog'
 import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
@@ -86,6 +86,9 @@ const MOCK_CHALLENGE_LINES = [
 ]
 
 const MOCK_ACTION_INTERVAL_MS = 20_000
+
+const AUTO_DECLINE_RESPONDER = 'System (auto-cancelled)'
+const AUTO_RESOLVE_RESPONDER = 'System (other challenge resolved)'
 
 const STATUS_COLOR_MAP = {
     connected: 'green.400',
@@ -249,6 +252,81 @@ type ChallengeEventDetail = {
     targetUid: string
 }
 
+type NotificationEntry = {
+    message: TMessage
+    kind: 'challenge' | 'mention'
+}
+
+type ChallengeResponseDetail = {
+    messageId: string
+    accepted: boolean
+    responderName?: string
+}
+
+type ChallengeParticipants = {
+    challengerId?: string
+    opponentId?: string
+}
+
+const toCleanString = (value: unknown): string | undefined => {
+    if (typeof value === 'string') {
+        const trimmed = value.trim()
+        return trimmed.length ? trimmed : undefined
+    }
+
+    if (value && typeof value === 'object') {
+        const uid = (value as Record<string, unknown>).uid
+        if (typeof uid === 'string' && uid.trim().length) {
+            return uid.trim()
+        }
+        const id = (value as Record<string, unknown>).id
+        if (typeof id === 'string' && id.trim().length) {
+            return id.trim()
+        }
+    }
+
+    return undefined
+}
+
+const tryCandidates = (...candidates: unknown[]): string | undefined => {
+    for (const candidate of candidates) {
+        const resolved = toCleanString(candidate)
+        if (resolved) {
+            return resolved
+        }
+    }
+    return undefined
+}
+
+const resolveChallengeParticipants = (message: TMessage | undefined): ChallengeParticipants => {
+    if (!message) {
+        return {}
+    }
+
+    const challengerId = tryCandidates(
+        message.challengeChallengerId,
+        (message as any).challengerId,
+        (message as any).challengerUID,
+        (message as any).challenger,
+        (message as any).callerId,
+        (message as any).sender,
+        (message as any).from
+    )
+
+    const opponentId = tryCandidates(
+        message.challengeOpponentId,
+        (message as any).opponentId,
+        (message as any).opponentUID,
+        (message as any).opponent,
+        (message as any).targetUid,
+        (message as any).targetId,
+        (message as any).calleeId,
+        (message as any).to
+    )
+
+    return { challengerId, opponentId }
+}
+
 const formatTimestamp = (timestamp?: number) => {
     if (!timestamp) {
         return ''
@@ -317,9 +395,172 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         }
     }, [])
 
-    const handleChallengeResponse = (messageId: string, accepted: boolean) => {
-        console.log('Challenge response', { messageId, accepted })
-    }
+    const cancelPendingChallengesForChallenger = useCallback(
+        (challengerId: string, options?: { excludeOpponentId?: string; reason?: string }) => {
+            if (!challengerId) {
+                return
+            }
+
+            const { chatMessages, updateMessage } = useMessageStore.getState()
+            const socket = signalSocketRef.current
+            const reason = options?.reason ?? AUTO_DECLINE_RESPONDER
+
+            chatMessages.forEach((message) => {
+                if (message.role !== 'challenge' || message.challengeStatus) {
+                    return
+                }
+
+                const { challengerId: messageChallenger, opponentId } =
+                    resolveChallengeParticipants(message)
+
+                if (messageChallenger !== challengerId) {
+                    return
+                }
+
+                if (options?.excludeOpponentId && opponentId === options.excludeOpponentId) {
+                    return
+                }
+
+                updateMessage(message.id, {
+                    challengeStatus: 'declined',
+                    challengeResponder: reason,
+                    challengeChallengerId: messageChallenger,
+                    challengeOpponentId: opponentId,
+                })
+
+                if (socket && globalUser?.uid === challengerId && opponentId) {
+                    webrtcDeclineCall(socket, opponentId, challengerId).catch((error) => {
+                        console.error('Failed to auto-decline previous challenge:', error)
+                    })
+                }
+            })
+        },
+        [globalUser?.uid]
+    )
+
+    const cancelPendingChallengesInvolving = useCallback(
+        (
+            participantIds: string[],
+            options?: { excludeMessageIds?: string[]; reason?: string }
+        ) => {
+            if (!Array.isArray(participantIds) || participantIds.length === 0) {
+                return
+            }
+
+            const { chatMessages, updateMessage } = useMessageStore.getState()
+            const socket = signalSocketRef.current
+            const reason = options?.reason ?? AUTO_DECLINE_RESPONDER
+            const excludedIds = new Set(options?.excludeMessageIds ?? [])
+
+            chatMessages.forEach((message) => {
+                if (message.role !== 'challenge' || message.challengeStatus) {
+                    return
+                }
+
+                if (excludedIds.has(message.id)) {
+                    return
+                }
+
+                const { challengerId, opponentId } = resolveChallengeParticipants(message)
+                if (!challengerId && !opponentId) {
+                    return
+                }
+
+                const involvesParticipant = participantIds.some(
+                    (id) => id && (id === challengerId || id === opponentId)
+                )
+
+                if (!involvesParticipant) {
+                    return
+                }
+
+                updateMessage(message.id, {
+                    challengeStatus: 'declined',
+                    challengeResponder: reason,
+                    challengeChallengerId: challengerId,
+                    challengeOpponentId: opponentId,
+                })
+
+                if (socket && globalUser?.uid) {
+                    const otherParty =
+                        globalUser.uid === challengerId
+                            ? opponentId
+                            : globalUser.uid === opponentId
+                              ? challengerId
+                              : undefined
+
+                    if (otherParty && otherParty !== globalUser.uid) {
+                        webrtcDeclineCall(socket, otherParty, globalUser.uid).catch((error) => {
+                            console.error('Failed to auto-decline challenge for participant:', error)
+                        })
+                    }
+                }
+            })
+        },
+        [globalUser?.uid]
+    )
+
+    const handleChallengeResponse = useCallback(
+        (messageId: string, accepted: boolean, responderName?: string) => {
+            const responder =
+                responderName && responderName.trim().length
+                    ? responderName.trim()
+                    : globalUser?.userName || 'You'
+            const status = accepted ? 'accepted' : 'declined'
+
+            const { chatMessages, updateMessage } = useMessageStore.getState()
+            const targetMessage = chatMessages.find((message) => message.id === messageId)
+            let { challengerId, opponentId } = resolveChallengeParticipants(targetMessage)
+
+            if (!challengerId) {
+                challengerId = toCleanString((targetMessage as any)?.sender)
+            }
+            if (!opponentId) {
+                opponentId =
+                    toCleanString((targetMessage as any)?.opponent) ||
+                    toCleanString((targetMessage as any)?.targetUid) ||
+                    toCleanString((targetMessage as any)?.targetId) ||
+                    (globalUser?.uid && globalUser.uid !== challengerId ? globalUser.uid : undefined)
+            }
+            if (!challengerId && globalUser?.uid) {
+                challengerId = globalUser.uid
+            }
+            if (!opponentId && globalUser?.uid) {
+                opponentId = globalUser.uid
+            }
+
+            updateMessage(messageId, {
+                challengeStatus: status,
+                challengeResponder: responder,
+                challengeChallengerId: challengerId,
+                challengeOpponentId: opponentId,
+            })
+
+            if (accepted) {
+                toaster.success({
+                    title: 'Challenge accepted',
+                    description: `${responder} accepted the challenge.`,
+                })
+
+                const participantIds = [challengerId, opponentId].filter(
+                    (id): id is string => Boolean(id)
+                )
+
+                if (participantIds.length) {
+                    cancelPendingChallengesInvolving(participantIds, {
+                        excludeMessageIds: [messageId],
+                        reason: AUTO_RESOLVE_RESPONDER,
+                    })
+                }
+            } else {
+                toaster.info({
+                    title: 'Challenge declined',
+                    description: `${responder} declined the challenge.`,
+                })
+            }
+        },
+        [cancelPendingChallengesInvolving, globalUser?.uid, globalUser?.userName]
+    )
 
     const mentionHandles = useMemo(() => {
         const handles = new Set<string>()
@@ -342,6 +583,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const mentionMatchers = useMemo(
         () => buildMentionRegexes(mentionHandles, 'i'),
         [mentionHandles]
+    )
+
+    const [dismissedNotificationIds, setDismissedNotificationIds] = useState<Set<string>>(
+        () => new Set()
     )
 
     const hasRealOpponent = useMemo(() => {
@@ -465,6 +710,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 return
             }
 
+            cancelPendingChallengesForChallenger(globalUser.uid)
+
             const socket = signalSocketRef.current
             if (!socket || socket.readyState !== WebSocket.OPEN) {
                 toaster.error({
@@ -504,7 +751,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [globalUser?.uid]
+        [cancelPendingChallengesForChallenger, globalUser?.uid]
     )
 
     const handleCreateLobby = useCallback(
@@ -594,40 +841,66 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         ]
     )
 
-    const notificationItems: TMessage[] = useMemo(() => {
+    const notificationEntries: NotificationEntry[] = useMemo(() => {
         if (!Array.isArray(chatMessages)) return []
 
-        return chatMessages
-            .filter((msg) => {
-                if (msg.role === 'challenge') {
-                    return true
-                }
+        const entries: NotificationEntry[] = []
+        const dismissed = dismissedNotificationIds
 
-                if (!msg.text || !mentionMatchers.length) {
-                    return false
-                }
+        chatMessages.forEach((msg) => {
+            if (!msg?.id || dismissed.has(msg.id)) {
+                return
+            }
 
-                return mentionMatchers.some((matcher) => {
-                    matcher.lastIndex = 0
-                    return matcher.test(msg.text)
-                })
+            if (msg.role === 'challenge') {
+                entries.push({ message: msg, kind: 'challenge' })
+                return
+            }
+
+            if (!msg.text || !mentionMatchers.length) {
+                return
+            }
+
+            const text = msg.text ?? ''
+            const hasMention = mentionMatchers.some((matcher) => {
+                matcher.lastIndex = 0
+                return matcher.test(text)
             })
-            .slice()
-            .sort((a, b) => (b.timeStamp ?? 0) - (a.timeStamp ?? 0))
-    }, [chatMessages, mentionMatchers])
+
+            if (hasMention) {
+                entries.push({ message: msg, kind: 'mention' })
+            }
+        })
+
+        return entries.sort((a, b) => {
+            const aTime = a.message.timeStamp ?? 0
+            const bTime = b.message.timeStamp ?? 0
+            return bTime - aTime
+        })
+    }, [chatMessages, mentionMatchers, dismissedNotificationIds])
 
     const handleClearNotifications = useCallback(() => {
-        if (!notificationItems.length) {
+        if (!notificationEntries.length) {
             return
         }
 
-        const ids = notificationItems.map((item) => item.id)
+        const ids = notificationEntries.map((entry) => entry.message.id)
+        if (!ids.length) {
+            return
+        }
+
+        setDismissedNotificationIds((prev) => {
+            const next = new Set(prev)
+            ids.forEach((id) => next.add(id))
+            return next
+        })
+
         const socket = signalSocketRef.current
         if (socket && globalUser?.uid) {
-            const challengeTargets = notificationItems
-                .filter((item) => item.role === 'challenge')
-                .map((item) => {
-                    const sender = (item as any).sender || {}
+            const challengeTargets = notificationEntries
+                .filter((entry) => entry.kind === 'challenge')
+                .map((entry) => {
+                    const sender = (entry.message as any).sender || {}
                     return sender.uid || sender.userUID || sender.id || null
                 })
                 .filter((uid): uid is string => typeof uid === 'string' && uid.length > 0)
@@ -639,38 +912,36 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             })
         }
 
-        useMessageStore.getState().removeMessagesByIds(ids)
         closeNotifications()
         toaster.success({ title: 'Notifications cleared' })
-    }, [closeNotifications, globalUser?.uid, notificationItems])
+    }, [closeNotifications, globalUser?.uid, notificationEntries])
 
-    const unreadCount = notificationItems.length
-    const prevNotificationCountRef = useRef<number>(notificationItems.length)
+    const unreadCount = notificationEntries.length
+    const seenNotificationIdsRef = useRef<Set<string>>(new Set())
 
     useEffect(() => {
-        const previousCount = prevNotificationCountRef.current
-        if (notificationItems.length <= previousCount) {
-            prevNotificationCountRef.current = notificationItems.length
-            return
+        const seen = seenNotificationIdsRef.current
+        const nextSeen = new Set(notificationEntries.map((entry) => entry.message.id))
+
+        if (!notificationsMuted) {
+            const newEntries = notificationEntries.filter(
+                (entry) => !seen.has(entry.message.id)
+            )
+
+            newEntries.forEach((entry) => {
+                if (entry.kind === 'challenge') {
+                    if (!notifChallengeSoundEnabled || !notifChallengeSoundPath) return
+                    void playSoundFile(notifChallengeSoundPath)
+                } else {
+                    if (!notifMentionSoundEnabled || !notifMentionSoundPath) return
+                    void playSoundFile(notifMentionSoundPath)
+                }
+            })
         }
 
-        const newItems = notificationItems.slice(previousCount)
-        prevNotificationCountRef.current = notificationItems.length
-
-        if (notificationsMuted) return
-
-        newItems.forEach((item) => {
-            if (item.role === 'challenge') {
-                if (!notifChallengeSoundEnabled || !notifChallengeSoundPath) return
-
-                void playSoundFile(notifChallengeSoundPath)
-            } else {
-                if (!notifMentionSoundEnabled || !notifMentionSoundPath) return
-                void playSoundFile(notifMentionSoundPath)
-            }
-        })
+        seenNotificationIdsRef.current = nextSeen
     }, [
-        notificationItems,
+        notificationEntries,
         notificationsMuted,
         notifChallengeSoundEnabled,
         notifChallengeSoundPath,
@@ -704,6 +975,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     timeStamp: now,
                     userName: mockUser.userName,
                     sender: mockUser,
+                    challengeChallengerId: mockUser.uid,
+                    challengeOpponentId: globalUser?.uid,
                 }
                 addChatMessage(challengeMessage)
                 toaster.info({
@@ -778,6 +1051,18 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         window.addEventListener('ws:send-message', handler as EventListener)
         return () => window.removeEventListener('ws:send-message', handler as EventListener)
     }, [globalUser, sendSocketMessage])
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<ChallengeResponseDetail>).detail
+            if (!detail?.messageId) return
+
+            handleChallengeResponse(detail.messageId, detail.accepted, detail.responderName)
+        }
+
+        window.addEventListener('lobby:challenge-response', handler as EventListener)
+        return () => window.removeEventListener('lobby:challenge-response', handler as EventListener)
+    }, [handleChallengeResponse])
 
     useEffect(() => {
         const handler = (event: Event) => {
@@ -1133,7 +1418,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                     onClick={openNotifications}
                                     aria-label="Open notifications"
                                 >
-                                    <Bell />
+                                    {notificationsMuted ? <BellOff /> : <Bell />}
                                 </IconButton>
                                 {unreadCount > 0 ? (
                                     <Box
@@ -1244,7 +1529,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                     size="xs"
                                     variant="ghost"
                                     onClick={() => handleClearNotifications()}
-                                    disabled={notificationItems.length === 0}
+                                    disabled={notificationEntries.length === 0}
                                 >
                                     Clear
                                 </Button>
@@ -1271,13 +1556,19 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         </Drawer.Header>
                         <Drawer.Body>
                             <VStack align="stretch">
-                                {notificationItems.length === 0 ? (
+                                {notificationEntries.length === 0 ? (
                                     <Text fontSize="sm" color="gray.500">
                                         {NO_NOTIFICATIONS_MESSAGE}
                                     </Text>
                                 ) : (
-                                    notificationItems.map((msg) => {
+                                    notificationEntries.map(({ message: msg, kind }) => {
                                         const isSelf = msg.userName === globalUser?.userName
+                                        const isChallenge = msg.role === 'challenge' || kind === 'challenge'
+                                        const challengeStatus = msg.challengeStatus
+                                        const responderLabel =
+                                            msg.challengeResponder && msg.challengeResponder.length
+                                                ? msg.challengeResponder
+                                                : 'Unknown player'
 
                                         return (
                                             <Stack
@@ -1306,36 +1597,54 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                                     </Text>
                                                 </Flex>
                                                 <Box height="1px" bg="border" />
-                                                <Text fontSize="sm" whiteSpace="pre-wrap">
-                                                    {msg.text || 'No message content'}
-                                                </Text>
-                                                {msg.role === 'challenge' ? (
-                                                    <HStack pt="1">
-                                                        <Button
-                                                            size="sm"
-                                                            colorPalette={accentColor}
-                                                            onClick={() =>
-                                                                handleChallengeResponse(
-                                                                    msg.id,
-                                                                    true
-                                                                )
+                                                <Flex alignItems="center" gap="2">
+                                                    {isChallenge ? <Swords size={16} /> : null}
+                                                    <Text fontSize="sm" whiteSpace="pre-wrap">
+                                                        {msg.text || 'No message content'}
+                                                    </Text>
+                                                </Flex>
+                                                {isChallenge ? (
+                                                    challengeStatus ? (
+                                                        <Text
+                                                            fontSize="xs"
+                                                            color={
+                                                                challengeStatus === 'accepted'
+                                                                    ? `${accentColor}.500`
+                                                                    : 'red.300'
                                                             }
                                                         >
-                                                            {CHALLENGE_ACCEPT_LABEL}
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                handleChallengeResponse(
-                                                                    msg.id,
-                                                                    false
-                                                                )
-                                                            }
-                                                        >
-                                                            {CHALLENGE_DECLINE_LABEL}
-                                                        </Button>
-                                                    </HStack>
+                                                            {`Challenge ${challengeStatus} by ${responderLabel}.`}
+                                                        </Text>
+                                                    ) : (
+                                                        <HStack pt="1">
+                                                            <Button
+                                                                size="sm"
+                                                                colorPalette={accentColor}
+                                                                onClick={() =>
+                                                                    handleChallengeResponse(
+                                                                        msg.id,
+                                                                        true,
+                                                                        globalUser?.userName
+                                                                    )
+                                                                }
+                                                            >
+                                                                {CHALLENGE_ACCEPT_LABEL}
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    handleChallengeResponse(
+                                                                        msg.id,
+                                                                        false,
+                                                                        globalUser?.userName
+                                                                    )
+                                                                }
+                                                            >
+                                                                {CHALLENGE_DECLINE_LABEL}
+                                                            </Button>
+                                                        </HStack>
+                                                    )
                                                 ) : null}
                                             </Stack>
                                         )

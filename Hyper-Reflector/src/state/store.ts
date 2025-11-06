@@ -62,6 +62,10 @@ export type TMessage = {
     timeStamp: number
     status?: 'sending' | 'sent' | 'failed'
     userName?: string
+    challengeStatus?: 'accepted' | 'declined'
+    challengeResponder?: string
+    challengeChallengerId?: string
+    challengeOpponentId?: string
 }
 
 type MessageState = {

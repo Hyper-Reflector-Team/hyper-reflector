@@ -22,7 +22,7 @@ import {
     SelectTrigger,
     SelectValueText,
 } from '../components/chakra/ui/select'
-import { Send, Search, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react'
+import { Send, Search, ChevronDown, ChevronUp, ArrowDown, Swords } from 'lucide-react'
 import UserCardSmall from '../components/UserCard.tsx/UserCardSmall'
 import type { TUser } from '../types/user'
 import { toaster } from '../components/chakra/ui/toaster'
@@ -278,10 +278,28 @@ export default function LobbyPage() {
                 >
                     {chatMessages.map((msg) => {
                         const isSelf = msg.userName === globalUser?.userName
+                        const isChallenge = msg.role === 'challenge'
+                        const challengeStatus = msg.challengeStatus
+                        const responderLabel =
+                            msg.challengeResponder && msg.challengeResponder.length
+                                ? msg.challengeResponder
+                                : 'Unknown player'
                         const messageHtml = highlightMentions(
                             msg.text ?? 'failed message',
                             mentionHandles
                         )
+
+                        const handleChallengeDecision = (accepted: boolean) => {
+                            window.dispatchEvent(
+                                new CustomEvent('lobby:challenge-response', {
+                                    detail: {
+                                        messageId: msg.id,
+                                        accepted,
+                                        responderName: globalUser?.userName,
+                                    },
+                                })
+                            )
+                        }
 
                         return (
                             <Stack bgColor={'bg.emphasized'} padding={'2'} key={msg.id + 'lobby'}>
@@ -296,7 +314,45 @@ export default function LobbyPage() {
                                         {formatChatTimestamp(msg.timeStamp)}
                                     </Text>
                                 </Flex>
-                                <Box dangerouslySetInnerHTML={{ __html: messageHtml }} />
+                                {isChallenge ? (
+                                    <Stack gap="2">
+                                        <Flex alignItems="center" gap="2">
+                                            <Swords size={16} />
+                                            <Text>{msg.text || 'Incoming challenge'}</Text>
+                                        </Flex>
+                                        {challengeStatus ? (
+                                            <Text
+                                                fontSize="xs"
+                                                color={
+                                                    challengeStatus === 'accepted'
+                                                        ? `${theme.colorPalette}.500`
+                                                        : 'red.300'
+                                                }
+                                            >
+                                                {`Challenge ${challengeStatus} by ${responderLabel}.`}
+                                            </Text>
+                                        ) : (
+                                            <Flex gap="2">
+                                                <Button
+                                                    size="sm"
+                                                    colorPalette={theme.colorPalette}
+                                                    onClick={() => handleChallengeDecision(true)}
+                                                >
+                                                    Accept
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleChallengeDecision(false)}
+                                                >
+                                                    Decline
+                                                </Button>
+                                            </Flex>
+                                        )}
+                                    </Stack>
+                                ) : (
+                                    <Box dangerouslySetInnerHTML={{ __html: messageHtml }} />
+                                )}
                             </Stack>
                         )
                     })}
