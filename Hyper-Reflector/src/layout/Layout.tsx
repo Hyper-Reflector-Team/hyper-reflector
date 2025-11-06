@@ -72,6 +72,35 @@ const MOCK_CHALLENGE_USER: TUser = {
     winstreak: 0,
 }
 
+const MOCK_CHAT_LINES = [
+    'Hey @{player}, ready for a quick set?',
+    'I have a new combo to test on you, @{player}.',
+    'Your defense is looking sharp @{player}, mind if I poke at it?',
+    'Anyone else here? Guess it is you and me @{player}.',
+]
+
+const MOCK_CHALLENGE_LINES = [
+    'wants to run a FT3 if you are up for it.',
+    'is sending over a challenge request right now.',
+    'thinks you owe them a rematch.',
+]
+
+const MOCK_ACTION_INTERVAL_MS = 20_000
+
+const STATUS_COLOR_MAP = {
+    connected: 'green.400',
+    connecting: 'yellow.400',
+    error: 'red.400',
+    disconnected: 'gray.400',
+} as const
+
+const STATUS_LABEL_MAP = {
+    connected: 'WS Connected',
+    connecting: 'WS Connecting...',
+    error: 'WS Error',
+    disconnected: 'WS Offline',
+} as const
+
 const lobbySlug = (value: string) =>
     value
         .toLowerCase()
@@ -245,6 +274,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const setCurrentLobbyId = useUserStore((s) => s.setCurrentLobbyId)
     const lobbyList = useUserStore((s) => s.lobbies)
     const setLobbyList = useUserStore((s) => s.setLobbies)
+    const lobbyUsers = useUserStore((s) => s.lobbyUsers)
     const setLobbyUsers = useUserStore((s) => s.setLobbyUsers)
     const theme = useSettingsStore((s) => s.theme)
     const notificationsMuted = useSettingsStore((s) => s.notificationsMuted)
@@ -270,6 +300,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
     const opponentUidRef = useRef<string | null>(null)
+    const mockActionIndexRef = useRef(0)
     const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
         const socket = signalSocketRef.current
         if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -312,6 +343,24 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         () => buildMentionRegexes(mentionHandles, 'i'),
         [mentionHandles]
     )
+
+    const hasRealOpponent = useMemo(() => {
+        if (!Array.isArray(lobbyUsers) || !lobbyUsers.length) {
+            return false
+        }
+
+        return lobbyUsers.some((user) => {
+            if (!user || !user.uid || user.uid === globalUser?.uid) {
+                return false
+            }
+
+            if (user.uid === MOCK_CHALLENGE_USER.uid) {
+                return false
+            }
+
+            return !user.uid.startsWith('mock-')
+        })
+    }, [globalUser?.uid, lobbyUsers])
 
     const availableLobbies = useMemo(() => {
         const entries = new Map<string, LobbySummary>()
@@ -629,6 +678,69 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         notifMentionSoundPath,
         playSoundFile,
     ])
+
+    useEffect(() => {
+        if (!globalLoggedIn || !globalUser?.uid || hasRealOpponent) {
+            return
+        }
+
+        const runMockInteraction = () => {
+            const mockUser =
+                buildMockForLobby(currentLobbyIdRef.current || DEFAULT_LOBBY_ID) ||
+                MOCK_CHALLENGE_USER
+            const now = Date.now()
+            const addChatMessage = useMessageStore.getState().addChatMessage
+            const shouldChallenge = Math.random() < 0.4
+
+            if (shouldChallenge && MOCK_CHALLENGE_LINES.length) {
+                const challengeLine =
+                    MOCK_CHALLENGE_LINES[
+                        mockActionIndexRef.current % MOCK_CHALLENGE_LINES.length
+                    ]
+                const challengeMessage: TMessage & { sender: TUser } = {
+                    id: `mock-challenge-${now}`,
+                    role: 'challenge',
+                    text: `${mockUser.userName} ${challengeLine}`,
+                    timeStamp: now,
+                    userName: mockUser.userName,
+                    sender: mockUser,
+                }
+                addChatMessage(challengeMessage)
+                toaster.info({
+                    title: 'Challenge incoming',
+                    description: `${mockUser.userName} ${challengeLine}`,
+                })
+                mockActionIndexRef.current += 1
+                return
+            }
+
+            if (!MOCK_CHAT_LINES.length) {
+                return
+            }
+
+            const chatTemplate =
+                MOCK_CHAT_LINES[mockActionIndexRef.current % MOCK_CHAT_LINES.length]
+            const playerName = (globalUser?.userName ?? 'friend').trim() || 'friend'
+            const chatMessage: TMessage = {
+                id: `mock-message-${now}`,
+                role: 'user',
+                text: chatTemplate.replace('{player}', playerName),
+                timeStamp: now,
+                userName: mockUser.userName,
+            }
+            addChatMessage(chatMessage)
+            mockActionIndexRef.current += 1
+        }
+
+        runMockInteraction()
+        const intervalId = window.setInterval(runMockInteraction, MOCK_ACTION_INTERVAL_MS)
+        return () => window.clearInterval(intervalId)
+    }, [globalLoggedIn, globalUser?.uid, globalUser?.userName, hasRealOpponent])
+
+    const statusColor =
+        STATUS_COLOR_MAP[signalStatus] ?? STATUS_COLOR_MAP.disconnected
+    const statusLabel =
+        STATUS_LABEL_MAP[signalStatus] ?? STATUS_LABEL_MAP.disconnected
 
     useEffect(() => {
         const handler = (event: Event) => {
@@ -1237,19 +1349,3 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         </>
     )
 }
-    const statusColorMap = {
-        connected: 'green.400',
-        connecting: 'yellow.400',
-        error: 'red.400',
-        disconnected: 'gray.400',
-    } as const
-
-    const statusLabelMap = {
-        connected: 'WS Connected',
-        connecting: 'WS Connecting...',
-        error: 'WS Error',
-        disconnected: 'WS Offline',
-    } as const
-
-    const statusColor = statusColorMap[signalStatus] ?? statusColorMap.disconnected
-    const statusLabel = statusLabelMap[signalStatus] ?? statusLabelMap.disconnected
