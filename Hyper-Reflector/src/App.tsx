@@ -23,6 +23,7 @@ import { useEffect } from 'react'
 import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
 import ProfilePage from './pages/ProfilePage'
+import { resolveResource } from '@tauri-apps/api/path'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -112,6 +113,36 @@ function App() {
     useEffect(() => {
         i18n.changeLanguage(appLanguage)
         console.log('app loaded as ', appLanguage)
+    }, [])
+
+    useEffect(() => {
+        async function ensureDefaultEmulatorPath() {
+            try {
+                const { emulatorPath, setEmulatorPath } = useSettingsStore.getState()
+                if (emulatorPath && emulatorPath.trim().length) {
+                    return
+                }
+
+                if (typeof window !== 'undefined' && '__TAURI__' in window) {
+                    try {
+                        const resourcePath = await resolveResource('emu/hyper-screw-fbneo/fs-fbneo.exe')
+                        if (resourcePath) {
+                            setEmulatorPath(resourcePath)
+                            return
+                        }
+                    } catch (error) {
+                        console.warn('Failed to resolve bundled emulator path:', error)
+                    }
+                }
+
+                const fallback = 'emu/hyper-screw-fbneo/fs-fbneo.exe'
+                setEmulatorPath(fallback)
+            } catch (error) {
+                console.error('Failed to ensure default emulator path:', error)
+            }
+        }
+
+        void ensureDefaultEmulatorPath()
     }, [])
 
     return (

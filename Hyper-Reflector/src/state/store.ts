@@ -143,7 +143,7 @@ export const useSettingsStore = create<SettingsState>()(
             setTheme: (t) => set({ theme: t }),
             trainingPath: '',
             setTrainingPath: (path) => set({ trainingPath: path }),
-            appLanguage: '',
+            appLanguage: 'en',
             setAppLanguage: (code) => set({ appLanguage: code }),
             mutedUsers: [],
             toggleMutedUser: (uid) =>
