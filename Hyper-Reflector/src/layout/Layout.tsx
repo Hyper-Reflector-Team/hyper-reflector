@@ -1288,6 +1288,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             break
                         }
 
+                        const challengerUser =
+                            useUserStore
+                                .getState()
+                                .lobbyUsers.find((user) => user.uid === payload.from)
+                        const challengerName = challengerUser?.userName || payload.from
+
                         const existingMessageId =
                             pendingChallengeByUserRef.current.get(payload.from)
                         const messageId =
@@ -1304,7 +1310,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         if (existingMessageId) {
                             updateMessage(existingMessageId, {
                                 timeStamp: Date.now(),
-                                text: `${payload.from} challenged you to a match.`,
+                                text: `${challengerName} challenged you to a match.`,
+                                userName: challengerName,
                                 challengeStatus: undefined,
                                 challengeResponder: undefined,
                             })
@@ -1312,9 +1319,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             addChatMessage({
                                 id: messageId,
                                 role: 'challenge',
-                                text: `${payload.from} challenged you to a match.`,
+                                text: `${challengerName} challenged you to a match.`,
                                 timeStamp: Date.now(),
-                                userName: payload.from,
+                                userName: challengerName,
                                 senderUid: payload.from,
                                 challengeChallengerId: payload.from,
                                 challengeOpponentId: currentUserSnapshot?.uid,
@@ -1324,7 +1331,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         if (!mutedUsers.includes(payload.from)) {
                             toaster.info({
                                 title: 'Incoming challenge',
-                                description: `Accept or decline ${payload.from}'s challenge from the chat.`,
+                                description: `Accept or decline ${challengerName}'s challenge from the chat.`,
                             })
                         }
                         break

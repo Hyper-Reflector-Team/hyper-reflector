@@ -1,6 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use tauri::{AppHandle, Emitter, EventTarget, State, Manager};
 use std::{
+    env,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -38,10 +39,10 @@ fn set_sink(app: &tauri::AppHandle, new_sink: Option<Arc<rodio::Sink>>) {
     *guard = new_sink; // guard drops here
 }
 
-pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBuf, String> {
+fn resolve_path_common(app: &AppHandle, raw: &str, empty_msg: &str) -> Result<PathBuf, String> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
-        return Err("Emulator path is empty".to_string());
+        return Err(empty_msg.to_string());
     }
 
     let mut candidates: Vec<PathBuf> = Vec::new();
@@ -52,7 +53,7 @@ pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBu
     } else {
         candidates.push(provided.clone());
 
-        if let Ok(mut cwd) = std::env::current_dir() {
+        if let Ok(mut cwd) = env::current_dir() {
             for _ in 0..5 {
                 candidates.push(cwd.join(&provided));
                 if !cwd.pop() {
@@ -61,7 +62,7 @@ pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBu
             }
         }
 
-        if let Ok(exe_path) = std::env::current_exe() {
+        if let Ok(exe_path) = env::current_exe() {
             if let Some(parent) = exe_path.parent() {
                 candidates.push(parent.join(&provided));
             }
@@ -103,26 +104,30 @@ pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBu
         }
     }
 
-    let mut fallback = if let Some(first) = candidates.first() {
-        first.clone()
-    } else {
-        provided.clone()
-    };
+    if let Some(existing) = candidates.iter().find(|path| path.exists()) {
+        return Ok(existing.clone());
+    }
 
-    if !fallback.is_absolute() {
-        if let Ok(cwd) = std::env::current_dir() {
-            fallback = cwd.join(&fallback);
+    if let Some(first) = candidates.first() {
+        if first.is_absolute() {
+            return Ok(first.clone());
+        }
+        if let Ok(cwd) = env::current_dir() {
+            return Ok(cwd.join(first));
         }
     }
 
-    for candidate in &candidates {
-        if candidate.exists() {
-            return Ok(candidate.clone());
-        }
-    }
-
-    Ok(fallback)
+    Ok(provided)
 }
+
+pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBuf, String> {
+    resolve_path_common(app, raw, "Emulator path is empty")
+}
+
+fn resolve_generic_path(app: &AppHandle, raw: &str) -> Result<PathBuf, String> {
+    resolve_path_common(app, raw, "Path is empty")
+}
+
 
 #[tauri::command]
 fn stop_sound(app: tauri::AppHandle) -> Result<(), String> {
@@ -135,8 +140,9 @@ fn stop_sound(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let resolved = resolve_generic_path(&app, &path)?;
     // Quick check so we error fast
-    std::fs::File::open(&path).map_err(|e| format!("open failed: {e}"))?;
+    std::fs::File::open(&resolved).map_err(|e| format!("open failed: {e}"))?;
 
     // Stop anything already playing
     if let Some(old) = take_sink(&app) {
@@ -156,7 +162,7 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
         set_sink(&app, Some(sink.clone()));
 
         // open & decode
-        let file = match std::fs::File::open(&path) {
+        let file = match std::fs::File::open(&resolved) {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("audio: open file failed: {e}");
@@ -290,3 +296,4 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
