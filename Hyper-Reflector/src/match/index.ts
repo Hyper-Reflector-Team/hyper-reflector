@@ -99,9 +99,15 @@ export async function startProxyMatch({
         })
     } catch (error) {
         console.error('Failed to start proxy match:', error)
+        const fallbackMessage =
+            typeof error === 'string'
+                ? error
+                : error && typeof error === 'object' && 'message' in error
+                  ? String((error as any).message)
+                  : 'Unknown error starting proxy'
         toaster.error({
             title: 'Failed to start match',
-            description: error instanceof Error ? error.message : 'Unknown error starting proxy',
+            description: fallbackMessage,
         })
     }
 }

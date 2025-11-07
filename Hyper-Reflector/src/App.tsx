@@ -123,20 +123,32 @@ function App() {
                     return
                 }
 
+                const candidatePaths: string[] = []
+
                 if (typeof window !== 'undefined' && '__TAURI__' in window) {
                     try {
                         const resourcePath = await resolveResource('emu/hyper-screw-fbneo/fs-fbneo.exe')
                         if (resourcePath) {
-                            setEmulatorPath(resourcePath)
-                            return
+                            candidatePaths.push(resourcePath)
                         }
                     } catch (error) {
                         console.warn('Failed to resolve bundled emulator path:', error)
                     }
+
+                    candidatePaths.push('_up_/emu/hyper-screw-fbneo/fs-fbneo.exe')
+                    candidatePaths.push('../Resources/emu/hyper-screw-fbneo/fs-fbneo.exe')
                 }
 
-                const fallback = 'emu/hyper-screw-fbneo/fs-fbneo.exe'
-                setEmulatorPath(fallback)
+                candidatePaths.push('../emu/hyper-screw-fbneo/fs-fbneo.exe')
+                candidatePaths.push('emu/hyper-screw-fbneo/fs-fbneo.exe')
+
+                const fallbackPath = candidatePaths.find(
+                    (path) => typeof path === 'string' && path.trim().length
+                )
+
+                if (fallbackPath) {
+                    setEmulatorPath(fallbackPath)
+                }
             } catch (error) {
                 console.error('Failed to ensure default emulator path:', error)
             }

@@ -1,6 +1,7 @@
 // WARNING this is likely to be deprecated and removed at some point as it's not necessary long term
 // I did not write this, this is a port by chatGPT of the our original node proxy
 use serde::{Deserialize, Serialize};
+use crate::resolve_emulator_path;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -30,6 +31,7 @@ pub struct PunchMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpponentEnvelope {
     pub match_id: Option<String>,
     pub peer: PeerEndpoint, // { address, port }
@@ -334,6 +336,10 @@ pub async fn start_proxy(
     state: tauri::State<'_, ProxyManager>,
     args: StartArgs,
 ) -> Result<String, String> {
+    let mut args = args;
+    let resolved_path = resolve_emulator_path(&app, &args.emulator_path)?;
+    args.emulator_path = resolved_path.to_string_lossy().to_string();
+
     let rt = ProxyRuntime::new(app, args)
         .await
         .map_err(|e| e.to_string())?;

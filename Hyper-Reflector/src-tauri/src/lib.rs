@@ -1,6 +1,9 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use tauri::{AppHandle, Emitter, EventTarget, State, Manager};
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use tauri_plugin_shell::ShellExt;
 
 mod proxy;
@@ -33,6 +36,92 @@ fn set_sink(app: &tauri::AppHandle, new_sink: Option<Arc<rodio::Sink>>) {
     let audio = app.state::<AudioState>();
     let mut guard = audio.sink.lock().unwrap();
     *guard = new_sink; // guard drops here
+}
+
+pub(crate) fn resolve_emulator_path(app: &AppHandle, raw: &str) -> Result<PathBuf, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("Emulator path is empty".to_string());
+    }
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    let provided = PathBuf::from(trimmed);
+
+    if provided.is_absolute() {
+        candidates.push(provided.clone());
+    } else {
+        candidates.push(provided.clone());
+
+        if let Ok(mut cwd) = std::env::current_dir() {
+            for _ in 0..5 {
+                candidates.push(cwd.join(&provided));
+                if !cwd.pop() {
+                    break;
+                }
+            }
+        }
+
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(parent) = exe_path.parent() {
+                candidates.push(parent.join(&provided));
+            }
+            if let Some(grand) = exe_path.parent().and_then(|p| p.parent()) {
+                candidates.push(grand.join(&provided));
+            }
+            let mut ancestor = exe_path.parent().map(|p| p.to_path_buf());
+            for _ in 0..5 {
+                if let Some(parent) = ancestor.as_mut() {
+                    if parent.pop() && !parent.as_os_str().is_empty() {
+                        candidates.push(parent.join(&provided));
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            candidates.push(resource_dir.join(&provided));
+            if let Some(parent) = resource_dir.parent() {
+                candidates.push(parent.join(&provided));
+            }
+        }
+
+        if let Ok(app_dir) = app.path().app_data_dir() {
+            candidates.push(app_dir.join(&provided));
+        }
+
+        if trimmed.starts_with("_up_/") {
+            let remainder = trimmed.trim_start_matches("_up_/");
+            if let Ok(resource_dir) = app.path().resource_dir() {
+                if let Some(parent) = resource_dir.parent() {
+                    candidates.push(parent.join(remainder));
+                }
+            }
+        }
+    }
+
+    let mut fallback = if let Some(first) = candidates.first() {
+        first.clone()
+    } else {
+        provided.clone()
+    };
+
+    if !fallback.is_absolute() {
+        if let Ok(cwd) = std::env::current_dir() {
+            fallback = cwd.join(&fallback);
+        }
+    }
+
+    for candidate in &candidates {
+        if candidate.exists() {
+            return Ok(candidate.clone());
+        }
+    }
+
+    Ok(fallback)
 }
 
 #[tauri::command]
@@ -150,11 +239,14 @@ async fn start_training_mode(
 
 #[tauri::command]
 async fn launch_emulator(app: tauri::AppHandle, exe_path: String, args: Vec<String>) -> Result<(), String> {
-    let command = app.shell().command(exe_path).args(args);
+    let resolved = resolve_emulator_path(&app, &exe_path)?;
+    let command = app
+        .shell()
+        .command(resolved)
+        .args(args);
     let (_rx, _child) = command.spawn().map_err(|e| e.to_string())?;
     Ok(())
 }
-
 
 //Just for testing
 #[tauri::command]
@@ -183,6 +275,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(Arc::new(Mutex::new(ProcState::default())))
         .manage(AudioState::default())
+        .manage(ProxyManager::new())
         .invoke_handler(tauri::generate_handler![
             play_sound,
             stop_sound,

@@ -141,6 +141,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const mockActionIndexRef = useRef(0)
     const globalUserRef = useRef<TUser | undefined>(globalUser)
     const sentMatchRequestRef = useRef<Set<string>>(new Set())
+    const pendingChallengeOffersRef = useRef<
+        Map<string, { from: string; offer: RTCSessionDescriptionInit }>
+    >(new Map())
+    const pendingChallengeByUserRef = useRef<Map<string, string>>(new Map())
+    const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map())
     const [isInMatch, setIsInMatch] = useState(false)
     const isInMatchRef = useRef(false)
     const declineChallengeWithSocket = useCallback(
@@ -192,6 +197,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     currentUserId: globalUser?.uid,
                     declineChallenge: declineChallengeWithSocket,
                 })
+
+                const participantSet = new Set(participantIds)
+                pendingChallengeOffersRef.current.forEach((pending, messageId) => {
+                    if (pending && participantSet.has(pending.from)) {
+                        pendingChallengeOffersRef.current.delete(messageId)
+                        pendingChallengeByUserRef.current.delete(pending.from)
+                        pendingIceCandidatesRef.current.delete(pending.from)
+                    }
+                })
             }
         },
         [cancelPendingChallengesInvolving, declineChallengeWithSocket, globalUser?.uid]
@@ -215,90 +229,161 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
     const handleChallengeResponse = useCallback(
         (messageId: string, accepted: boolean, responderName?: string) => {
-            const responder =
-                responderName && responderName.trim().length
-                    ? responderName.trim()
-                    : globalUser?.userName || 'You'
-            const status = accepted ? 'accepted' : 'declined'
+            void (async () => {
+                const responder =
+                    responderName && responderName.trim().length
+                        ? responderName.trim()
+                        : globalUser?.userName || 'You'
+                const status = accepted ? 'accepted' : 'declined'
 
-            const { chatMessages, updateMessage } = useMessageStore.getState()
-            const targetMessage = chatMessages.find((message) => message.id === messageId)
-            const { challengerId, opponentId } = normalizeChallengeParticipants(
-                targetMessage,
-                globalUser?.uid
-            )
-
-            updateMessage(messageId, {
-                challengeStatus: status,
-                challengeResponder: responder,
-                challengeChallengerId: challengerId,
-                challengeOpponentId: opponentId,
-            })
-
-            if (accepted) {
-                toaster.success({
-                    title: 'Challenge accepted',
-                    description: `${responder} accepted the challenge.`,
-                })
-
-                const participantIds = [challengerId, opponentId].filter(
-                    (id): id is string => Boolean(id)
+                const { chatMessages, updateMessage } = useMessageStore.getState()
+                const targetMessage = chatMessages.find((message) => message.id === messageId)
+                const { challengerId, opponentId } = normalizeChallengeParticipants(
+                    targetMessage,
+                    globalUser?.uid
                 )
 
-                if (participantIds.length) {
-                    cancelPendingChallengesInvolving({
-                        participantIds,
-                        excludeMessageIds: [messageId],
-                        reason: AUTO_RESOLVE_RESPONDER,
-                        currentUserId: globalUser?.uid,
-                        declineChallenge: declineChallengeWithSocket,
-                    })
-                }
-
-                const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
-                const normalizedLobby = activeLobbyId.trim().toLowerCase()
-                const inferredGameName =
-                    normalizedLobby === 'vampire' ? 'vsavj' : undefined
-
-                const involvesMock =
-                    isMockUserId(challengerId) || isMockUserId(opponentId)
-
-                if (involvesMock) {
-                    const mockUid = isMockUserId(challengerId) ? challengerId : opponentId
-                    const mockName = resolveMockDisplayName(mockUid)
-                    const localPlayerSlot: 0 | 1 =
-                        globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
-
-                    markMatchStarted(mockUid)
-                    void startMockMatch({
-                        matchId: messageId,
-                        opponentName: mockName,
-                        gameName: inferredGameName ?? null,
-                        playerSlot: localPlayerSlot,
-                    }).catch((error) => {
-                        console.error('Failed to start mock match:', error)
-                        markMatchEnded()
-                        toaster.error({
-                            title: 'Unable to start match',
-                            description: 'Encountered an error launching the emulator.',
-                        })
-                    })
-                } else if (globalUser?.uid && opponentId && globalUser.uid === opponentId) {
-                    sendSocketMessage({
-                        type: 'request-match',
-                        challengerId,
-                        opponentId,
-                        requestedBy: globalUser.uid,
-                        lobbyId: activeLobbyId,
-                        gameName: inferredGameName,
-                    })
-                }
-            } else {
-                toaster.info({
-                    title: 'Challenge declined',
-                    description: `${responder} declined the challenge.`,
+                updateMessage(messageId, {
+                    challengeStatus: status,
+                    challengeResponder: responder,
+                    challengeChallengerId: challengerId,
+                    challengeOpponentId: opponentId,
                 })
-            }
+
+                const pendingOffer = pendingChallengeOffersRef.current.get(messageId)
+                if (pendingOffer) {
+                    const socket = signalSocketRef.current
+                    if (!socket || !globalUser?.uid) {
+                        pendingChallengeOffersRef.current.delete(messageId)
+                        pendingChallengeByUserRef.current.delete(pendingOffer.from)
+                        pendingIceCandidatesRef.current.delete(pendingOffer.from)
+                        toaster.error({
+                            title: 'Unable to respond',
+                            description: 'Signal connection unavailable. Please try again.',
+                        })
+                        return
+                    }
+
+                    if (accepted) {
+                        try {
+                            if (peerConnectionRef.current) {
+                                try {
+                                    peerConnectionRef.current.close()
+                                } catch (error) {
+                                    console.error('Failed to close existing peer connection:', error)
+                                }
+                                peerConnectionRef.current = null
+                            }
+
+                            const peer = await initWebRTC(globalUser.uid, pendingOffer.from, socket)
+                            peerConnectionRef.current = peer
+                            opponentUidRef.current = pendingOffer.from
+                            await peer.setRemoteDescription(
+                                new RTCSessionDescription(pendingOffer.offer)
+                            )
+                            const queuedCandidates =
+                                pendingIceCandidatesRef.current.get(pendingOffer.from) || []
+                            for (const candidate of queuedCandidates) {
+                                try {
+                                    await peer.addIceCandidate(new RTCIceCandidate(candidate))
+                                } catch (error) {
+                                    console.warn('Failed to add queued ICE candidate:', error)
+                                }
+                            }
+                            pendingIceCandidatesRef.current.delete(pendingOffer.from)
+                            await answerCall(peer, socket, pendingOffer.from, globalUser.uid)
+                        } catch (error) {
+                            console.error('Failed to accept incoming challenge:', error)
+                            toaster.error({
+                                title: 'Unable to accept challenge',
+                                description:
+                                    error instanceof Error
+                                        ? error.message
+                                        : 'Unknown error accepting challenge',
+                            })
+                        } finally {
+                            pendingChallengeOffersRef.current.delete(messageId)
+                            pendingChallengeByUserRef.current.delete(pendingOffer.from)
+                        }
+                    } else {
+                        try {
+                            await webrtcDeclineCall(socket, pendingOffer.from, globalUser.uid)
+                        } catch (error) {
+                            console.error('Failed to send decline signal:', error)
+                        } finally {
+                            pendingChallengeOffersRef.current.delete(messageId)
+                            pendingChallengeByUserRef.current.delete(pendingOffer.from)
+                            pendingIceCandidatesRef.current.delete(pendingOffer.from)
+                        }
+                    }
+                    return
+                }
+
+                if (accepted) {
+                    toaster.success({
+                        title: 'Challenge accepted',
+                        description: `${responder} accepted the challenge.`,
+                    })
+
+                    const participantIds = [challengerId, opponentId].filter(
+                        (id): id is string => Boolean(id)
+                    )
+
+                    if (participantIds.length) {
+                        cancelPendingChallengesInvolving({
+                            participantIds,
+                            excludeMessageIds: [messageId],
+                            reason: AUTO_RESOLVE_RESPONDER,
+                            currentUserId: globalUser?.uid,
+                            declineChallenge: declineChallengeWithSocket,
+                        })
+                    }
+
+                    const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+                    const normalizedLobby = activeLobbyId.trim().toLowerCase()
+                    const inferredGameName =
+                        normalizedLobby === 'vampire' ? 'vsavj' : undefined
+
+                    const involvesMock =
+                        isMockUserId(challengerId) || isMockUserId(opponentId)
+
+                    if (involvesMock) {
+                        const mockUid = isMockUserId(challengerId) ? challengerId : opponentId
+                        const mockName = resolveMockDisplayName(mockUid)
+                        const localPlayerSlot: 0 | 1 =
+                            globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
+
+                        markMatchStarted(mockUid)
+                        void startMockMatch({
+                            matchId: messageId,
+                            opponentName: mockName,
+                            gameName: inferredGameName ?? null,
+                            playerSlot: localPlayerSlot,
+                        }).catch((error) => {
+                            console.error('Failed to start mock match:', error)
+                            markMatchEnded()
+                            toaster.error({
+                                title: 'Unable to start match',
+                                description: 'Encountered an error launching the emulator.',
+                            })
+                        })
+                    } else if (globalUser?.uid && opponentId && globalUser.uid === opponentId) {
+                        sendSocketMessage({
+                            type: 'request-match',
+                            challengerId,
+                            opponentId,
+                            requestedBy: globalUser.uid,
+                            lobbyId: activeLobbyId,
+                            gameName: inferredGameName,
+                        })
+                    }
+                } else {
+                    toaster.info({
+                        title: 'Challenge declined',
+                        description: `${responder} declined the challenge.`,
+                    })
+                }
+            })()
         },
         [
             cancelPendingChallengesInvolving,
@@ -1191,7 +1276,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             try {
                                 webrtcDeclineCall(socket, payload.from, currentUserSnapshot.uid)
                             } catch (error) {
-                                console.error('Failed to auto-decline incoming challenge while in a match:', error)
+                                console.error(
+                                    'Failed to auto-decline incoming challenge while in a match:',
+                                    error
+                                )
                             }
                             toaster.info({
                                 title: 'Already in a match',
@@ -1200,22 +1288,44 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             break
                         }
 
-                        try {
-                            const peer = await initWebRTC(currentUserSnapshot.uid, payload.from, socket)
-                            peerConnectionRef.current = peer
-                            opponentUidRef.current = payload.from
-                            await peer.setRemoteDescription(
-                                new RTCSessionDescription(payload.offer)
-                            )
-                            if (!mutedUsers.includes(payload.from)) {
-                                toaster.info({
-                                    title: 'Incoming challenge',
-                                    description: `User ${payload.from} wants to play.`,
-                                })
-                            }
-                            await answerCall(peer, socket, payload.from, currentUserSnapshot.uid)
-                        } catch (error) {
-                            console.error('Failed to handle incoming offer:', error)
+                        const existingMessageId =
+                            pendingChallengeByUserRef.current.get(payload.from)
+                        const messageId =
+                            existingMessageId || `incoming-challenge-${payload.from}-${Date.now()}`
+
+                        pendingChallengeOffersRef.current.set(messageId, {
+                            from: payload.from,
+                            offer: payload.offer,
+                        })
+                        pendingChallengeByUserRef.current.set(payload.from, messageId)
+                        pendingIceCandidatesRef.current.set(payload.from, [])
+
+                        const { addChatMessage, updateMessage } = useMessageStore.getState()
+                        if (existingMessageId) {
+                            updateMessage(existingMessageId, {
+                                timeStamp: Date.now(),
+                                text: `${payload.from} challenged you to a match.`,
+                                challengeStatus: undefined,
+                                challengeResponder: undefined,
+                            })
+                        } else {
+                            addChatMessage({
+                                id: messageId,
+                                role: 'challenge',
+                                text: `${payload.from} challenged you to a match.`,
+                                timeStamp: Date.now(),
+                                userName: payload.from,
+                                senderUid: payload.from,
+                                challengeChallengerId: payload.from,
+                                challengeOpponentId: currentUserSnapshot?.uid,
+                            })
+                        }
+
+                        if (!mutedUsers.includes(payload.from)) {
+                            toaster.info({
+                                title: 'Incoming challenge',
+                                description: `Accept or decline ${payload.from}'s challenge from the chat.`,
+                            })
                         }
                         break
                     }
@@ -1329,10 +1439,19 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         }
 
                         try {
-                            if (peerConnectionRef.current) {
+                            if (
+                                peerConnectionRef.current &&
+                                payload.from &&
+                                opponentUidRef.current === payload.from
+                            ) {
                                 await peerConnectionRef.current.addIceCandidate(
                                     new RTCIceCandidate(payload.candidate)
                                 )
+                            } else if (payload.from) {
+                                const queued =
+                                    pendingIceCandidatesRef.current.get(payload.from) || []
+                                queued.push(payload.candidate)
+                                pendingIceCandidatesRef.current.set(payload.from, queued)
                             }
                         } catch (error) {
                             console.error('Failed to add ICE candidate:', error)
