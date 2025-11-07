@@ -23,7 +23,7 @@ import { useEffect } from 'react'
 import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
 import ProfilePage from './pages/ProfilePage'
-import { resolveResource } from '@tauri-apps/api/path'
+import { resolveResource, dirname, join, normalize } from '@tauri-apps/api/path'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -109,11 +109,12 @@ declare module '@tanstack/react-router' {
 function App() {
     const { i18n } = useTranslation()
     const appLanguage = useSettingsStore((s) => s.appLanguage)
+    const emulatorPathSetting = useSettingsStore((s) => s.emulatorPath)
     // handle language changes and other effects on load
     useEffect(() => {
         i18n.changeLanguage(appLanguage)
         console.log('app loaded as ', appLanguage)
-    }, [])
+    }, [emulatorPathSetting])
 
     useEffect(() => {
         async function ensureDefaultEmulatorPath() {
@@ -155,6 +156,56 @@ function App() {
         }
 
         void ensureDefaultEmulatorPath()
+    }, [])
+
+    useEffect(() => {
+        async function ensureDefaultTrainingPath() {
+            try {
+                const { trainingPath, setTrainingPath } = useSettingsStore.getState()
+                if (trainingPath && trainingPath.trim().length) {
+                    return
+                }
+                if (!emulatorPathSetting || !emulatorPathSetting.trim().length) {
+                    return
+                }
+
+                try {
+                    const emuDir = await dirname(emulatorPathSetting)
+                    const derived = await normalize(
+                        await join(
+                            emuDir,
+                            '..',
+                            '..',
+                            'lua',
+                            '3rd_training_lua',
+                            '3rd_training.lua'
+                        )
+                    )
+                    setTrainingPath(derived)
+                    return
+                } catch (error) {
+                    console.warn('Failed to derive training lua from emulator path:', error)
+                }
+
+                if (typeof window !== 'undefined' && '__TAURI__' in window) {
+                    try {
+                        const resourcePath = await resolveResource(
+                            'lua/3rd_training_lua/3rd_training.lua'
+                        )
+                        if (resourcePath) {
+                            setTrainingPath(resourcePath)
+                            return
+                        }
+                    } catch (error) {
+                        console.warn('Failed to resolve bundled training lua path:', error)
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to ensure default training lua path:', error)
+            }
+        }
+
+        void ensureDefaultTrainingPath()
     }, [])
 
     return (
