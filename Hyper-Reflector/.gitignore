@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 # hr related secrets and untracked files
+lua
 /emu/*
 !/emu/.keep
 secrets
