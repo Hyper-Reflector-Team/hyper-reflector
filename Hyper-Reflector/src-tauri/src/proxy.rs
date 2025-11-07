@@ -1,6 +1,7 @@
 // WARNING this is likely to be deprecated and removed at some point as it's not necessary long term
 // I did not write this, this is a port by chatGPT of the our original node proxy
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use crate::resolve_emulator_path;
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -113,6 +114,7 @@ impl ProxyRuntime {
 
         self.spawn_local_reader(stop_rx).await?;
         self.spawn_emulator_reader().await?;
+        self.spawn_handshake_watchdog().await?;
 
         // we don't start emulator immediately; we mimic your behavior: start on first send to B.
         Ok(())
@@ -203,6 +205,39 @@ impl ProxyRuntime {
         Ok(())
     }
 
+    async fn spawn_handshake_watchdog(self: &Arc<Self>) -> anyhow::Result<()> {
+        let this = Arc::clone(self);
+        tokio::spawn(async move {
+            let mut waited = 0u64;
+            loop {
+                {
+                    if this.opponent.lock().await.is_some() {
+                        break;
+                    }
+                }
+                if waited >= 15 {
+                    let _ = this.app.emit_to(
+                        EventTarget::any(),
+                        "sendAlert",
+                        json!({
+                            "type": "error",
+                            "message": {
+                                "title": "Matchmaking timeout",
+                                "description": "No response from the hole punching server. Please try again."
+                            }
+                        }),
+                    );
+                    let _ = this.send_to_server(true).await;
+                    let _ = this.stop().await;
+                    break;
+                }
+                waited += 1;
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+        });
+        Ok(())
+    }
+
     async fn ensure_keepalive(self: &Arc<Self>) {
         let mut guard = self.keepalive_task.lock().await;
         if guard.is_some() {
@@ -280,6 +315,17 @@ impl ProxyRuntime {
 
         let child = cmd.spawn()?;
         *self.child.lock().await = Some(child);
+        let _ = self.app.emit_to(
+            EventTarget::any(),
+            "sendAlert",
+            json!({
+                "type": "info",
+                "message": {
+                    "title": "Emulator launching",
+                    "description": format!("Starting {}", self.args.emulator_path)
+                }
+            }),
+        );
         Ok(())
     }
 
