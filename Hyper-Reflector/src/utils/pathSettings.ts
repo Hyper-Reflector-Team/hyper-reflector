@@ -1,178 +1,181 @@
-import { resolveResource, dirname, join, normalize, resolve } from '@tauri-apps/api/path'
+import { dirname, join, normalize, resolve, resourceDir } from '@tauri-apps/api/path'
 import { useSettingsStore } from '../state/store'
 
-const hasValue = (value?: string | null): value is string =>
-    typeof value === 'string' && value.trim().length > 0
+const isProd = () => import.meta.env.PROD
+const isTauri = () => typeof window !== 'undefined' && '__TAURI__' in window
 
-const isTauriEnv = () => typeof window !== 'undefined' && '__TAURI__' in window
+const toCliPath = (path: string) => path.replace(/\\/g, '/')
+const hasValue = (value?: string | null): value is string => Boolean(value && value.trim().length)
+const needsDefault = (value?: string | null) =>
+    !hasValue(value) || value.startsWith('../') || value.startsWith('..\\')
 
-const isAbsolutePath = (path: string) => /^[a-zA-Z]:\\|^\\\\|^\//.test(path)
+const DEV_BASE = '..'
+const DEV_SEGMENTS = {
+    emulator: ['emu', 'hyper-screw-fbneo', 'fs-fbneo.exe'],
+    training: ['lua', '3rd_training_lua', '3rd_training.lua'],
+    match: ['lua', '3rd_training_lua', 'hyper_reflector.lua'],
+    challenge: ['sounds', 'challenge.mp3'],
+    mention: ['sounds', 'message.wav'],
+}
 
-async function normalizeEmulatorPath(path: string) {
-    let resolved = path
+type DefaultPaths = {
+    emulator: string
+    training: string
+    match: string
+    challenge: string
+    mention: string
+}
+
+let cachedDefaults: DefaultPaths | null = null
+
+async function toAbsolute(path: string): Promise<string> {
     try {
-        resolved = await normalize(path)
+        const normalized = await normalize(path)
+        return toCliPath(normalized)
     } catch {
-        // no-op: fall back to original path
+        const resolved = await normalize(await resolve(path))
+        return toCliPath(resolved)
     }
+}
 
-    if (!isAbsolutePath(resolved)) {
+async function buildDevDefaults(): Promise<DefaultPaths> {
+    const build = (segments: string[]) => toAbsolute([DEV_BASE, ...segments].join('/'))
+
+    return {
+        emulator: await build(DEV_SEGMENTS.emulator),
+        training: await build(DEV_SEGMENTS.training),
+        match: await build(DEV_SEGMENTS.match),
+        challenge: await build(DEV_SEGMENTS.challenge),
+        mention: await build(DEV_SEGMENTS.mention),
+    }
+}
+
+async function buildProdDefaults(): Promise<DefaultPaths> {
+    let filesBase = 'C:/Program Files/hyper-reflector/files'
+    if (isTauri()) {
         try {
-            resolved = await normalize(await resolve(path))
+            const resDir = await resourceDir()
+            filesBase = await normalize(await join(resDir, '..', 'files'))
         } catch {
-            // still relative: return best effort
+            // fall back to default Program Files path
         }
     }
 
-    return resolved
+    const build = async (segments: string[]) => toCliPath(await normalize(await join(filesBase, ...segments)))
+
+    return {
+        emulator: await build(DEV_SEGMENTS.emulator),
+        training: await build(DEV_SEGMENTS.training),
+        match: await build(DEV_SEGMENTS.match),
+        challenge: await build(DEV_SEGMENTS.challenge),
+        mention: await build(DEV_SEGMENTS.mention),
+    }
 }
 
-export async function ensureDefaultEmulatorPath() {
+async function getDefaults(): Promise<DefaultPaths> {
+    if (!cachedDefaults) {
+        cachedDefaults = isProd() ? await buildProdDefaults() : await buildDevDefaults()
+    }
+    return cachedDefaults
+}
+
+async function deriveRelative(
+    baseEmulatorPath: string | null | undefined,
+    segments: string[]
+): Promise<string | null> {
+    if (!hasValue(baseEmulatorPath)) {
+        return null
+    }
+
     try {
-        const { emulatorPath, setEmulatorPath } = useSettingsStore.getState()
-        if (hasValue(emulatorPath)) {
-            return
-        }
-
-        const candidatePaths: string[] = []
-
-        if (isTauriEnv()) {
-            try {
-                const resourcePath = await resolveResource('emu/hyper-screw-fbneo/fs-fbneo.exe')
-                if (hasValue(resourcePath)) {
-                    candidatePaths.push(resourcePath)
-                }
-            } catch (error) {
-                console.warn('Failed to resolve bundled emulator path:', error)
-            }
-
-            candidatePaths.push('_up_/emu/hyper-screw-fbneo/fs-fbneo.exe')
-            candidatePaths.push('../Resources/emu/hyper-screw-fbneo/fs-fbneo.exe')
-        }
-
-        candidatePaths.push('../emu/hyper-screw-fbneo/fs-fbneo.exe')
-        candidatePaths.push('emu/hyper-screw-fbneo/fs-fbneo.exe')
-
-        const fallbackPath = candidatePaths.find(hasValue)
-
-        if (fallbackPath) {
-            setEmulatorPath(fallbackPath)
-        }
-    } catch (error) {
-        console.error('Failed to ensure default emulator path:', error)
+        const normalized = await normalize(baseEmulatorPath)
+        const dir = await dirname(normalized)
+        const derived = await normalize(await join(dir, '..', '..', ...segments))
+        return toCliPath(derived)
+    } catch {
+        return null
     }
 }
 
-export async function ensureDefaultTrainingPath(emulatorPathSetting?: string | null) {
-    try {
-        const { trainingPath, setTrainingPath } = useSettingsStore.getState()
-        if (hasValue(trainingPath)) {
-            return
-        }
-
-        if (hasValue(emulatorPathSetting)) {
-            try {
-                const resolvedEmuPath = await normalizeEmulatorPath(emulatorPathSetting)
-                const emuDir = await dirname(resolvedEmuPath)
-                const derived = await normalize(
-                    await join(emuDir, '..', '..', 'lua', '3rd_training_lua', '3rd_training.lua')
-                )
-                setTrainingPath(derived)
-                return
-            } catch (error) {
-                console.warn('Failed to derive training lua from emulator path:', error)
-            }
-        }
-
-        if (isTauriEnv()) {
-            try {
-                const resourcePath = await resolveResource('lua/3rd_training_lua/3rd_training.lua')
-                if (hasValue(resourcePath)) {
-                    setTrainingPath(resourcePath)
-                    return
-                }
-            } catch (error) {
-                console.warn('Failed to resolve bundled training lua path:', error)
-            }
-        }
-    } catch (error) {
-        console.error('Failed to ensure default training lua path:', error)
-    }
-}
-
-type SettingsState = ReturnType<typeof useSettingsStore.getState>
-
-async function ensureSoundPath(
-    emulatorPathSetting: string | null | undefined,
-    options: {
-        selector: (state: SettingsState) => string | null | undefined
-        setter: (state: SettingsState, path: string) => void
-        soundFileName: string
-        defaultPath: string
-    }
-) {
-    const state = useSettingsStore.getState()
-    const currentValue = options.selector(state)
-    if (hasValue(currentValue)) {
+export async function ensureDefaultEmulatorPath(force = false) {
+    const { emulatorPath, setEmulatorPath } = useSettingsStore.getState()
+    if (!force && hasValue(emulatorPath) && !needsDefault(emulatorPath)) {
         return
     }
 
-    if (hasValue(emulatorPathSetting)) {
-        try {
-            const emuDir = await dirname(emulatorPathSetting)
-            const derived = await normalize(
-                await join(emuDir, '..', '..', 'sounds', options.soundFileName)
-            )
-            options.setter(state, derived)
-            return
-        } catch (error) {
-            console.warn(
-                `Failed to derive ${options.soundFileName} path from emulator path:`,
-                error
-            )
-        }
+    const defaults = await getDefaults()
+    setEmulatorPath(defaults.emulator)
+}
+
+export async function ensureDefaultTrainingPath(
+    emulatorPathSetting?: string | null,
+    force = false
+) {
+    const { trainingPath, setTrainingPath } = useSettingsStore.getState()
+    if (!force && hasValue(trainingPath) && !needsDefault(trainingPath)) {
+        return
     }
 
-    if (isTauriEnv()) {
-        try {
-            const resourcePath = await resolveResource(`sounds/${options.soundFileName}`)
-            if (hasValue(resourcePath)) {
-                options.setter(state, resourcePath)
-                return
-            }
-        } catch (error) {
-            console.warn(
-                `Failed to resolve bundled ${options.soundFileName} sound path:`,
-                error
-            )
-        }
+    const derived = await deriveRelative(emulatorPathSetting, DEV_SEGMENTS.training)
+    if (derived) {
+        setTrainingPath(derived)
+        return
     }
 
-    options.setter(state, options.defaultPath)
+    const defaults = await getDefaults()
+    setTrainingPath(defaults.training)
+}
+
+async function ensureSound(
+    currentValue: string,
+    setter: (path: string) => void,
+    emulatorPathSetting: string | null | undefined,
+    segments: string[],
+    fallback: string
+) {
+    if (hasValue(currentValue) && !needsDefault(currentValue)) {
+        return
+    }
+
+    const derived = await deriveRelative(emulatorPathSetting, segments)
+    if (derived) {
+        setter(derived)
+        return
+    }
+
+    setter(fallback)
 }
 
 export async function ensureDefaultChallengeSound(emulatorPathSetting?: string | null) {
-    try {
-        await ensureSoundPath(emulatorPathSetting, {
-            selector: (state) => state.notifChallengeSoundPath,
-            setter: (state, path) => state.setNotifChallengeSoundPath(path),
-            soundFileName: 'challenge.mp3',
-            defaultPath: 'sounds/challenge.mp3',
-        })
-    } catch (error) {
-        console.error('Failed to ensure default challenge sound path:', error)
-    }
+    const { notifChallengeSoundPath, setNotifChallengeSoundPath } = useSettingsStore.getState()
+    const defaults = await getDefaults()
+    await ensureSound(
+        notifChallengeSoundPath,
+        setNotifChallengeSoundPath,
+        emulatorPathSetting,
+        DEV_SEGMENTS.challenge,
+        defaults.challenge
+    )
 }
 
 export async function ensureDefaultMentionSound(emulatorPathSetting?: string | null) {
-    try {
-        await ensureSoundPath(emulatorPathSetting, {
-            selector: (state) => state.notifAtSoundPath,
-            setter: (state, path) => state.setNotifAtSoundPath(path),
-            soundFileName: 'message.wav',
-            defaultPath: 'sounds/message.wav',
-        })
-    } catch (error) {
-        console.error('Failed to ensure default mention sound path:', error)
+    const { notifAtSoundPath, setNotifAtSoundPath } = useSettingsStore.getState()
+    const defaults = await getDefaults()
+    await ensureSound(
+        notifAtSoundPath,
+        setNotifAtSoundPath,
+        emulatorPathSetting,
+        DEV_SEGMENTS.mention,
+        defaults.mention
+    )
+}
+
+export async function resolveMatchLuaPath(emulatorPathSetting?: string | null) {
+    const derived = await deriveRelative(emulatorPathSetting, DEV_SEGMENTS.match)
+    if (derived) {
+        return derived
     }
+
+    const defaults = await getDefaults()
+    return defaults.match
 }

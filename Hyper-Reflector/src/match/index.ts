@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import keys from '../private/keys'
 import { toaster } from '../components/chakra/ui/toaster'
 import { useSettingsStore, useUserStore } from '../state/store'
+import { resolveMatchLuaPath } from '../utils/pathSettings'
 import {
     MOCK_CHALLENGE_USER,
     MOCK_CHALLENGE_USER_TWO,
@@ -68,6 +69,8 @@ export async function startProxyMatch({
     const playerIndex = (playerSlot + 1) as 1 | 2
     const delayValue = Number.parseInt(ggpoDelay || '0', 10) || 0
 
+    const matchLuaPath = (await resolveMatchLuaPath(emulatorPath)) || trainingPath
+
     const emulatorArgs = buildEmulatorArgs({
         emulatorPath,
         playerIndex,
@@ -75,7 +78,7 @@ export async function startProxyMatch({
         remotePort: 7001,
         playerName: globalUser.userName || globalUser.userEmail || 'Player',
         delay: delayValue,
-        luaPath: trainingPath,
+        luaPath: matchLuaPath,
         rom: romName,
     })
 
@@ -144,6 +147,8 @@ export async function startMockMatch({
             ? { local: 7001, remote: 7000 }
             : { local: 7000, remote: 7001 }
 
+    const matchLuaPath = (await resolveMatchLuaPath(emulatorPath)) || trainingPath
+
     const playerArgs = buildEmulatorArgs({
         emulatorPath,
         playerIndex: (playerSlot === 0 ? 1 : 2) as 1 | 2,
@@ -151,7 +156,7 @@ export async function startMockMatch({
         remotePort: primaryPorts.remote,
         playerName,
         delay,
-        luaPath: trainingPath,
+        luaPath: matchLuaPath,
         rom: romName,
     })
 
@@ -162,7 +167,7 @@ export async function startMockMatch({
         remotePort: opponentPorts.remote,
         playerName: opponentDisplayName,
         delay,
-        luaPath: trainingPath,
+        luaPath: matchLuaPath,
         rom: romName,
     })
 

@@ -123,6 +123,24 @@ export default function SettingsPage() {
         }
     }
 
+    const handleResetAllSettings = async () => {
+        try {
+            const storeWithPersist = useSettingsStore as typeof useSettingsStore & {
+                persist?: {
+                    clearStorage?: () => Promise<void> | void
+                }
+            }
+            await storeWithPersist.persist?.clearStorage?.()
+            window.location.reload()
+        } catch (error) {
+            toaster.error({
+                title: 'Failed to reset settings',
+                description:
+                    error instanceof Error ? error.message : 'Unknown error clearing saved settings.',
+            })
+        }
+    }
+
     const playSound = async (type: string) => {
         if (type === 'challenge') {
             await playSoundFile(notifChallengeSoundPath)
@@ -415,11 +433,10 @@ export default function SettingsPage() {
                     <Card.Title>{t('Settings.Danger.title')}</Card.Title>
                     <Card.Description></Card.Description>
                     <Button
-                        disabled
                         colorPalette={'red'}
                         marginTop={MARGIN_SECTION}
                         maxW="1/2"
-                        onClick={() => console.log('need to implement')}
+                        onClick={handleResetAllSettings}
                     >
                         {t('Settings.Danger.reset')}
                     </Button>

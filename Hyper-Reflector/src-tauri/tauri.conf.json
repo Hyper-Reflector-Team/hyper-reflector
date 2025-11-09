@@ -34,9 +34,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../emu/**/*",
-      "../sounds/**/*",
-      "../lua/**/*"
+      "files/**/*"
     ]
   }
 }

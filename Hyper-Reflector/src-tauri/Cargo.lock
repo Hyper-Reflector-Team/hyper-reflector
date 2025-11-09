@@ -1712,6 +1712,7 @@ dependencies = [
  "tauri-plugin-prevent-default",
  "tauri-plugin-shell",
  "tokio",
+ "walkdir",
 ]
 
 [[package]]
