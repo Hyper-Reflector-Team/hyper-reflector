@@ -23,7 +23,12 @@ import { useEffect } from 'react'
 import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
 import ProfilePage from './pages/ProfilePage'
-import { resolveResource, dirname, join, normalize, resolve } from '@tauri-apps/api/path'
+import {
+    ensureDefaultChallengeSound,
+    ensureDefaultEmulatorPath,
+    ensureDefaultMentionSound,
+    ensureDefaultTrainingPath,
+} from './utils/pathSettings'
 
 const rootRoute = createRootRoute({
     component: () => (
@@ -117,185 +122,16 @@ function App() {
     }, [emulatorPathSetting])
 
     useEffect(() => {
-        async function ensureDefaultEmulatorPath() {
-            try {
-                const { emulatorPath, setEmulatorPath } = useSettingsStore.getState()
-                if (emulatorPath && emulatorPath.trim().length) {
-                    return
-                }
-
-                const candidatePaths: string[] = []
-
-                if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                    try {
-                        const resourcePath = await resolveResource(
-                            'emu/hyper-screw-fbneo/fs-fbneo.exe'
-                        )
-                        if (resourcePath) {
-                            candidatePaths.push(resourcePath)
-                        }
-                    } catch (error) {
-                        console.warn('Failed to resolve bundled emulator path:', error)
-                    }
-
-                    candidatePaths.push('_up_/emu/hyper-screw-fbneo/fs-fbneo.exe')
-                    candidatePaths.push('../Resources/emu/hyper-screw-fbneo/fs-fbneo.exe')
-                }
-
-                candidatePaths.push('../emu/hyper-screw-fbneo/fs-fbneo.exe')
-                candidatePaths.push('emu/hyper-screw-fbneo/fs-fbneo.exe')
-
-                const fallbackPath = candidatePaths.find(
-                    (path) => typeof path === 'string' && path.trim().length
-                )
-
-                if (fallbackPath) {
-                    setEmulatorPath(fallbackPath)
-                }
-            } catch (error) {
-                console.error('Failed to ensure default emulator path:', error)
-            }
-        }
-
         void ensureDefaultEmulatorPath()
     }, [emulatorPathSetting])
 
     useEffect(() => {
-        async function ensureDefaultTrainingPath() {
-            try {
-                const { trainingPath, setTrainingPath } = useSettingsStore.getState()
-                if (trainingPath && trainingPath.trim().length) {
-                    return
-                }
-
-                if (emulatorPathSetting && emulatorPathSetting.trim().length) {
-                    try {
-                        let resolvedEmuPath = emulatorPathSetting
-                        try {
-                            resolvedEmuPath = await normalize(emulatorPathSetting)
-                        } catch {}
-                        if (!/^[a-zA-Z]:\\|^\\\\|^\//.test(resolvedEmuPath)) {
-                            try {
-                                resolvedEmuPath = await normalize(await resolve(emulatorPathSetting))
-                            } catch {}
-                        }
-                        const emuDir = await dirname(resolvedEmuPath)
-                        const derived = await normalize(
-                            await join(
-                                emuDir,
-                                '..',
-                                '..',
-                                'lua',
-                                '3rd_training_lua',
-                                '3rd_training.lua'
-                            )
-                        )
-                        setTrainingPath(derived)
-                        return
-                    } catch (error) {
-                        console.warn('Failed to derive training lua from emulator path:', error)
-                    }
-                }
-
-                if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                    try {
-                        const resourcePath = await resolveResource(
-                            'lua/3rd_training_lua/3rd_training.lua'
-                        )
-                        if (resourcePath) {
-                            setTrainingPath(resourcePath)
-                            return
-                        }
-                    } catch (error) {
-                        console.warn('Failed to resolve bundled training lua path:', error)
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to ensure default training lua path:', error)
-            }
-        }
-
-        void ensureDefaultTrainingPath()
+        void ensureDefaultTrainingPath(emulatorPathSetting)
     }, [emulatorPathSetting])
 
     useEffect(() => {
-        async function ensureDefaultChallengeSound() {
-            try {
-                const { notifChallengeSoundPath, setNotifChallengeSoundPath } =
-                    useSettingsStore.getState()
-                if (notifChallengeSoundPath && notifChallengeSoundPath.trim().length) {
-                    return
-                }
-                if (emulatorPathSetting && emulatorPathSetting.trim().length) {
-                    try {
-                        const emuDir = await dirname(emulatorPathSetting)
-                        const derived = await normalize(
-                            await join(emuDir, '..', '..', 'sounds', 'challenge.mp3')
-                        )
-                        setNotifChallengeSoundPath(derived)
-                        return
-                    } catch (error) {
-                        console.warn('Failed to derive challenge sound from emulator path:', error)
-                    }
-                }
-
-                if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                    try {
-                        const resourcePath = await resolveResource('sounds/challenge.mp3')
-                        if (resourcePath) {
-                            setNotifChallengeSoundPath(resourcePath)
-                            return
-                        }
-                    } catch (error) {
-                        console.warn('Failed to resolve bundled challenge sound path:', error)
-                    }
-                }
-
-                setNotifChallengeSoundPath('sounds/challenge.mp3')
-            } catch (error) {
-                console.error('Failed to ensure default challenge sound path:', error)
-            }
-        }
-
-        async function ensureDefaultMentionSound() {
-            try {
-                const { notifAtSoundPath, setNotifAtSoundPath } = useSettingsStore.getState()
-                if (notifAtSoundPath && notifAtSoundPath.trim().length) {
-                    return
-                }
-                if (emulatorPathSetting && emulatorPathSetting.trim().length) {
-                    try {
-                        const emuDir = await dirname(emulatorPathSetting)
-                        const derived = await normalize(
-                            await join(emuDir, '..', '..', 'sounds', 'message.wav')
-                        )
-                        setNotifAtSoundPath(derived)
-                        return
-                    } catch (error) {
-                        console.warn('Failed to derive mention sound from emulator path:', error)
-                    }
-                }
-
-                if (typeof window !== 'undefined' && '__TAURI__' in window) {
-                    try {
-                        const resourcePath = await resolveResource('sounds/message.wav')
-                        if (resourcePath) {
-                            setNotifAtSoundPath(resourcePath)
-                            return
-                        }
-                    } catch (error) {
-                        console.warn('Failed to resolve bundled mention sound path:', error)
-                    }
-                }
-
-                setNotifAtSoundPath('sounds/message.wav')
-            } catch (error) {
-                console.error('Failed to ensure default mention sound path:', error)
-            }
-        }
-
-        void ensureDefaultChallengeSound()
-        void ensureDefaultMentionSound()
+        void ensureDefaultChallengeSound(emulatorPathSetting)
+        void ensureDefaultMentionSound(emulatorPathSetting)
     }, [emulatorPathSetting])
 
     return (

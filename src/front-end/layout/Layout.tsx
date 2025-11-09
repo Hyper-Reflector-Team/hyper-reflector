@@ -8,7 +8,7 @@ import { getThemeNameList } from '../utils/theme'
 import bgImage from './bgImage.svg'
 import hrLogo from './logo.svg'
 
-import soundBase64Data from '../components/sound/challenge.wav'
+import soundBase64Data from '../components/sound/challenge.mp3'
 
 export default function Layout({ children }) {
     const audioEffect = new Audio(soundBase64Data) // this line for renderer process only
