@@ -128,6 +128,22 @@ fn resolve_generic_path(app: &AppHandle, raw: &str) -> Result<PathBuf, String> {
     resolve_path_common(app, raw, "Path is empty")
 }
 
+pub(crate) fn resolve_lua_args(app: &AppHandle, args: &mut Vec<String>) -> Result<(), String> {
+    let mut idx = 0;
+    while idx < args.len() {
+        if args[idx].eq_ignore_ascii_case("--lua") {
+            if idx + 1 < args.len() {
+                let resolved = resolve_generic_path(app, &args[idx + 1])?;
+                args[idx + 1] = resolved.to_string_lossy().to_string();
+            }
+            idx += 2;
+        } else {
+            idx += 1;
+        }
+    }
+    Ok(())
+}
+
 
 #[tauri::command]
 fn stop_sound(app: tauri::AppHandle) -> Result<(), String> {
@@ -201,15 +217,17 @@ async fn start_training_mode(
     proc: State<'_, Arc<Mutex<ProcState>>>,
     use_sidecar: bool,
     exe_path: Option<String>,
-    args: Vec<String>,
+    mut args: Vec<String>,
 ) -> Result<(), String> {
     let cmd_builder = if use_sidecar {
         app.shell().sidecar("emulator").map_err(|e| e.to_string())?
     } else {
         // need to set up sidecar code later
         let path = exe_path.ok_or("exe_path required when use_sidecar=false")?;
-        app.shell().command(path)
+        let resolved = resolve_emulator_path(&app, &path)?;
+        app.shell().command(resolved)
     };
+    resolve_lua_args(&app, &mut args)?;
     let cmd = cmd_builder.args(args);
     let (mut rx, child) = cmd.spawn().map_err(|e| e.to_string())?;
     {
@@ -244,8 +262,9 @@ async fn start_training_mode(
 }
 
 #[tauri::command]
-async fn launch_emulator(app: tauri::AppHandle, exe_path: String, args: Vec<String>) -> Result<(), String> {
+async fn launch_emulator(app: tauri::AppHandle, exe_path: String, mut args: Vec<String>) -> Result<(), String> {
     let resolved = resolve_emulator_path(&app, &exe_path)?;
+    resolve_lua_args(&app, &mut args)?;
     let command = app
         .shell()
         .command(resolved)

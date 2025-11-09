@@ -5,6 +5,10 @@ import { toaster } from '../components/chakra/ui/toaster'
 import { useSettingsStore } from '../state/store'
 import { Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import {
+    ensureDefaultEmulatorPath,
+    ensureDefaultTrainingPath,
+} from '../utils/pathSettings'
 
 export default function LabPage() {
     const { t } = useTranslation()
@@ -13,14 +17,39 @@ export default function LabPage() {
     const trainingPath = useSettingsStore((s) => s.trainingPath)
 
     async function handleStartTraining() {
-        const luaPath =
-            'C:\\Users\\dusti\\Desktop\\hyper-reflector\\src\\lua\\3rd_training_lua\\3rd_training.lua'
-        await invoke('start_training_mode', {
-            useSidecar: false,
-            exePath:
-                'C:\\Users\\dusti\\Desktop\\hyper-reflector\\Hyper-Reflector\\emu\\hyper-screw-fbneo\\fs-fbneo.exe',
-            args: ['--rom', 'sfiii3nr1', '--lua', `${trainingPath || luaPath}`],
-        })
+        try {
+            await ensureDefaultEmulatorPath()
+            const { emulatorPath: ensuredEmulatorPath } = useSettingsStore.getState()
+
+            if (!ensuredEmulatorPath || !ensuredEmulatorPath.trim().length) {
+                toaster.error({
+                    title: t('Lab.errorPath'),
+                    description: 'Set or bundle an emulator before starting training.',
+                })
+                return
+            }
+
+            await ensureDefaultTrainingPath(ensuredEmulatorPath)
+            const { trainingPath: ensuredTrainingPath } = useSettingsStore.getState()
+
+            const args = ['--rom', 'sfiii3nr1']
+            if (ensuredTrainingPath && ensuredTrainingPath.trim().length) {
+                args.push('--lua', ensuredTrainingPath)
+            }
+
+            await invoke('start_training_mode', {
+                useSidecar: false,
+                exePath: ensuredEmulatorPath,
+                args,
+            })
+        } catch (error) {
+            console.error('Failed to start training mode:', error)
+            toaster.error({
+                title: 'Failed to start training',
+                description:
+                    error instanceof Error ? error.message : 'Unknown error launching emulator',
+            })
+        }
     }
 
     const pickLua = async () => {

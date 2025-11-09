@@ -2,7 +2,8 @@
 // I did not write this, this is a port by chatGPT of the our original node proxy
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::resolve_emulator_path;
+use crate::{resolve_emulator_path, resolve_lua_args};
+use anyhow::anyhow;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -309,8 +310,9 @@ impl ProxyRuntime {
             ];
         }
 
-        // Example args – replace with what FBNeo needs in your environment:
+        // Example args - replace with what FBNeo needs in your environment:
         //   --local-port 7000 --remote-ip 127.0.0.1 --remote-port <emu_listener_port> --player N --delay D --name user
+        resolve_lua_args(&self.app, &mut provided_args).map_err(|e| anyhow!(e))?;
         cmd.args(provided_args);
 
         let child = cmd.spawn()?;
