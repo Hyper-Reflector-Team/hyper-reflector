@@ -3,7 +3,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, EventTarget, State, Manager};
 use std::{
     env,
-    fs,
+    fs::{self, OpenOptions},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -226,25 +226,85 @@ fn ensure_resource_copy(app: &AppHandle, appdata_root: &Path, name: &str) -> Res
     Ok(target)
 }
 
+fn require_subdir(base: &Path, name: &str) -> Result<PathBuf, String> {
+    let dir = base.join(name);
+    if dir.exists() {
+        Ok(dir)
+    } else {
+        Err(format!(
+            "Required resource subfolder '{}' missing under '{}'",
+            name,
+            base.display()
+        ))
+    }
+}
+
+fn test_writable(dir: &Path) -> bool {
+    if !dir.exists() {
+        return false;
+    }
+    let probe = dir.join(".hyper-reflector-write-test");
+    match OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(&probe)
+    {
+        Ok(_) => {
+            let _ = fs::remove_file(probe);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+fn ensure_writable_files_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Ok(exe_dir) = app.path().executable_dir() {
+        let exe_files = exe_dir.join("files");
+        if exe_files.exists() && test_writable(&exe_files) {
+            return Ok(exe_files);
+        }
+
+        if !exe_files.exists() && test_writable(&exe_dir) {
+            if let Some(source) = find_resource_folder(app, "files") {
+                if copy_dir_recursive(&source, &exe_files).is_ok() && test_writable(&exe_files) {
+                    return Ok(exe_files);
+                } else if exe_files.exists() {
+                    let _ = fs::remove_dir_all(&exe_files);
+                }
+            }
+        }
+    }
+
+    let appdata_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    fs::create_dir_all(&appdata_dir).map_err(|e| e.to_string())?;
+    let files_dir = ensure_resource_copy(app, &appdata_dir, "files")?;
+    if test_writable(&files_dir) {
+        return Ok(files_dir);
+    }
+
+    Err("Unable to prepare a writable 'files' directory".to_string())
+}
+
 #[derive(Serialize)]
 struct PreparedResources {
     emulator_path: String,
     emulator_dir: String,
     lua_dir: String,
     sounds_dir: String,
+    files_dir: String,
 }
 
 #[tauri::command]
 async fn prepare_user_resources(app: tauri::AppHandle) -> Result<PreparedResources, String> {
-    let appdata_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
-    fs::create_dir_all(&appdata_dir).map_err(|e| e.to_string())?;
+    let files_dir = ensure_writable_files_dir(&app)?;
 
-    let emulator_dir = ensure_resource_copy(&app, &appdata_dir, "emu")?;
-    let lua_dir = ensure_resource_copy(&app, &appdata_dir, "lua")?;
-    let sounds_dir = ensure_resource_copy(&app, &appdata_dir, "sounds")?;
+    let emulator_dir = require_subdir(&files_dir, "emu")?;
+    let lua_dir = require_subdir(&files_dir, "lua")?;
+    let sounds_dir = require_subdir(&files_dir, "sounds")?;
 
     let emulator_path = emulator_dir
         .join("hyper-screw-fbneo")
@@ -255,6 +315,7 @@ async fn prepare_user_resources(app: tauri::AppHandle) -> Result<PreparedResourc
         emulator_dir: emulator_dir.to_string_lossy().to_string(),
         lua_dir: lua_dir.to_string_lossy().to_string(),
         sounds_dir: sounds_dir.to_string_lossy().to_string(),
+        files_dir: files_dir.to_string_lossy().to_string(),
     })
 }
 

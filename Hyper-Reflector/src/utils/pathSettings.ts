@@ -1,4 +1,5 @@
-import { dirname, join, normalize, resolve, resourceDir } from '@tauri-apps/api/path'
+import { invoke } from '@tauri-apps/api/core'
+import { dirname, executableDir, join, normalize, resolve } from '@tauri-apps/api/path'
 import { useSettingsStore } from '../state/store'
 
 const isProd = () => import.meta.env.PROD
@@ -18,6 +19,14 @@ const DEV_SEGMENTS = {
     mention: ['sounds', 'message.wav'],
 }
 
+type PreparedResources = {
+    emulator_path: string
+    emulator_dir: string
+    lua_dir: string
+    sounds_dir: string
+    files_dir: string
+}
+
 type DefaultPaths = {
     emulator: string
     training: string
@@ -27,15 +36,12 @@ type DefaultPaths = {
 }
 
 let cachedDefaults: DefaultPaths | null = null
+let cachedFilesBase: string | null = null
 
 async function toAbsolute(path: string): Promise<string> {
-    try {
-        const normalized = await normalize(path)
-        return toCliPath(normalized)
-    } catch {
-        const resolved = await normalize(await resolve(path))
-        return toCliPath(resolved)
-    }
+    const resolved = await resolve(path)
+    const normalized = await normalize(resolved)
+    return toCliPath(normalized)
 }
 
 async function buildDevDefaults(): Promise<DefaultPaths> {
@@ -51,15 +57,7 @@ async function buildDevDefaults(): Promise<DefaultPaths> {
 }
 
 async function buildProdDefaults(): Promise<DefaultPaths> {
-    let filesBase = 'C:/Program Files/hyper-reflector/files'
-    if (isTauri()) {
-        try {
-            const resDir = await resourceDir()
-            filesBase = await normalize(await join(resDir, '..', 'files'))
-        } catch {
-            // fall back to default Program Files path
-        }
-    }
+    const filesBase = await resolveFilesBase()
 
     const build = async (segments: string[]) => toCliPath(await normalize(await join(filesBase, ...segments)))
 
@@ -77,6 +75,32 @@ async function getDefaults(): Promise<DefaultPaths> {
         cachedDefaults = isProd() ? await buildProdDefaults() : await buildDevDefaults()
     }
     return cachedDefaults
+}
+
+async function resolveFilesBase(): Promise<string> {
+    if (cachedFilesBase) {
+        return cachedFilesBase
+    }
+
+    if (!isTauri()) {
+        cachedFilesBase = await toAbsolute('files')
+        return cachedFilesBase
+    }
+
+    try {
+        const prepared = await invoke<PreparedResources>('prepare_user_resources')
+        cachedFilesBase = await normalize(prepared.files_dir)
+        return cachedFilesBase
+    } catch {
+        try {
+            const exeDir = await executableDir()
+            cachedFilesBase = await normalize(await join(exeDir, 'files'))
+            return cachedFilesBase
+        } catch {
+            cachedFilesBase = await toAbsolute('files')
+            return cachedFilesBase
+        }
+    }
 }
 
 async function deriveRelative(
