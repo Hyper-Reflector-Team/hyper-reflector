@@ -22,7 +22,15 @@ import type { TUser } from '../types/user'
 import { useTranslation } from 'react-i18next'
 import bgImage from '../assets/bgImage.svg'
 import hrLogo from '../assets/logo.svg'
-import { Bell, BellOff, FlaskConical, LucideHome, MessageCircle, Settings, Swords } from 'lucide-react'
+import {
+    Bell,
+    BellOff,
+    FlaskConical,
+    LucideHome,
+    MessageCircle,
+    Settings,
+    Swords,
+} from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
 import { LobbyManagerDialog } from './components/LobbyManagerDialog'
 import { useTauriSoundPlayer } from '../utils/useTauriSoundPlayer'
@@ -185,8 +193,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             setIsInMatch(true)
 
             const challengerId = globalUser?.uid
-            const participantIds = [challengerId, opponentUid].filter(
-                (id): id is string => Boolean(id)
+            const participantIds = [challengerId, opponentUid].filter((id): id is string =>
+                Boolean(id)
             )
 
             if (participantIds.length) {
@@ -270,7 +278,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 try {
                                     peerConnectionRef.current.close()
                                 } catch (error) {
-                                    console.error('Failed to close existing peer connection:', error)
+                                    console.error(
+                                        'Failed to close existing peer connection:',
+                                        error
+                                    )
                                 }
                                 peerConnectionRef.current = null
                             }
@@ -325,8 +336,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         description: `${responder} accepted the challenge.`,
                     })
 
-                    const participantIds = [challengerId, opponentId].filter(
-                        (id): id is string => Boolean(id)
+                    const participantIds = [challengerId, opponentId].filter((id): id is string =>
+                        Boolean(id)
                     )
 
                     if (participantIds.length) {
@@ -341,11 +352,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
                     const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
                     const normalizedLobby = activeLobbyId.trim().toLowerCase()
-                    const inferredGameName =
-                        normalizedLobby === 'vampire' ? 'vsavj' : undefined
+                    const inferredGameName = normalizedLobby === 'vampire' ? 'vsavj' : undefined
 
-                    const involvesMock =
-                        isMockUserId(challengerId) || isMockUserId(opponentId)
+                    const involvesMock = isMockUserId(challengerId) || isMockUserId(opponentId)
 
                     if (involvesMock) {
                         const mockUid = isMockUserId(challengerId) ? challengerId : opponentId
@@ -624,12 +633,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 })
             }
         },
-        [
-            declineChallengeWithSocket,
-            globalUser?.uid,
-            markMatchEnded,
-            markMatchStarted,
-        ]
+        [declineChallengeWithSocket, globalUser?.uid, markMatchEnded, markMatchStarted]
     )
 
     const handleCreateLobby = useCallback(
@@ -817,9 +821,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         const nextSeen = new Set(notificationEntries.map((entry) => entry.message.id))
 
         if (!notificationsMuted) {
-            const newEntries = notificationEntries.filter(
-                (entry) => !seen.has(entry.message.id)
-            )
+            const newEntries = notificationEntries.filter((entry) => !seen.has(entry.message.id))
 
             newEntries.forEach((entry) => {
                 if (entry.kind === 'challenge') {
@@ -863,9 +865,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
             if (shouldChallenge && MOCK_CHALLENGE_LINES.length) {
                 const challengeLine =
-                    MOCK_CHALLENGE_LINES[
-                        mockActionIndexRef.current % MOCK_CHALLENGE_LINES.length
-                    ]
+                    MOCK_CHALLENGE_LINES[mockActionIndexRef.current % MOCK_CHALLENGE_LINES.length]
                 const challengeMessage: TMessage & { sender: TUser } = {
                     id: `mock-challenge-${now}`,
                     role: 'challenge',
@@ -912,10 +912,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         return () => window.clearInterval(intervalId)
     }, [globalLoggedIn, globalUser?.uid, currentLobbyId, hasRealOpponent, mutedUsers])
 
-    const statusColor =
-        STATUS_COLOR_MAP[signalStatus] ?? STATUS_COLOR_MAP.disconnected
-    const statusLabel =
-        STATUS_LABEL_MAP[signalStatus] ?? STATUS_LABEL_MAP.disconnected
+    const statusColor = STATUS_COLOR_MAP[signalStatus] ?? STATUS_COLOR_MAP.disconnected
+    const statusLabel = STATUS_LABEL_MAP[signalStatus] ?? STATUS_LABEL_MAP.disconnected
 
     useEffect(() => {
         const handler = (event: Event) => {
@@ -963,7 +961,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         }
 
         window.addEventListener('lobby:challenge-response', handler as EventListener)
-        return () => window.removeEventListener('lobby:challenge-response', handler as EventListener)
+        return () =>
+            window.removeEventListener('lobby:challenge-response', handler as EventListener)
     }, [handleChallengeResponse])
 
     useEffect(() => {
@@ -1142,7 +1141,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 const existingPings = Array.isArray(currentGlobal.lastKnownPings)
                                     ? currentGlobal.lastKnownPings
                                     : []
-                                const filtered = existingPings.filter((entry) => entry.id !== peerId)
+                                const filtered = existingPings.filter(
+                                    (entry) => entry.id !== peerId
+                                )
                                 const rawPing = data.ping
                                 const numericPing =
                                     typeof rawPing === 'number'
@@ -1160,7 +1161,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                                 typeof numericPing === 'number' &&
                                                 Number.isFinite(numericPing)
                                                     ? numericPing
-                                                    : rawPing ?? 0,
+                                                    : (rawPing ?? 0),
                                             isUnstable: Boolean(data.isUnstable),
                                             countryCode:
                                                 typeof data.countryCode === 'string'
@@ -1288,14 +1289,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                             break
                         }
 
-                        const challengerUser =
-                            useUserStore
-                                .getState()
-                                .lobbyUsers.find((user) => user.uid === payload.from)
+                        const challengerUser = useUserStore
+                            .getState()
+                            .lobbyUsers.find((user) => user.uid === payload.from)
                         const challengerName = challengerUser?.userName || payload.from
 
-                        const existingMessageId =
-                            pendingChallengeByUserRef.current.get(payload.from)
+                        const existingMessageId = pendingChallengeByUserRef.current.get(
+                            payload.from
+                        )
                         const messageId =
                             existingMessageId || `incoming-challenge-${payload.from}-${Date.now()}`
 
@@ -1354,8 +1355,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
                         const activeLobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
                         const normalizedLobby = activeLobbyId.trim().toLowerCase()
-                        const inferredGameName =
-                            normalizedLobby === 'vampire' ? 'vsavj' : undefined
+                        const inferredGameName = normalizedLobby === 'vampire' ? 'vsavj' : undefined
                         const requesterUid = globalUserRef.current?.uid
 
                         if (
@@ -1377,11 +1377,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         break
                     }
                     case 'match-start': {
-                        const matchId = typeof payload.matchId === 'string' ? payload.matchId : undefined
+                        const matchId =
+                            typeof payload.matchId === 'string' ? payload.matchId : undefined
                         const opponentUid =
-                            typeof payload.opponentUid === 'string' ? payload.opponentUid : undefined
+                            typeof payload.opponentUid === 'string'
+                                ? payload.opponentUid
+                                : undefined
                         const rawPlayerSlot =
-                            typeof payload.playerSlot === 'number' || typeof payload.playerSlot === 'string'
+                            typeof payload.playerSlot === 'number' ||
+                            typeof payload.playerSlot === 'string'
                                 ? Number(payload.playerSlot)
                                 : undefined
 
@@ -1395,7 +1399,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 ? payload.serverHost
                                 : undefined
                         const serverPort =
-                            typeof payload.serverPort === 'number' || typeof payload.serverPort === 'string'
+                            typeof payload.serverPort === 'number' ||
+                            typeof payload.serverPort === 'string'
                                 ? Number(payload.serverPort)
                                 : undefined
                         const gameName =
@@ -1670,7 +1675,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                     {statusLabel}
                                 </Text>
                             </Box>
-                            <Text textStyle="xs">Hyper Reflector version 0.5.0a 2025</Text>
+                            <Text textStyle="xs">Hyper Reflector version 0.5.1a 2025</Text>
                         </Flex>
                     </Box>
                 </Stack>
@@ -1740,7 +1745,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 ) : (
                                     notificationEntries.map(({ message: msg, kind }) => {
                                         const isSelf = msg.userName === globalUser?.userName
-                                        const isChallenge = msg.role === 'challenge' || kind === 'challenge'
+                                        const isChallenge =
+                                            msg.role === 'challenge' || kind === 'challenge'
                                         const challengeStatus = msg.challengeStatus
                                         const responderLabel =
                                             msg.challengeResponder && msg.challengeResponder.length
