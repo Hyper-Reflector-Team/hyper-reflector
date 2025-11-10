@@ -669,16 +669,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         return () => window.removeEventListener(SOCKET_STATE_EVENT, handler as EventListener)
     }, [sendSocketStateUpdate])
 
-    const applyLocalViewerPatch = useCallback((patch: Partial<TUser>) => {
+    const syncViewerWinStreak = useCallback((value: number) => {
         const store = useUserStore.getState()
         const viewer = store.globalUser
-        if (viewer?.uid) {
-            store.setGlobalUser({ ...viewer, ...patch })
-            const updatedUsers = store.lobbyUsers.map((entry) =>
-                entry.uid === viewer.uid ? { ...entry, ...patch } : entry
+        if (!viewer?.uid) return
+        const updatedViewer = { ...viewer, winstreak: value }
+        store.setGlobalUser(updatedViewer)
+        store.setLobbyUsers(
+            store.lobbyUsers.map((entry) =>
+                entry.uid === viewer.uid ? { ...entry, winstreak: value } : entry
             )
-            store.setLobbyUsers(updatedUsers)
-        }
+        )
     }, [])
 
     useEffect(() => {
@@ -731,11 +732,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 const isPlayerOne = localPlayerSlotRef.current === 0
                 const resultKey = isPlayerOne ? 'p1-win' : 'p2-win'
                 const didWin = coerceBooleanFlag(parsed[resultKey])
+                let nextStreakValue: number | null = null
 
                 if (typeof didWin === 'boolean') {
                     sendSocketStateUpdate({ key: 'winStreak', value: didWin ? 1 : 0 })
                     const nextStreak = didWin ? (viewer.winstreak || 0) + 1 : 0
-                    applyLocalViewerPatch({ winstreak: nextStreak })
+                    nextStreakValue = nextStreak
+                    syncViewerWinStreak(nextStreak)
                 }
 
                 if (!auth.currentUser) {
@@ -758,13 +761,20 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     player2: isPlayerOne ? opponentUid : viewer.uid,
                     matchData: { raw: limitedRaw },
                 })
+                if (nextStreakValue !== null) {
+                    try {
+                        await api.updateUserData(auth, { winStreak: nextStreakValue })
+                    } catch (streakError) {
+                        console.warn('Failed to persist win streak', streakError)
+                    }
+                }
             } catch (error) {
                 console.error('Failed to upload match data', error)
             } finally {
                 matchUploadPendingRef.current = false
             }
         },
-        [applyLocalViewerPatch, sendSocketStateUpdate]
+        [sendSocketStateUpdate, syncViewerWinStreak]
     )
 
     useEffect(() => {

@@ -188,6 +188,15 @@ export default function ProfilePage() {
         if (user.accountElo !== undefined) {
             subtitle.push(`ELO ${user.accountElo}`)
         }
+        const winStreakValue =
+            typeof user.winstreak === 'number'
+                ? user.winstreak
+                : typeof (user as any).winStreak === 'number'
+                  ? (user as any).winStreak
+                  : undefined
+        if (typeof winStreakValue === 'number') {
+            subtitle.push(`Streak ${winStreakValue}`)
+        }
         return (
             <CardRoot
                 key={user.uid ?? `${user.userName}-${index}`}
@@ -207,8 +216,8 @@ export default function ProfilePage() {
                             <Box>
                                 <Heading size="md">{user.userName || 'Unknown player'}</Heading>
                                 <Flex gap="2" align="center" flexWrap="wrap">
-                                    <TitleBadge title={user.userTitle} />
-                                    <WinStreakBadge value={user.winstreak} compact />
+                                    <TitleBadge title={user.userTitle} />
+                                    <WinStreakBadge value={winStreakValue ?? 0} compact />
                                 </Flex>
                                 {subtitle.length ? (
                                     <Text fontSize="sm" color="gray.400">

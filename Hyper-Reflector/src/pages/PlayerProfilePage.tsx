@@ -51,6 +51,8 @@ type PlayerStats = {
     totalLosses?: number
     totalGames?: number
     longestWinStreak?: number
+    winStreak?: number
+    accountElo?: number
     characters?: Record<string, PlayerCharacterStats>
 }
 
@@ -96,7 +98,14 @@ function CharacterSuperArtDonut({
     const hasData = saData.some((entry) => entry.value > 0)
 
     return (
-        <Stack gap={2} align="center" borderWidth="1px" borderColor="gray.800" borderRadius="lg" padding="4">
+        <Stack
+            gap={2}
+            align="center"
+            borderWidth="1px"
+            borderColor="gray.800"
+            borderRadius="lg"
+            padding="4"
+        >
             <Text fontWeight="semibold">{name}</Text>
             {hasData ? (
                 <Box w="140px" h="140px">
@@ -144,7 +153,11 @@ export default function PlayerProfilePage() {
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
     const [titles, setTitles] = useState<TUserTitle[]>([])
     const [matches, setMatches] = useState<PlayerMatch[]>([])
-const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: string | null; total?: number }>({})
+    const [matchCursor, setMatchCursor] = useState<{
+        last?: string | null
+        first?: string | null
+        total?: number
+    }>({})
     const [profileLoading, setProfileLoading] = useState(true)
     const [matchesLoading, setMatchesLoading] = useState(true)
     const [nameDraft, setNameDraft] = useState('')
@@ -152,6 +165,19 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
     const [pendingTitle, setPendingTitle] = useState<string>('')
     const [saving, setSaving] = useState(false)
     const [isTitleDrawerOpen, setTitleDrawerOpen] = useState(false)
+
+    const normalizeUserForProfile = useCallback(
+        (user: TUser | (TUser & { winStreak?: number })) => {
+            const streak =
+                typeof (user as any).winstreak === 'number'
+                    ? (user as any).winstreak
+                    : typeof (user as any).winStreak === 'number'
+                      ? (user as any).winStreak
+                      : 0
+            return { ...user, winstreak: streak }
+        },
+        []
+    )
 
     const canEdit = isSelf && Boolean(profileUid)
 
@@ -165,10 +191,25 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
 
     const characterEntries = useMemo(() => {
         if (!playerStats?.characters) return []
-        return Object.entries(playerStats.characters).sort((a, b) => (b[1]?.picks || 0) - (a[1]?.picks || 0))
+        return Object.entries(playerStats.characters).sort(
+            (a, b) => (b[1]?.picks || 0) - (a[1]?.picks || 0)
+        )
     }, [playerStats])
 
-    const titleOptions = useMemo(() => titles.map((title, index) => ({ label: title.title, value: String(index), data: title })), [titles])
+    const titleOptions = useMemo(
+        () =>
+            titles.map((title, index) => ({
+                label: title.title,
+                value: String(index),
+                data: title,
+            })),
+        [titles]
+    )
+
+    const currentWinStreak = profile?.winstreak ?? 0
+    const currentElo = playerStats?.accountElo ?? profile?.accountElo
+    const displayElo =
+        currentElo !== undefined && currentElo !== null ? Math.round(currentElo) : null
 
     useEffect(() => {
         if (!profileUid || !auth.currentUser) {
@@ -177,40 +218,41 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
             setMatches([])
             return
         }
-            setProfileLoading(true)
-            const loadProfile = async () => {
-                try {
-                    const [userData, statsData, titlesData] = await Promise.all([
-                        api.getUserData(auth, profileUid),
-                        api.getPlayerStats(auth, profileUid),
-                        canEdit ? api.getAllTitles(auth, profileUid) : Promise.resolve(null),
-                    ])
-                    if (userData) {
-                        setProfile(userData as TUser)
-                        setNameDraft(userData.userName || '')
-                    }
-                    if (statsData?.playerStatSet) {
-                        setPlayerStats(statsData.playerStatSet as PlayerStats)
-                    } else if (statsData) {
-                        setPlayerStats(statsData as PlayerStats)
-                    }
-                    if (titlesData?.titleData?.titles && Array.isArray(titlesData.titleData.titles)) {
-                        setTitles(titlesData.titleData.titles as TUserTitle[])
-                    } else {
-                        setTitles([])
-                    }
-                } catch (error) {
-                    console.error('Failed to load profile', error)
-                    toaster.create({
-                        title: 'Unable to load profile',
-                        description: 'Please try again shortly.',
-                    })
-                } finally {
-                    setProfileLoading(false)
+        setProfileLoading(true)
+        const loadProfile = async () => {
+            try {
+                const [userData, statsData, titlesData] = await Promise.all([
+                    api.getUserData(auth, profileUid),
+                    api.getPlayerStats(auth, profileUid),
+                    canEdit ? api.getAllTitles(auth, profileUid) : Promise.resolve(null),
+                ])
+                if (userData) {
+                    const normalizedUser = normalizeUserForProfile(userData as TUser)
+                    setProfile(normalizedUser)
+                    setNameDraft(normalizedUser.userName || '')
                 }
+                if (statsData?.playerStatSet) {
+                    setPlayerStats(statsData.playerStatSet as PlayerStats)
+                } else if (statsData) {
+                    setPlayerStats(statsData as PlayerStats)
+                }
+                if (titlesData?.titleData?.titles && Array.isArray(titlesData.titleData.titles)) {
+                    setTitles(titlesData.titleData.titles as TUserTitle[])
+                } else {
+                    setTitles([])
+                }
+            } catch (error) {
+                console.error('Failed to load profile', error)
+                toaster.create({
+                    title: 'Unable to load profile',
+                    description: 'Please try again shortly.',
+                })
+            } finally {
+                setProfileLoading(false)
             }
-            void loadProfile()
-        }, [profileUid, canEdit])
+        }
+        void loadProfile()
+    }, [profileUid, canEdit, normalizeUserForProfile])
 
     const fetchMatches = useCallback(
         async (direction: 'initial' | 'next' | 'prev') => {
@@ -221,17 +263,14 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
                     direction === 'next' ? (matchCursor.last ?? null) : null
                 const prevCursor: string | null =
                     direction === 'prev' ? (matchCursor.first ?? null) : null
-                const response = await (api.getUserMatches as unknown as (
-                    auth: unknown,
-                    userId: string,
-                    lastMatchId?: string | null,
-                    firstMatchId?: string | null
-                ) => Promise<any>)(
-                    auth,
-                    profileUid,
-                    nextCursor,
-                    prevCursor
-                )
+                const response = await (
+                    api.getUserMatches as unknown as (
+                        auth: unknown,
+                        userId: string,
+                        lastMatchId?: string | null,
+                        firstMatchId?: string | null
+                    ) => Promise<any>
+                )(auth, profileUid, nextCursor, prevCursor)
                 if (response?.matches) {
                     setMatches(response.matches as PlayerMatch[])
                     setMatchCursor({
@@ -272,7 +311,9 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
 
     useEffect(() => {
         if (!profile || !titles.length) return
-        const currentTitleIndex = titles.findIndex((title) => title.title === profile.userTitle?.title)
+        const currentTitleIndex = titles.findIndex(
+            (title) => title.title === profile.userTitle?.title
+        )
         if (currentTitleIndex >= 0) {
             setPendingTitle(String(currentTitleIndex))
         } else {
@@ -338,7 +379,9 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
         return (
             <Stack gap={6} padding="8">
                 <Heading size="lg">Player profile</Heading>
-                <Text color="gray.400">Select a player from the search page to view their profile.</Text>
+                <Text color="gray.400">
+                    Select a player from the search page to view their profile.
+                </Text>
                 <Button onClick={() => navigate({ to: '/profile' })}>Back to profiles</Button>
             </Stack>
         )
@@ -347,256 +390,296 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
     return (
         <>
             <Stack gap={8} padding={{ base: 4, md: 8 }}>
-            <Flex justify="space-between" align={{ base: 'stretch', md: 'center' }} direction={{ base: 'column', md: 'row' }} gap={4}>
-                <Button variant="ghost" onClick={() => navigate({ to: '/profile' })}>
-                    <Flex align="center" gap="2">
-                        <ArrowLeft size={16} />
-                        <span>Back to profiles</span>
-                    </Flex>
-                </Button>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        void fetchMatches('initial')
-                        if (profileUid && auth.currentUser) {
-                            setProfileLoading(true)
-                            void (async () => {
-                                try {
-                                    const userData = await api.getUserData(auth, profileUid)
-                                    if (userData) {
-                                        setProfile(userData as TUser)
-                                        setNameDraft(userData.userName || '')
-                                    }
-                                } finally {
-                                    setProfileLoading(false)
-                                }
-                            })()
-                        }
-                    }}
-                    disabled={!profile}
+                <Flex
+                    justify="space-between"
+                    align={{ base: 'stretch', md: 'center' }}
+                    direction={{ base: 'column', md: 'row' }}
+                    gap={4}
                 >
-                    <Flex align="center" gap="2">
-                        <RefreshCcw size={16} />
-                        <span>Refresh data</span>
-                    </Flex>
-                </Button>
-            </Flex>
-
-            <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
-                <CardBody>
-                    {profileLoading || !profile ? (
-                        <Flex justify="center" padding="8">
-                            <Spinner />
+                    <Button variant="ghost" onClick={() => navigate({ to: '/profile' })}>
+                        <Flex align="center" gap="2">
+                            <ArrowLeft size={16} />
+                            <span>Back to profiles</span>
                         </Flex>
-                    ) : (
-                        <Stack gap={6}>
-                            <Flex gap={6} direction={{ base: 'column', md: 'row' }} align={{ base: 'flex-start', md: 'center' }}>
-                                <Stack align="center" gap="2">
-                                    <Avatar.Root size="2xl" variant="outline">
-                                        <Avatar.Fallback name={profile.userName} />
-                                        <Avatar.Image src={profile.userProfilePic || undefined} />
-                                    </Avatar.Root>
-                                    <WinStreakBadge value={profile.winstreak} />
-                                </Stack>
-                                <Stack gap={2} flex="1">
-                                    <Heading size="lg">{profile.userName}</Heading>
-                                    <TitleBadge title={profile.userTitle} />
-                                    <Text fontSize="sm" color="gray.400">
-                                        UID: {profile.uid}
-                                    </Text>
-                                    <Text fontSize="sm" color="gray.400">
-                                        Country: {profile.countryCode || 'Unknown'}
-                                    </Text>
-                                    {Array.isArray(profile.knownAliases) && profile.knownAliases.length ? (
-                                        <Text fontSize="sm" color="gray.500">
-                                            Also known as: {profile.knownAliases.slice(0, 5).join(', ')}
-                                        </Text>
-                                    ) : null}
-                                </Stack>
-                                {canEdit ? (
-                                    <Stack gap={4} flex="1">
-                                        <Box>
-                                            <Text fontSize="sm" color="gray.400" mb="1">
-                                                Display name
-                                            </Text>
-                                            <Input
-                                                value={nameDraft}
-                                                onChange={(event) => setNameDraft(event.target.value)}
-                                                _invalid={nameInvalid ? { borderColor: 'red.500' } : undefined}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            void fetchMatches('initial')
+                            if (profileUid && auth.currentUser) {
+                                setProfileLoading(true)
+                                void (async () => {
+                                    try {
+                                        const userData = await api.getUserData(auth, profileUid)
+                                        if (userData) {
+                                            const normalizedUser = normalizeUserForProfile(
+                                                userData as TUser
+                                            )
+                                            setProfile(normalizedUser)
+                                            setNameDraft(normalizedUser.userName || '')
+                                        }
+                                    } finally {
+                                        setProfileLoading(false)
+                                    }
+                                })()
+                            }
+                        }}
+                        disabled={!profile}
+                    >
+                        <Flex align="center" gap="2">
+                            <RefreshCcw size={16} />
+                            <span>Refresh data</span>
+                        </Flex>
+                    </Button>
+                </Flex>
+
+                <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
+                    <CardBody>
+                        {profileLoading || !profile ? (
+                            <Flex justify="center" padding="8">
+                                <Spinner />
+                            </Flex>
+                        ) : (
+                            <Stack gap={6}>
+                                <Flex
+                                    gap={6}
+                                    direction={{ base: 'column', md: 'row' }}
+                                    align={{ base: 'flex-start', md: 'center' }}
+                                >
+                                    <Stack align="center" gap="2">
+                                        <Avatar.Root size="2xl" variant="outline">
+                                            <Avatar.Fallback name={profile.userName} />
+                                            <Avatar.Image
+                                                src={profile.userProfilePic || undefined}
                                             />
-                                            {nameInvalid ? (
-                                                <Text fontSize="xs" color="red.300" mt="1">
-                                                    Please choose a different name.
-                                                </Text>
-                                            ) : null}
-                                        </Box>
-                                        <Box>
-                                            <Text fontSize="sm" color="gray.400" mb="1">
-                                                Title flair
+                                        </Avatar.Root>
+                                        <WinStreakBadge value={currentWinStreak} />
+                                    </Stack>
+                                    <Stack gap={2} flex="1">
+                                        <Flex
+                                            align={{ base: 'flex-start', md: 'center' }}
+                                            gap="3"
+                                            wrap="wrap"
+                                        >
+                                            <Heading size="lg">{profile.userName}</Heading>
+                                            <Text fontSize="sm" color="gray.400">
+                                                ELO {displayElo !== null ? displayElo : '—'}
                                             </Text>
-                                            <Stack gap={2}>
-                                                <TitleBadge
-                                                    title={
-                                                        titleOptions.find((option) => option.value === pendingTitle)
-                                                            ?.data || profile.userTitle
+                                        </Flex>
+                                        <TitleBadge title={profile.userTitle} />
+                                        <Text fontSize="sm" color="gray.400">
+                                            UID: {profile.uid}
+                                        </Text>
+                                        <Text fontSize="sm" color="gray.400">
+                                            Country: {profile.countryCode || 'Unknown'}
+                                        </Text>
+                                        {Array.isArray(profile.knownAliases) &&
+                                        profile.knownAliases.length ? (
+                                            <Text fontSize="sm" color="gray.500">
+                                                Also known as:{' '}
+                                                {profile.knownAliases.slice(0, 5).join(', ')}
+                                            </Text>
+                                        ) : null}
+                                    </Stack>
+                                    {canEdit ? (
+                                        <Stack gap={4} flex="1">
+                                            <Box>
+                                                <Text fontSize="sm" color="gray.400" mb="1">
+                                                    Display name
+                                                </Text>
+                                                <Input
+                                                    value={nameDraft}
+                                                    onChange={(event) =>
+                                                        setNameDraft(event.target.value)
+                                                    }
+                                                    _invalid={
+                                                        nameInvalid
+                                                            ? { borderColor: 'red.500' }
+                                                            : undefined
                                                     }
                                                 />
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => setTitleDrawerOpen(true)}
-                                                >
-                                                    Change title flair
-                                                </Button>
-                                            </Stack>
-                                        </Box>
-                                        <Button
-                                colorPalette="orange"
-                                onClick={saveProfileChanges}
-                                loading={saving}
-                            >
-                                            <Flex align="center" gap="2">
-                                                <Save size={16} />
-                                                <span>Save profile</span>
-                                            </Flex>
-                                        </Button>
-                                    </Stack>
-                                ) : null}
-                            </Flex>
-                            <SimpleGrid columns={{ base: 1, md: 4 }} gap={4}>
-                                <StatCard label="Total games" value={winStats.totalGames} />
-                                <StatCard label="Wins" value={winStats.totalWins} />
-                                <StatCard label="Losses" value={winStats.totalLosses} />
-                                <StatCard label="Win rate" value={`${winStats.winRate}%`} />
-                            </SimpleGrid>
-                        </Stack>
-                    )}
-                </CardBody>
-            </CardRoot>
+                                                {nameInvalid ? (
+                                                    <Text fontSize="xs" color="red.300" mt="1">
+                                                        Please choose a different name.
+                                                    </Text>
+                                                ) : null}
+                                            </Box>
+                                            <Box>
+                                                <Text fontSize="sm" color="gray.400" mb="1">
+                                                    Title flair
+                                                </Text>
+                                                <Stack gap={2}>
+                                                    <TitleBadge
+                                                        title={
+                                                            titleOptions.find(
+                                                                (option) =>
+                                                                    option.value === pendingTitle
+                                                            )?.data || profile.userTitle
+                                                        }
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => setTitleDrawerOpen(true)}
+                                                    >
+                                                        Change title flair
+                                                    </Button>
+                                                </Stack>
+                                            </Box>
+                                            <Button
+                                                colorPalette="orange"
+                                                onClick={saveProfileChanges}
+                                                loading={saving}
+                                            >
+                                                <Flex align="center" gap="2">
+                                                    <Save size={16} />
+                                                    <span>Save profile</span>
+                                                </Flex>
+                                            </Button>
+                                        </Stack>
+                                    ) : null}
+                                </Flex>
+                                <SimpleGrid columns={{ base: 1, md: 4 }} gap={4}>
+                                    <StatCard label="Total games" value={winStats.totalGames} />
+                                    <StatCard label="Wins" value={winStats.totalWins} />
+                                    <StatCard label="Losses" value={winStats.totalLosses} />
+                                    <StatCard label="Win rate" value={`${winStats.winRate}%`} />
+                                </SimpleGrid>
+                            </Stack>
+                        )}
+                    </CardBody>
+                </CardRoot>
 
-            <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
-                <CardHeader>
-                    <Heading size="md">Character usage</Heading>
-                    <Text fontSize="sm" color="gray.400">
-                        Breakdown of characters played in recorded matches.
-                    </Text>
-                </CardHeader>
-                <CardBody>
-                    {characterEntries.length === 0 ? (
-                        <Text fontSize="sm" color="gray.500">
-                            No character data available yet.
+                <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
+                    <CardHeader>
+                        <Heading size="md">Character usage</Heading>
+                        <Text fontSize="sm" color="gray.400">
+                            Breakdown of characters played in recorded matches.
                         </Text>
-                    ) : (
-                        <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={4}>
-                            {characterEntries.map(([name, stats]) => (
-                                <CharacterSuperArtDonut
-                                    key={name}
-                                    name={name}
-                                    stats={stats}
-                                    colors={superArtColors}
-                                />
-                            ))}
-                        </SimpleGrid>
-                    )}
-                </CardBody>
-            </CardRoot>
-
-            <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
-                <CardHeader>
-                    <Flex justify="space-between" align="center">
-                        <Stack gap={1}>
-                            <Heading size="md">Recent matches</Heading>
-                            <Text fontSize="sm" color="gray.400">
-                                Viewing {matches.length} of {matchCursor.total ?? 0} recorded matches.
+                    </CardHeader>
+                    <CardBody>
+                        {characterEntries.length === 0 ? (
+                            <Text fontSize="sm" color="gray.500">
+                                No character data available yet.
                             </Text>
-                        </Stack>
-                        <Flex gap={2}>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fetchMatches('prev')}
-                                disabled={!matchCursor.first || matchesLoading}
-                            >
-                                Newer
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fetchMatches('next')}
-                                disabled={!matchCursor.last || matchesLoading}
-                            >
-                                Older
-                            </Button>
+                        ) : (
+                            <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={4}>
+                                {characterEntries.map(([name, stats]) => (
+                                    <CharacterSuperArtDonut
+                                        key={name}
+                                        name={name}
+                                        stats={stats}
+                                        colors={superArtColors}
+                                    />
+                                ))}
+                            </SimpleGrid>
+                        )}
+                    </CardBody>
+                </CardRoot>
+
+                <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
+                    <CardHeader>
+                        <Flex justify="space-between" align="center">
+                            <Stack gap={1}>
+                                <Heading size="md">Recent matches</Heading>
+                                <Text fontSize="sm" color="gray.400">
+                                    Viewing {matches.length} of {matchCursor.total ?? 0} recorded
+                                    matches.
+                                </Text>
+                            </Stack>
+                            <Flex gap={2}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fetchMatches('prev')}
+                                    disabled={!matchCursor.first || matchesLoading}
+                                >
+                                    Newer
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => fetchMatches('next')}
+                                    disabled={!matchCursor.last || matchesLoading}
+                                >
+                                    Older
+                                </Button>
+                            </Flex>
                         </Flex>
-                    </Flex>
-                </CardHeader>
-                <CardBody>
-                    {matchesLoading ? (
-                        <Flex justify="center" padding="8">
-                            <Spinner />
-                        </Flex>
-                    ) : matches.length === 0 ? (
-                        <Text fontSize="sm" color="gray.500">
-                            No matches recorded yet.
-                        </Text>
-                    ) : (
-                        <Stack gap={3}>
-                            {matches.map((match, index) => {
-                                const date = match.timestamp
-                                    ? new Date(match.timestamp).toLocaleString()
-                                    : 'Unknown date'
-                                return (
-                                    <Box
-                                        key={match.id ?? `${match.sessionId}-${index}`}
-                                        borderWidth="1px"
-                                        borderColor="gray.800"
-                                        borderRadius="lg"
-                                        padding="4"
-                                    >
-                                        <Flex justify="space-between" align="center" mb="2">
-                                            <Heading size="sm">Session {match.sessionId || 'unknown'}</Heading>
-                                            <Text fontSize="xs" color="gray.500">
-                                                {date}
-                                            </Text>
-                                        </Flex>
-                                        <Flex justify="space-between" align="center">
-                                            <Stack gap={1}>
-                                                <Text fontWeight="semibold">
-                                                    {match.player1Name || 'Player 1'}
-                                                </Text>
+                    </CardHeader>
+                    <CardBody>
+                        {matchesLoading ? (
+                            <Flex justify="center" padding="8">
+                                <Spinner />
+                            </Flex>
+                        ) : matches.length === 0 ? (
+                            <Text fontSize="sm" color="gray.500">
+                                No matches recorded yet.
+                            </Text>
+                        ) : (
+                            <Stack gap={3}>
+                                {matches.map((match, index) => {
+                                    const date = match.timestamp
+                                        ? new Date(match.timestamp).toLocaleString()
+                                        : 'Unknown date'
+                                    return (
+                                        <Box
+                                            key={match.id ?? `${match.sessionId}-${index}`}
+                                            borderWidth="1px"
+                                            borderColor="gray.800"
+                                            borderRadius="lg"
+                                            padding="4"
+                                        >
+                                            <Flex justify="space-between" align="center" mb="2">
+                                                <Heading size="sm">
+                                                    Session {match.sessionId || 'unknown'}
+                                                </Heading>
                                                 <Text fontSize="xs" color="gray.500">
-                                                    Wins: {match.p1Wins ?? 0}
+                                                    {date}
                                                 </Text>
-                                            </Stack>
-                                            <Text fontSize="sm" color="gray.400">
-                                                vs
-                                            </Text>
-                                            <Stack gap={1} textAlign="right">
-                                                <Text fontWeight="semibold">
-                                                    {match.player2Name || 'Player 2'}
+                                            </Flex>
+                                            <Flex justify="space-between" align="center">
+                                                <Stack gap={1}>
+                                                    <Text fontWeight="semibold">
+                                                        {match.player1Name || 'Player 1'}
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.500">
+                                                        Wins: {match.p1Wins ?? 0}
+                                                    </Text>
+                                                </Stack>
+                                                <Text fontSize="sm" color="gray.400">
+                                                    vs
                                                 </Text>
-                                                <Text fontSize="xs" color="gray.500">
-                                                    Wins: {match.p2Wins ?? 0}
-                                                </Text>
-                                            </Stack>
-                                        </Flex>
-                                    </Box>
-                                )
-                            })}
-                        </Stack>
-                    )}
-                </CardBody>
-            </CardRoot>
+                                                <Stack gap={1} textAlign="right">
+                                                    <Text fontWeight="semibold">
+                                                        {match.player2Name || 'Player 2'}
+                                                    </Text>
+                                                    <Text fontSize="xs" color="gray.500">
+                                                        Wins: {match.p2Wins ?? 0}
+                                                    </Text>
+                                                </Stack>
+                                            </Flex>
+                                        </Box>
+                                    )
+                                })}
+                            </Stack>
+                        )}
+                    </CardBody>
+                </CardRoot>
             </Stack>
 
-            <DrawerRoot open={isTitleDrawerOpen} onOpenChange={(detail) => setTitleDrawerOpen(detail.open)}>
+            <DrawerRoot
+                open={isTitleDrawerOpen}
+                onOpenChange={(detail) => setTitleDrawerOpen(detail.open)}
+            >
                 <DrawerContent maxW="md">
                     <DrawerCloseTrigger />
                     <DrawerHeader>
                         <Stack gap={1}>
                             <Heading size="md">Choose your title flair</Heading>
                             <Text fontSize="sm" color="gray.400">
-                                Select a flair to preview it. Remember to save your profile to apply changes.
+                                Select a flair to preview it. Remember to save your profile to apply
+                                changes.
                             </Text>
                         </Stack>
                     </DrawerHeader>
