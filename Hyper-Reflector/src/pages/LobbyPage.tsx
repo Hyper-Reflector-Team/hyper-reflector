@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useMessageStore, useUserStore, useSettingsStore } from '../state/store'
 import { useTranslation } from 'react-i18next'
 import {
@@ -148,6 +149,8 @@ export default function LobbyPage() {
             }),
         [localizedPingOptions]
     )
+
+    const navigate = useNavigate()
 
     useEffect(() => {
         if (
@@ -622,6 +625,9 @@ export default function LobbyPage() {
                                             detail: { targetUid: target.uid },
                                         })
                                     )
+                                }
+                                onViewProfile={(target) =>
+                                    navigate({ to: '/profile/$userId', params: { userId: target.uid } })
                                 }
                             />
                         ))

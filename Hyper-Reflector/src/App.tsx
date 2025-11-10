@@ -24,6 +24,7 @@ import { useEffect } from 'react'
 import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
 import ProfilePage from './pages/ProfilePage'
+import PlayerProfilePage from './pages/PlayerProfilePage'
 import {
     ensureDefaultChallengeSound,
     ensureDefaultEmulatorPath,
@@ -93,8 +94,16 @@ const settingsRoute = createRoute({
 const profileRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/profile',
-    component: function Settings() {
+    component: function ProfileExplorer() {
         return <ProfilePage />
+    },
+})
+
+const profileDetailRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/profile/$userId',
+    component: function PlayerProfileRoute() {
+        return <PlayerProfilePage />
     },
 })
 
@@ -106,6 +115,7 @@ const routeTree = rootRoute.addChildren([
     lobbyRoute,
     labRoute,
     profileRoute,
+    profileDetailRoute,
 ])
 
 // this allows electron to hash the routing

@@ -30,6 +30,7 @@ import {
     MessageCircle,
     Settings,
     Swords,
+    UserRound,
 } from 'lucide-react'
 import UserCard from '../components/UserCard.tsx/UserCard'
 import { LobbyManagerDialog } from './components/LobbyManagerDialog'
@@ -1549,6 +1550,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 aria-label="Lab"
                             >
                                 <FlaskConical />
+                            </IconButton>
+                            <IconButton
+                                colorPalette={accentColor}
+                                width={'40px'}
+                                height={'40px'}
+                                onClick={() => changeRoute('/profile')}
+                                aria-label="Profiles"
+                            >
+                                <UserRound />
                             </IconButton>
                         </Stack>
                     ) : null}

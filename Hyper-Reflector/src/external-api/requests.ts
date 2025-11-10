@@ -427,6 +427,66 @@ async function getAllTitles(auth, userId) {
     }
 }
 
+async function searchUsers(auth, query: string, cursor?: string | null, limit = 25) {
+    if (!checkCurrentAuthState(auth)) return
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(`http://${SERVER}:${keys.API_PORT}/search-users`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                idToken: idToken || 'not real',
+                query,
+                limit,
+                cursor,
+            }),
+        })
+        if (!response.ok) {
+            return { users: [], nextCursor: null }
+        }
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return { users: [], nextCursor: null }
+    }
+}
+
+async function getLeaderboard(
+    auth,
+    options: { sortBy?: 'elo' | 'wins'; cursor?: number | null; limit?: number } = {}
+) {
+    if (!checkCurrentAuthState(auth)) return
+    const { sortBy = 'elo', cursor = null, limit = 25 } = options
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(`http://${SERVER}:${keys.API_PORT}/get-leaderboard`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                idToken: idToken || 'not real',
+                sortBy,
+                cursor,
+                limit,
+            }),
+        })
+        if (!response.ok) {
+            return { entries: [], nextCursor: null }
+        }
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return { entries: [], nextCursor: null }
+    }
+}
+
 export default {
     addLoggedInUser,
     getLoggedInUser,
@@ -440,6 +500,8 @@ export default {
     getUserData,
     getAllTitles,
     getPlayerStats,
+    searchUsers,
+    getLeaderboard,
     //matches
     uploadMatchData,
     getUserMatches,

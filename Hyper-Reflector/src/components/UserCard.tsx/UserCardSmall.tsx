@@ -12,9 +12,15 @@ type UserCardSmallProps = {
     user: TUser | undefined
     isSelf?: boolean
     onChallenge?: (user: TUser) => void
+    onViewProfile?: (user: TUser) => void
 }
 
-export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSmallProps) {
+export default function UserCardSmall({
+    user,
+    isSelf,
+    onChallenge,
+    onViewProfile,
+}: UserCardSmallProps) {
     const [menuOpen, setMenuOpen] = useState(false)
     const isInteractive = Boolean(!isSelf && user)
     const viewer = useUserStore((state) => state.globalUser)
@@ -47,6 +53,13 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
         event.stopPropagation()
         if (!isInteractive || !onChallenge) return
         onChallenge(user)
+        setMenuOpen(false)
+    }
+
+    const handleViewProfile = (event: MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation()
+        if (!onViewProfile) return
+        onViewProfile(user)
         setMenuOpen(false)
     }
 
@@ -128,6 +141,11 @@ export default function UserCardSmall({ user, isSelf, onChallenge }: UserCardSma
                         <Button size="sm" colorPalette="orange" onClick={handleChallenge}>
                             Challenge player
                         </Button>
+                        {onViewProfile ? (
+                            <Button size="sm" variant="subtle" onClick={handleViewProfile}>
+                                View profile
+                            </Button>
+                        ) : null}
                         <Button
                             size="sm"
                             variant={isMuted ? 'solid' : 'outline'}
