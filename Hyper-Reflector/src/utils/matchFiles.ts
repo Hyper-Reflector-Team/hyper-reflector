@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { isTauriEnv } from './pathSettings'
+import { isTauriEnv, resolveFilesPath } from './pathSettings'
 
 type MatchFilePaths = {
     command: string
@@ -9,14 +9,29 @@ type MatchFilePaths = {
 let cachedPaths: MatchFilePaths | null = null
 let loggedPaths = false
 
+const DEV_OVERRIDE_BASE =
+    import.meta.env.DEV
+        ? 'C:/Users/dusti/Desktop/hyper-reflector/Hyper-Reflector/src-tauri/files'
+        : null
+
+const normalizePath = (path: string) => path.replace(/\\/g, '/')
+
 async function ensurePaths(): Promise<MatchFilePaths | null> {
     if (!isTauriEnv()) {
         return null
     }
     if (!cachedPaths) {
-        cachedPaths = {
-            command: 'hyper_read_commands.txt',
-            stats: 'hyper_track_match.txt',
+        if (DEV_OVERRIDE_BASE) {
+            cachedPaths = {
+                command: normalizePath(`${DEV_OVERRIDE_BASE}/hyper_read_commands.txt`),
+                stats: normalizePath(`${DEV_OVERRIDE_BASE}/hyper_track_match.txt`),
+            }
+        } else {
+            const [command, stats] = await Promise.all([
+                resolveFilesPath('hyper_read_commands.txt'),
+                resolveFilesPath('hyper_track_match.txt'),
+            ])
+            cachedPaths = { command, stats }
         }
         if (import.meta.env.DEV) {
             console.log('[match-files] monitoring paths', cachedPaths)
