@@ -1,25 +1,42 @@
 // This is also used on the backend to parse data. Slightly modified export style.
 
-function parseMatchData(rawData) {
-    if (!rawData) return '' // fail case
+function parseMatchData(rawData = '') {
+    if (typeof rawData !== 'string' || !rawData.trim().length) return {}
+
+    try {
+        const parsed = JSON.parse(rawData)
+        if (parsed && typeof parsed === 'object') {
+            return parsed
+        }
+    } catch (err) {
+        console.warn('Failed to parse match JSON, falling back to legacy format')
+    }
+
     const result = {}
     const lines = rawData
         .split('\n')
         .map((line) => line.trim())
         .filter((line) => line.length > 0)
 
-    console.log(lines)
-    // Iterate through the lines and process key-value pairs
-    for (let line of lines) {
-        const [key, value] = line.split(':')
+    for (const line of lines) {
+        const [key, value = ''] = line.split(':')
+        if (!key) continue
+        const trimmedValue = value.trim()
+        let parsedValue
+        if (!trimmedValue.length) {
+            parsedValue = trimmedValue
+        } else if (trimmedValue.toLowerCase() === 'true') {
+            parsedValue = true
+        } else if (trimmedValue.toLowerCase() === 'false') {
+            parsedValue = false
+        } else {
+            const numericValue = Number(trimmedValue)
+            parsedValue = Number.isNaN(numericValue) ? trimmedValue : numericValue
+        }
 
-        // Parse the value as a number, if possible
-        const parsedValue = isNaN(value) ? value : Number(value)
-
-        // Handle multiple occurrences of keys (store them in arrays)
         if (result[key]) {
             if (!Array.isArray(result[key])) {
-                result[key] = [result[key]] // Convert to array if needed
+                result[key] = [result[key]]
             }
             result[key].push(parsedValue)
         } else {

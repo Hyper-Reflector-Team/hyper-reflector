@@ -23,6 +23,7 @@ import { auth } from '../utils/firebase'
 import api from '../external-api/requests'
 import { useUserStore } from '../state/store'
 import TitleBadge from '../components/UserCard.tsx/TitleBadge'
+import WinStreakBadge from '../components/UserCard.tsx/WinStreakBadge'
 import type { TUser, TUserTitle } from '../types/user'
 import { toaster } from '../components/chakra/ui/toaster'
 import {
@@ -33,6 +34,7 @@ import {
     DrawerHeader,
     DrawerRoot,
 } from '../components/chakra/ui/drawer'
+import { requestSocketStateUpdate } from '../layout/helpers/socketBridge'
 
 type SuperArtStats = {
     wins?: number
@@ -132,6 +134,7 @@ export default function PlayerProfilePage() {
     const requestedUserId = params?.userId
     const globalUser = useUserStore((s) => s.globalUser)
     const setGlobalUser = useUserStore((s) => s.setGlobalUser)
+    const setLobbyUsers = useUserStore((s) => s.setLobbyUsers)
     const navigate = useNavigate()
     const profileUid = requestedUserId || globalUser?.uid || null
     const isSelf = Boolean(profileUid && profileUid === globalUser?.uid)
@@ -302,7 +305,20 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
             await api.updateUserData(auth, payload)
             setProfile((prev) => (prev ? { ...prev, ...payload } : prev))
             if (isSelf && globalUser) {
-                setGlobalUser({ ...globalUser, ...payload })
+                const nextViewer = { ...globalUser, ...payload }
+                setGlobalUser(nextViewer)
+                const currentLobbyUsers = useUserStore.getState().lobbyUsers
+                setLobbyUsers(
+                    currentLobbyUsers.map((entry) =>
+                        entry.uid === nextViewer.uid ? { ...entry, ...payload } : entry
+                    )
+                )
+            }
+            if (payload.userName) {
+                requestSocketStateUpdate({ key: 'userName', value: payload.userName })
+            }
+            if (payload.userTitle) {
+                requestSocketStateUpdate({ key: 'userTitle', value: payload.userTitle })
             }
             toaster.create({
                 title: 'Profile updated',
@@ -375,10 +391,13 @@ const [matchCursor, setMatchCursor] = useState<{ last?: string | null; first?: s
                     ) : (
                         <Stack gap={6}>
                             <Flex gap={6} direction={{ base: 'column', md: 'row' }} align={{ base: 'flex-start', md: 'center' }}>
-                                <Avatar.Root size="2xl" variant="outline">
-                                    <Avatar.Fallback name={profile.userName} />
-                                    <Avatar.Image src={profile.userProfilePic || undefined} />
-                                </Avatar.Root>
+                                <Stack align="center" gap="2">
+                                    <Avatar.Root size="2xl" variant="outline">
+                                        <Avatar.Fallback name={profile.userName} />
+                                        <Avatar.Image src={profile.userProfilePic || undefined} />
+                                    </Avatar.Root>
+                                    <WinStreakBadge value={profile.winstreak} />
+                                </Stack>
                                 <Stack gap={2} flex="1">
                                     <Heading size="lg">{profile.userName}</Heading>
                                     <TitleBadge title={profile.userTitle} />

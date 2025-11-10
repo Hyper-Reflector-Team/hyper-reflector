@@ -19,6 +19,7 @@ import { auth } from '../utils/firebase'
 import api from '../external-api/requests'
 import { useUserStore } from '../state/store'
 import TitleBadge from '../components/UserCard.tsx/TitleBadge'
+import WinStreakBadge from '../components/UserCard.tsx/WinStreakBadge'
 import type { TUser } from '../types/user'
 
 type LeaderboardEntry = {
@@ -187,9 +188,6 @@ export default function ProfilePage() {
         if (user.accountElo !== undefined) {
             subtitle.push(`ELO ${user.accountElo}`)
         }
-        if (user.winstreak) {
-            subtitle.push(`Streak ${user.winstreak}`)
-        }
         return (
             <CardRoot
                 key={user.uid ?? `${user.userName}-${index}`}
@@ -208,7 +206,10 @@ export default function ProfilePage() {
                         <Flex justify="space-between" align="center">
                             <Box>
                                 <Heading size="md">{user.userName || 'Unknown player'}</Heading>
-                                <TitleBadge title={user.userTitle} />
+                                <Flex gap="2" align="center" flexWrap="wrap">
+                                    <TitleBadge title={user.userTitle} />
+                                    <WinStreakBadge value={user.winstreak} compact />
+                                </Flex>
                                 {subtitle.length ? (
                                     <Text fontSize="sm" color="gray.400">
                                         {subtitle.join(' · ')}

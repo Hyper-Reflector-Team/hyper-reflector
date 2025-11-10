@@ -3,7 +3,7 @@ import { dirname, executableDir, join, normalize, resolve } from '@tauri-apps/ap
 import { useSettingsStore } from '../state/store'
 
 const isProd = () => import.meta.env.PROD
-const isTauri = () => typeof window !== 'undefined' && '__TAURI__' in window
+export const isTauriEnv = () => typeof window !== 'undefined' && '__TAURI__' in window
 
 const toCliPath = (path: string) => path.replace(/\\/g, '/')
 const hasValue = (value?: string | null): value is string => Boolean(value && value.trim().length)
@@ -82,7 +82,7 @@ async function resolveFilesBase(): Promise<string> {
         return cachedFilesBase
     }
 
-    if (!isTauri()) {
+    if (!isTauriEnv()) {
         cachedFilesBase = await toAbsolute('files')
         return cachedFilesBase
     }
@@ -202,4 +202,11 @@ export async function resolveMatchLuaPath(emulatorPathSetting?: string | null) {
 
     const defaults = await getDefaults()
     return defaults.match
+}
+
+export async function resolveFilesPath(...segments: string[]) {
+    const base = await resolveFilesBase()
+    const combined = await join(base, ...segments)
+    const normalized = await normalize(combined)
+    return toCliPath(normalized)
 }

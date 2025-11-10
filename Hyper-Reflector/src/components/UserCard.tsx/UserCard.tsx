@@ -1,8 +1,9 @@
-import { Avatar, Box } from '@chakra-ui/react'
+import { Avatar, Box, Flex, Stack, Text } from '@chakra-ui/react'
 import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '../chakra/ui/tooltip'
 import { useUserStore } from '../../state/store'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
+import WinStreakBadge from './WinStreakBadge'
 
 export default function UserCard() {
     const globalLoggedIn = useUserStore((s) => s.globalLoggedIn)
@@ -17,7 +18,7 @@ export default function UserCard() {
     return (
         <Box>
             {globalLoggedIn && (
-                <Box
+                <Flex
                     display="flex"
                     alignItems={'center'}
                     gap={'2'}
@@ -38,7 +39,12 @@ export default function UserCard() {
                         <Avatar.Fallback name={globalUser?.userName} />
                         <Avatar.Image src={globalUser?.userProfilePic} />
                     </Avatar.Root>
-                    <Box>{globalUser?.userName}</Box>
+                    <Stack spacing="1">
+                        <Text fontWeight="semibold" fontSize="sm">
+                            {globalUser?.userName || 'Player'}
+                        </Text>
+                        <WinStreakBadge value={globalUser?.winstreak} compact />
+                    </Stack>
                     <Tooltip
                         content={`${globalUser?.countryCode || 'Unknown'}`}
                         openDelay={200}
@@ -51,7 +57,7 @@ export default function UserCard() {
                             />
                         </div>
                     </Tooltip>
-                </Box>
+                </Flex>
             )}
         </Box>
     )

@@ -74,6 +74,17 @@ import {
     closeConnectionWithUser,
 } from '../webRTC/WebPeer'
 import { isMockUserId, startMockMatch, startProxyMatch } from '../match'
+import { SOCKET_STATE_EVENT, type SocketStateUpdateDetail } from './helpers/socketBridge'
+import { auth } from '../utils/firebase'
+import api from '../external-api/requests'
+import {
+    clearMatchCommandFile,
+    clearMatchStatsFile,
+    readMatchCommandFile,
+    readMatchStatsFile,
+} from '../utils/matchFiles'
+import { parseMatchData } from '../utils/matchParser'
+import { isTauriEnv } from '../utils/pathSettings'
 
 const lobbyNameMatcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -85,6 +96,22 @@ function resolveMockDisplayName(uid?: string | null) {
     if (uid === MOCK_CHALLENGE_USER.uid) return MOCK_CHALLENGE_USER.userName
     if (uid === MOCK_CHALLENGE_USER_TWO.uid) return MOCK_CHALLENGE_USER_TWO.userName
     return 'Mock Opponent'
+}
+
+function coerceBooleanFlag(value: unknown): boolean | undefined {
+    if (typeof value === 'boolean') {
+        return value
+    }
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return undefined
+        return value !== 0
+    }
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase()
+        if (!normalized.length) return undefined
+        return normalized === 'true' || normalized === '1'
+    }
+    return undefined
 }
 
 type SendMessageEventDetail = {
@@ -155,6 +182,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     >(new Map())
     const pendingChallengeByUserRef = useRef<Map<string, string>>(new Map())
     const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map())
+    const matchUploadPendingRef = useRef(false)
+    const activeMatchIdRef = useRef<string | null>(null)
+    const localPlayerSlotRef = useRef<0 | 1>(0)
+    const lastMatchUuidRef = useRef<string | null>(null)
     const [isInMatch, setIsInMatch] = useState(false)
     const isInMatchRef = useRef(false)
     const declineChallengeWithSocket = useCallback(
@@ -183,12 +214,21 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         isInMatchRef.current = false
         setIsInMatch(false)
         sentMatchRequestRef.current.clear()
+        lastMatchUuidRef.current = null
+        activeMatchIdRef.current = null
+        localPlayerSlotRef.current = 0
     }, [])
 
     const markMatchStarted = useCallback(
-        (opponentUid?: string | null) => {
+        (opponentUid?: string | null, options?: { matchId?: string; playerSlot?: 0 | 1 }) => {
             if (opponentUid) {
                 opponentUidRef.current = opponentUid
+            }
+            if (options?.matchId) {
+                activeMatchIdRef.current = options.matchId
+            }
+            if (typeof options?.playerSlot === 'number') {
+                localPlayerSlotRef.current = options.playerSlot
             }
             isInMatchRef.current = true
             setIsInMatch(true)
@@ -363,7 +403,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         const localPlayerSlot: 0 | 1 =
                             globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
 
-                        markMatchStarted(mockUid)
+                        markMatchStarted(mockUid, { matchId: messageId, playerSlot: localPlayerSlot })
                         void startMockMatch({
                             matchId: messageId,
                             opponentName: mockName,
@@ -479,6 +519,57 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         currentLobbyIdRef.current = currentLobbyId || DEFAULT_LOBBY_ID
     }, [currentLobbyId])
 
+    const sendSocketStateUpdate = useCallback(
+        (update: SocketStateUpdateDetail) => {
+            const socket = signalSocketRef.current
+            const viewer = globalUserRef.current
+            if (!socket || socket.readyState !== WebSocket.OPEN || !viewer?.uid) {
+                return
+            }
+            const lobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+            try {
+                socket.send(
+                    JSON.stringify({
+                        type: 'updateSocketState',
+                        data: {
+                            lobbyId,
+                            uid: viewer.uid,
+                            stateToUpdate: update,
+                        },
+                    })
+                )
+            } catch (error) {
+                console.error('Failed to send socket state update:', error)
+            }
+        },
+        []
+    )
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return
+        }
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<SocketStateUpdateDetail>).detail
+            if (!detail) return
+            sendSocketStateUpdate(detail)
+        }
+        window.addEventListener(SOCKET_STATE_EVENT, handler as EventListener)
+        return () => window.removeEventListener(SOCKET_STATE_EVENT, handler as EventListener)
+    }, [sendSocketStateUpdate])
+
+    const applyLocalViewerPatch = useCallback((patch: Partial<TUser>) => {
+        const store = useUserStore.getState()
+        const viewer = store.globalUser
+        if (viewer?.uid) {
+            store.setGlobalUser({ ...viewer, ...patch })
+            const updatedUsers = store.lobbyUsers.map((entry) =>
+                entry.uid === viewer.uid ? { ...entry, ...patch } : entry
+            )
+            store.setLobbyUsers(updatedUsers)
+        }
+    }, [])
+
     useEffect(() => {
         if (!globalLoggedIn) {
             setCurrentLobbyId(DEFAULT_LOBBY_ID)
@@ -499,6 +590,114 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const handleLobbyManagerOpen = useCallback(() => {
         openLobbyManager()
     }, [openLobbyManager])
+
+    const handleMatchStats = useCallback(
+        async (rawData: string) => {
+            if (!rawData?.trim()) {
+                return
+            }
+
+            matchUploadPendingRef.current = true
+            try {
+                const parsed = parseMatchData(rawData)
+                if (!parsed) return
+
+                const pickValue = (entry: string | number | Array<string | number>) =>
+                    Array.isArray(entry) ? entry[entry.length - 1] : entry
+
+                const matchUuidEntry = parsed['match-uuid']
+                const matchUuid = matchUuidEntry ? String(pickValue(matchUuidEntry)) : undefined
+                if (matchUuid && lastMatchUuidRef.current === matchUuid) {
+                    return
+                }
+                if (matchUuid) {
+                    lastMatchUuidRef.current = matchUuid
+                }
+
+                const viewer = globalUserRef.current
+                if (!viewer?.uid) return
+
+                const isPlayerOne = localPlayerSlotRef.current === 0
+                const resultKey = isPlayerOne ? 'p1-win' : 'p2-win'
+                const didWin = coerceBooleanFlag(parsed[resultKey])
+
+                if (typeof didWin === 'boolean') {
+                    sendSocketStateUpdate({ key: 'winStreak', value: didWin ? 1 : 0 })
+                    const nextStreak = didWin ? (viewer.winstreak || 0) + 1 : 0
+                    applyLocalViewerPatch({ winstreak: nextStreak })
+                }
+
+                if (!auth.currentUser) {
+                    return
+                }
+
+                const opponentUid = opponentUidRef.current || 'unknown-opponent'
+                const matchId =
+                    activeMatchIdRef.current ||
+                    matchUuid ||
+                    `local-${viewer.uid}-${Date.now()}`
+
+                await api.uploadMatchData(auth, {
+                    matchId,
+                    player1: isPlayerOne ? viewer.uid : opponentUid,
+                    player2: isPlayerOne ? opponentUid : viewer.uid,
+                    matchData: { raw: rawData },
+                })
+            } catch (error) {
+                console.error('Failed to upload match data', error)
+            } finally {
+                matchUploadPendingRef.current = false
+            }
+        },
+        [applyLocalViewerPatch, sendSocketStateUpdate]
+    )
+
+    useEffect(() => {
+        if (!globalLoggedIn || !globalUser?.uid || !isTauriEnv()) {
+            return
+        }
+
+        let cancelled = false
+        let busy = false
+
+        const poll = async () => {
+            if (cancelled || busy) return
+            if (matchUploadPendingRef.current) {
+                return
+            }
+            busy = true
+            try {
+                const command = await readMatchCommandFile()
+                if (!command || !command.trim().length) {
+                    return
+                }
+                await clearMatchCommandFile()
+
+                if (!command.includes('read-tracking-file')) {
+                    return
+                }
+
+                const rawStats = await readMatchStatsFile()
+                await clearMatchStatsFile()
+                if (rawStats && rawStats.trim()) {
+                    await handleMatchStats(rawStats)
+                }
+            } catch (error) {
+                console.error('Failed to process match tracking data', error)
+            } finally {
+                busy = false
+            }
+        }
+
+        const intervalId = window.setInterval(() => {
+            void poll()
+        }, 1000)
+
+        return () => {
+            cancelled = true
+            window.clearInterval(intervalId)
+        }
+    }, [globalLoggedIn, globalUser?.uid, handleMatchStats])
 
     const handleLobbyManagerClose = useCallback(() => {
         closeLobbyManager()
@@ -575,10 +774,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 const inferredGameName = normalizedLobby === 'vampire' ? 'vsavj' : undefined
                 const mockName = resolveMockDisplayName(targetUid)
 
-                markMatchStarted(targetUid)
+                const mockMatchId = `mock-${Date.now()}`
+                markMatchStarted(targetUid, { matchId: mockMatchId, playerSlot: 0 })
                 try {
                     await startMockMatch({
-                        matchId: `mock-${Date.now()}`,
+                        matchId: mockMatchId,
                         opponentName: mockName,
                         gameName: inferredGameName ?? null,
                         playerSlot: 0,
@@ -1410,7 +1610,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                                 : undefined
 
                         try {
-                            markMatchStarted(opponentUid)
+                            markMatchStarted(opponentUid, {
+                                matchId,
+                                playerSlot: normalizedSlot,
+                            })
                             await startProxyMatch({
                                 matchId,
                                 opponentUid,
