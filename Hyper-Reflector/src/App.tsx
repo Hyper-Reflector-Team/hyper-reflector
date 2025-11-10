@@ -15,6 +15,7 @@ import Layout from './layout/Layout'
 import { Toaster } from './components/chakra/ui/toaster'
 import './App.css'
 import LoginPage from './pages/LoginPage'
+import CreateAccountPage from './pages/CreateAccountPage'
 import HomePage from './pages/HomePage'
 import SettingsPage from './pages/SettingsPage'
 import LobbyPage from './pages/LobbyPage'
@@ -57,6 +58,14 @@ const homeRoute = createRoute({
     },
 })
 
+const createAccountRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/create',
+    component: function CreateAccount() {
+        return <CreateAccountPage />
+    },
+})
+
 const lobbyRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/lobby',
@@ -91,6 +100,7 @@ const profileRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
     indexRoute,
+    createAccountRoute,
     homeRoute,
     settingsRoute,
     lobbyRoute,

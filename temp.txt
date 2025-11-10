@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+    Alert,
     AlertDescription,
-    AlertRoot,
     Box,
+    Card,
     CardBody,
-    CardRoot,
     Heading,
     SimpleGrid,
     Spinner,
     Stack,
     Text,
-    useToken,
 } from '@chakra-ui/react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 import api from '../external-api/requests'
 import { auth } from '../utils/firebase'
 import { useUserStore } from '../state/store'
 
-type SuperArtStats = { wins?: number; losses?: number }
-
 type CharacterChoice = {
     picks: number
-    superChoice?: Array<SuperArtStats> | Record<string, SuperArtStats>
+    superChoice?: Array<{ wins?: number; losses?: number }>
 }
 
 type GlobalStats = {
@@ -34,63 +31,32 @@ type GlobalStatsResponse = {
     globalStatSet?: GlobalStats
 }
 
+const SUPER_ART_COLORS = ['#fb923c', '#38bdf8', '#34d399']
 const PICK_BAR_COLORS = {
     bar: '#fb923c',
     background: 'rgba(255,255,255,0.08)',
 }
 
-const CHARACTER_ROSTER = [
-    'Alex',
-    'Ryu',
-    'Yun',
-    'Dudley',
-    'Necro',
-    'Hugo',
-    'Ibuki',
-    'Elena',
-    'Oro',
-    'Yang',
-    'Ken',
-    'Sean',
-    'Urien',
-    'Gouki',
-    'Chun-Li',
-    'Makoto',
-    'Q',
-    'Twelve',
-    'Remy',
-]
-
-function normalizeSuperChoices(choice?: CharacterChoice['superChoice']): SuperArtStats[] {
-    if (!choice) return []
-    if (Array.isArray(choice)) return choice
-    return Object.values(choice)
-}
-
 function CharacterSuperArtDonut({
     name,
     stats,
-    colors,
 }: {
     name: string
     stats: CharacterChoice
-    colors: readonly string[]
 }) {
-    const superChoices = normalizeSuperChoices(stats.superChoice)
-    const saData = [0, 1, 2].map((index) => {
-        const entry = superChoices[index]
-        const value = (entry?.wins || 0) + (entry?.losses || 0)
-        return {
-            name: `SA ${index + 1}`,
-            value,
-            color: colors[index] || colors[colors.length - 1] || '#fbbf24',
-        }
-    })
+    const totals = (stats.superChoice || []).map(
+        (choice) => (choice?.wins || 0) + (choice?.losses || 0)
+    )
+    const saData = [0, 1, 2].map((index) => ({
+        name: `SA ${index + 1}`,
+        value: totals[index] || 0,
+        color: SUPER_ART_COLORS[index],
+    }))
 
     const hasAnyValue = saData.some((entry) => entry.value > 0)
 
     return (
-        <Stack gap={2} align="center">
+        <Stack spacing={2} align="center">
             <Text fontWeight="semibold" fontSize="sm">
                 {name}
             </Text>
@@ -107,7 +73,7 @@ function CharacterSuperArtDonut({
                                 dataKey="value"
                             >
                                 {saData.map((item, index) => (
-                                    <Cell key={item.name} fill={colors[index] || colors[0]} />
+                                    <Cell key={item.name} fill={SUPER_ART_COLORS[index]} />
                                 ))}
                             </Pie>
                         </PieChart>
@@ -137,7 +103,7 @@ function PlayerWinRateDonut({ winCount }: { winCount?: Record<string, number> })
     }
 
     return (
-        <Box w="260px" h="280px" mx="auto">
+        <Box w="260px" h="260px" mx="auto">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                     <Tooltip cursor={false} />
@@ -167,7 +133,6 @@ export default function HomePage() {
     const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    const superArtColors = useToken('colors', ['yellow.500', 'orange.500', 'blue.500'])
 
     useEffect(() => {
         if (!globalUser?.uid) {
@@ -179,9 +144,10 @@ export default function HomePage() {
         setErrorMessage(null)
         ;(async () => {
             try {
-                const result = (await api.getGlobalStats(auth, globalUser.uid)) as
-                    | GlobalStatsResponse
-                    | undefined
+                const result = (await api.getGlobalStats(
+                    auth,
+                    globalUser.uid
+                )) as GlobalStatsResponse | undefined
                 if (!isMounted) return
                 if (result?.globalStatSet) {
                     setGlobalStats(result.globalStatSet)
@@ -204,26 +170,12 @@ export default function HomePage() {
         }
     }, [globalUser?.uid])
 
-    const rosterStats = useMemo(() => {
-        const baseline = CHARACTER_ROSTER.reduce<Record<string, CharacterChoice>>((acc, name) => {
-            acc[name] = { picks: 0, superChoice: [] }
-            return acc
-        }, {})
-        if (globalStats?.globalCharacterChoice) {
-            for (const [name, stats] of Object.entries(globalStats.globalCharacterChoice)) {
-                baseline[name] = {
-                    picks: stats?.picks || 0,
-                    superChoice: stats?.superChoice,
-                }
-            }
-        }
-        return baseline
-    }, [globalStats?.globalCharacterChoice])
-
-    const characterEntries = useMemo(
-        () => Object.entries(rosterStats).sort((a, b) => (b[1]?.picks || 0) - (a[1]?.picks || 0)),
-        [rosterStats]
-    )
+    const characterEntries = useMemo(() => {
+        if (!globalStats?.globalCharacterChoice) return []
+        return Object.entries(globalStats.globalCharacterChoice).sort(
+            (a, b) => (b[1]?.picks || 0) - (a[1]?.picks || 0)
+        )
+    }, [globalStats])
 
     const barListData = characterEntries.map(([name, stats]) => ({
         name,
@@ -232,21 +184,19 @@ export default function HomePage() {
     const totalPicks = barListData.reduce((sum, entry) => sum + entry.value, 0) || 1
 
     const mostPlayedCharacter = characterEntries[0]?.[0]
-    const characterDonuts = characterEntries
+    const characterDonuts = characterEntries.slice(0, 8)
 
     if (!globalUser) {
         return (
-            <AlertRoot status="warning" borderRadius="lg" bg="yellow.900" mt={8}>
-                <AlertDescription>
-                    Sign in to view the live global stats dashboard.
-                </AlertDescription>
-            </AlertRoot>
+            <Alert status="warning" borderRadius="lg" bg="yellow.900" mt={8}>
+                <AlertDescription>Sign in to view the live global stats dashboard.</AlertDescription>
+            </Alert>
         )
     }
 
     return (
-        <Stack gap={8} py={4}>
-            <Stack gap={2}>
+        <Stack spacing={8} py={4}>
+            <Stack spacing={2}>
                 <Heading size="lg">Global stats</Heading>
                 <Text color="whiteAlpha.700">
                     Live match tracking across the Hyper Reflector community.
@@ -254,9 +204,9 @@ export default function HomePage() {
             </Stack>
 
             {errorMessage ? (
-                <AlertRoot status="error" borderRadius="lg" bg="red.900">
+                <Alert status="error" borderRadius="lg" bg="red.900">
                     <AlertDescription>{errorMessage}</AlertDescription>
-                </AlertRoot>
+                </Alert>
             ) : null}
 
             {isLoading ? (
@@ -265,11 +215,11 @@ export default function HomePage() {
                     <Text color="whiteAlpha.700">Crunching the latest match data…</Text>
                 </Stack>
             ) : (
-                <SimpleGrid columns={{ base: 1, xl: 2 }} gap={8}>
-                    <CardRoot bg="gray.900" borderColor="whiteAlpha.200" borderWidth="1px">
+                <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
+                    <Card bg="gray.900" borderColor="whiteAlpha.200" borderWidth="1px">
                         <CardBody>
-                            <Stack gap={6}>
-                                <Stack gap={1}>
+                            <Stack spacing={6}>
+                                <Stack spacing={1}>
                                     <Text fontSize="sm" color="whiteAlpha.600">
                                         Total matches recorded
                                     </Text>
@@ -278,7 +228,7 @@ export default function HomePage() {
                                     </Heading>
                                 </Stack>
                                 <Box h="1px" bg="whiteAlpha.200" />
-                                <Stack gap={1}>
+                                <Stack spacing={1}>
                                     <Text fontSize="sm" color="whiteAlpha.600">
                                         Most played character
                                     </Text>
@@ -287,25 +237,25 @@ export default function HomePage() {
                                     </Text>
                                 </Stack>
                                 <Box h="1px" bg="whiteAlpha.200" />
-                                <Stack gap={4}>
+                                <Stack spacing={4}>
                                     <Text fontWeight="semibold">Player win spread</Text>
                                     <PlayerWinRateDonut winCount={globalStats?.globalWinCount} />
                                 </Stack>
                             </Stack>
                         </CardBody>
-                    </CardRoot>
+                    </Card>
 
-                    <CardRoot bg="gray.900" borderColor="whiteAlpha.200" borderWidth="1px">
+                    <Card bg="gray.900" borderColor="whiteAlpha.200" borderWidth="1px">
                         <CardBody>
-                            <Stack gap={6}>
-                                <Stack gap={1}>
+                            <Stack spacing={6}>
+                                <Stack spacing={1}>
                                     <Heading size="md">Character pick rates</Heading>
                                     <Text color="whiteAlpha.700" fontSize="sm">
                                         Ranking of every character since the last reset.
                                     </Text>
                                 </Stack>
                                 {barListData.length ? (
-                                    <Stack gap={3}>
+                                    <Stack spacing={3}>
                                         <Stack direction="row" fontSize="xs" color="whiteAlpha.600">
                                             <Box flex="1">Character</Box>
                                             <Box w="70px" textAlign="right">
@@ -315,10 +265,10 @@ export default function HomePage() {
                                                 Pick %
                                             </Box>
                                         </Stack>
-                                        {barListData.map((entry) => {
+                                        {barListData.slice(0, 12).map((entry) => {
                                             const percent = (entry.value / totalPicks) * 100
                                             return (
-                                                <Stack key={entry.name} gap={1}>
+                                                <Stack key={entry.name} spacing={1}>
                                                     <Stack direction="row" align="center" gap={3}>
                                                         <Stack flex="1">
                                                             <Text fontWeight="semibold">
@@ -359,22 +309,18 @@ export default function HomePage() {
                                 )}
 
                                 {characterDonuts.length ? (
-                                    <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={6}>
+                                    <SimpleGrid columns={{ base: 2, md: 3 }} spacing={6}>
                                         {characterDonuts.map(([name, stats]) => (
-                                            <CharacterSuperArtDonut
-                                                key={name}
-                                                name={name}
-                                                stats={stats}
-                                                colors={superArtColors}
-                                            />
+                                            <CharacterSuperArtDonut key={name} name={name} stats={stats} />
                                         ))}
                                     </SimpleGrid>
                                 ) : null}
                             </Stack>
                         </CardBody>
-                    </CardRoot>
+                    </Card>
                 </SimpleGrid>
             )}
         </Stack>
     )
 }
+
