@@ -84,7 +84,9 @@ import {
     readMatchStatsFile,
 } from '../utils/matchFiles'
 import { parseMatchData } from '../utils/matchParser'
-import { isTauriEnv } from '../utils/pathSettings'
+import { isTauriEnv, resolveFilesPath } from '../utils/pathSettings'
+
+const DEV_MATCH_ID = 'dev-matches-and-bugs'
 
 const lobbyNameMatcher = new RegExpMatcher({
     ...englishDataset.build(),
@@ -188,6 +190,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const lastMatchUuidRef = useRef<string | null>(null)
     const [isInMatch, setIsInMatch] = useState(false)
     const isInMatchRef = useRef(false)
+    const winSoundPathRef = useRef<string | null>(null)
     const declineChallengeWithSocket = useCallback(
         (targetId: string, challengerId: string) => {
             const socket = signalSocketRef.current
@@ -208,6 +211,24 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     useEffect(() => {
         isInMatchRef.current = isInMatch
     }, [isInMatch])
+
+    useEffect(() => {
+        if (!isTauriEnv()) return
+        let cancelled = false
+        ;(async () => {
+            try {
+                const resolved = await resolveFilesPath('sounds', 'win.wav')
+                if (!cancelled) {
+                    winSoundPathRef.current = resolved
+                }
+            } catch (error) {
+                console.warn('Failed to resolve win sound path', error)
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     const markMatchEnded = useCallback(() => {
         if (!isInMatchRef.current) return
@@ -403,7 +424,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                         const localPlayerSlot: 0 | 1 =
                             globalUser?.uid && globalUser.uid === challengerId ? 0 : 1
 
-                        markMatchStarted(mockUid, { matchId: messageId, playerSlot: localPlayerSlot })
+                        markMatchStarted(mockUid, {
+                            matchId: messageId,
+                            playerSlot: localPlayerSlot,
+                        })
                         void startMockMatch({
                             matchId: messageId,
                             opponentName: mockName,
@@ -519,31 +543,28 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         currentLobbyIdRef.current = currentLobbyId || DEFAULT_LOBBY_ID
     }, [currentLobbyId])
 
-    const sendSocketStateUpdate = useCallback(
-        (update: SocketStateUpdateDetail) => {
-            const socket = signalSocketRef.current
-            const viewer = globalUserRef.current
-            if (!socket || socket.readyState !== WebSocket.OPEN || !viewer?.uid) {
-                return
-            }
-            const lobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
-            try {
-                socket.send(
-                    JSON.stringify({
-                        type: 'updateSocketState',
-                        data: {
-                            lobbyId,
-                            uid: viewer.uid,
-                            stateToUpdate: update,
-                        },
-                    })
-                )
-            } catch (error) {
-                console.error('Failed to send socket state update:', error)
-            }
-        },
-        []
-    )
+    const sendSocketStateUpdate = useCallback((update: SocketStateUpdateDetail) => {
+        const socket = signalSocketRef.current
+        const viewer = globalUserRef.current
+        if (!socket || socket.readyState !== WebSocket.OPEN || !viewer?.uid) {
+            return
+        }
+        const lobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID
+        try {
+            socket.send(
+                JSON.stringify({
+                    type: 'updateSocketState',
+                    data: {
+                        lobbyId,
+                        uid: viewer.uid,
+                        stateToUpdate: update,
+                    },
+                })
+            )
+        } catch (error) {
+            console.error('Failed to send socket state update:', error)
+        }
+    }, [])
 
     useEffect(() => {
         if (typeof window === 'undefined') {
@@ -632,8 +653,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 }
 
                 const opponentUid = opponentUidRef.current || 'unknown-opponent'
+                const shouldUseDevMatch =
+                    !activeMatchIdRef.current || isMockUserId(opponentUidRef.current || '')
                 const matchId =
-                    activeMatchIdRef.current ||
+                    (shouldUseDevMatch ? DEV_MATCH_ID : activeMatchIdRef.current) ||
                     matchUuid ||
                     `local-${viewer.uid}-${Date.now()}`
 
@@ -653,12 +676,16 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     )
 
     useEffect(() => {
-        if (!globalLoggedIn || !globalUser?.uid || !isTauriEnv()) {
+        if (!isTauriEnv()) {
             return
         }
 
         let cancelled = false
         let busy = false
+
+        if (import.meta.env.DEV) {
+            console.info('[match-tracker] poller armed')
+        }
 
         const poll = async () => {
             if (cancelled || busy) return
@@ -668,18 +695,27 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             busy = true
             try {
                 const command = await readMatchCommandFile()
+                console.log('commands', JSON.stringify(command))
                 if (!command || !command.trim().length) {
                     return
                 }
                 await clearMatchCommandFile()
 
-                if (!command.includes('read-tracking-file')) {
+                console.debug('[match-tracker] command contents:', command)
+
+                if (!command.toLowerCase().includes('read-tracking-file')) {
                     return
+                }
+
+                const resolvedWinSound = winSoundPathRef.current
+                if (resolvedWinSound) {
+                    void playSoundFile(resolvedWinSound)
                 }
 
                 const rawStats = await readMatchStatsFile()
                 await clearMatchStatsFile()
                 if (rawStats && rawStats.trim()) {
+                    console.info('[match-tracker] received stats payload; uploading…')
                     await handleMatchStats(rawStats)
                 }
             } catch (error) {
@@ -697,7 +733,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             cancelled = true
             window.clearInterval(intervalId)
         }
-    }, [globalLoggedIn, globalUser?.uid, handleMatchStats])
+    }, [globalLoggedIn, globalUser?.uid, handleMatchStats, playSoundFile])
 
     const handleLobbyManagerClose = useCallback(() => {
         closeLobbyManager()

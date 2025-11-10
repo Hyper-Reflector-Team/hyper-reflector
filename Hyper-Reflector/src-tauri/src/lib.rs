@@ -473,7 +473,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_fs::init())
         .manage(Arc::new(Mutex::new(ProcState::default())))
         .manage(AudioState::default())
         .manage(ProxyManager::new())
@@ -487,9 +486,37 @@ pub fn run() {
             start_proxy,
             stop_proxy,
             kill_emulator_only,
-            prepare_user_resources
+            prepare_user_resources,
+            read_files_text,
+            write_files_text
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
+fn resolve_files_path(app: &AppHandle, relative: &str) -> Result<PathBuf, String> {
+    let base = ensure_writable_files_dir(app)?;
+    let candidate = PathBuf::from(relative);
+    let full = if candidate.is_absolute() {
+        candidate
+    } else {
+        base.join(candidate)
+    };
+    Ok(full)
+}
+
+#[tauri::command]
+fn read_files_text(app: tauri::AppHandle, relative_path: String) -> Result<String, String> {
+    let path = resolve_files_path(&app, &relative_path)?;
+    std::fs::read_to_string(path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn write_files_text(
+    app: tauri::AppHandle,
+    relative_path: String,
+    contents: String,
+) -> Result<(), String> {
+    let path = resolve_files_path(&app, &relative_path)?;
+    std::fs::write(path, contents).map_err(|e| e.to_string())
+}

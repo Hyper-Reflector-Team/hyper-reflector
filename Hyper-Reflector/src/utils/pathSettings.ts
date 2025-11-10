@@ -3,14 +3,21 @@ import { dirname, executableDir, join, normalize, resolve } from '@tauri-apps/ap
 import { useSettingsStore } from '../state/store'
 
 const isProd = () => import.meta.env.PROD
-export const isTauriEnv = () => typeof window !== 'undefined' && '__TAURI__' in window
+export const isTauriEnv = () => {
+    if (typeof window === 'undefined') {
+        return false
+    }
+    // Tauri 2 exposes __TAURI_INTERNALS__ instead of __TAURI__ during early boot
+    return '__TAURI__' in window || '__TAURI_INTERNALS__' in window
+}
 
 const toCliPath = (path: string) => path.replace(/\\/g, '/')
+const dedupeSrcTauriSegments = (path: string) => path.replace(/src-tauri\/src-tauri/g, 'src-tauri')
 const hasValue = (value?: string | null): value is string => Boolean(value && value.trim().length)
 const needsDefault = (value?: string | null) =>
     !hasValue(value) || value.startsWith('../') || value.startsWith('..\\')
 
-const DEV_BASE = '..'
+const DEV_BASE = 'src-tauri/files'
 const DEV_SEGMENTS = {
     emulator: ['emu', 'hyper-screw-fbneo', 'fs-fbneo.exe'],
     training: ['lua', '3rd_training_lua', '3rd_training.lua'],
@@ -41,7 +48,7 @@ let cachedFilesBase: string | null = null
 async function toAbsolute(path: string): Promise<string> {
     const resolved = await resolve(path)
     const normalized = await normalize(resolved)
-    return toCliPath(normalized)
+    return dedupeSrcTauriSegments(toCliPath(normalized))
 }
 
 async function buildDevDefaults(): Promise<DefaultPaths> {
@@ -83,7 +90,7 @@ async function resolveFilesBase(): Promise<string> {
     }
 
     if (!isTauriEnv()) {
-        cachedFilesBase = await toAbsolute('files')
+        cachedFilesBase = await toAbsolute('src-tauri/files')
         return cachedFilesBase
     }
 
