@@ -9,6 +9,8 @@ type MatchFilePaths = {
 let cachedPaths: MatchFilePaths | null = null
 let loggedPaths = false
 
+
+// TODO replace this code with a way to get the paths for our txt files.
 const DEV_OVERRIDE_BASE =
     import.meta.env.DEV
         ? 'C:/Users/dusti/Desktop/hyper-reflector/Hyper-Reflector/src-tauri/files'

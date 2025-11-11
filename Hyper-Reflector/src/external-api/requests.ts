@@ -1,9 +1,9 @@
 import keys from '../private/keys'
 import { firebaseConfig } from '../private/firebase'
+import type { TUserTitle } from '../types/user'
+import { fetch } from '@tauri-apps/plugin-http';
 
 const SERVER = keys.COTURN_IP
-
-import { fetch } from '@tauri-apps/plugin-http';
 
 // await fetch(`http://${SERVER}:${keys.API_PORT}/logged-in`, {
 //     method: "POST",
@@ -427,6 +427,65 @@ async function getAllTitles(auth, userId) {
     }
 }
 
+async function createTitleFlair(auth, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth)) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/create-title-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('createTitleFlair failed', response)
+            return false
+        }
+        return await response.json()
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
+async function assignTitleFlair(auth, targetUid: string, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth) || !targetUid) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/assign-title-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    targetUid,
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('assignTitleFlair failed', response)
+            return false
+        }
+        return await response.json()
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
 async function searchUsers(auth, query: string, cursor?: string | null, limit = 25) {
     if (!checkCurrentAuthState(auth)) return
     const idToken = await auth.currentUser.getIdToken().then((res) => res)
@@ -499,6 +558,8 @@ export default {
     getUserByAuth,
     getUserData,
     getAllTitles,
+    createTitleFlair,
+    assignTitleFlair,
     getPlayerStats,
     searchUsers,
     getLeaderboard,

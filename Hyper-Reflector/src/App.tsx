@@ -25,6 +25,7 @@ import { useSettingsStore } from './state/store'
 import { useTranslation } from 'react-i18next'
 import ProfilePage from './pages/ProfilePage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
+import AdminPanelPage from './pages/AdminPanelPage'
 import {
     ensureDefaultChallengeSound,
     ensureDefaultEmulatorPath,
@@ -83,6 +84,14 @@ const labRoute = createRoute({
     },
 })
 
+const adminRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/admin',
+    component: function AdminPanel() {
+        return <AdminPanelPage />
+    },
+})
+
 const settingsRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/settings',
@@ -116,6 +125,7 @@ const routeTree = rootRoute.addChildren([
     labRoute,
     profileRoute,
     profileDetailRoute,
+    adminRoute,
 ])
 
 // this allows electron to hash the routing
