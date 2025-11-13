@@ -45,7 +45,7 @@ import {
   Swords,
   UserRound,
 } from "lucide-react";
-import UserCard from "../components/UserCard.tsx/UserCard";
+import UserCard from "../components/UserCard/UserCard";
 import { LobbyManagerDialog } from "./components/LobbyManagerDialog";
 import { useTauriSoundPlayer } from "../utils/useTauriSoundPlayer";
 import { buildMentionRegexes } from "../utils/chatFormatting";
@@ -749,64 +749,60 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     openLobbyManager();
   }, [openLobbyManager]);
 
-  const handleMatchStats = useCallback(
-    async (rawData: string) => {
-      if (!rawData?.trim()) {
+  const handleMatchStats = useCallback(async (rawData: string) => {
+    if (!rawData?.trim()) {
+      return;
+    }
+
+    matchUploadPendingRef.current = true;
+    try {
+      const parsed = parseMatchData(rawData);
+      if (!parsed) return;
+
+      const pickValue = (entry: string | number | Array<string | number>) =>
+        Array.isArray(entry) ? entry[entry.length - 1] : entry;
+
+      const matchUuidEntry = parsed["match-uuid"];
+      const matchUuid = matchUuidEntry
+        ? String(pickValue(matchUuidEntry))
+        : undefined;
+      if (matchUuid && lastMatchUuidRef.current === matchUuid) {
+        return;
+      }
+      if (matchUuid) {
+        lastMatchUuidRef.current = matchUuid;
+      }
+
+      const viewer = globalUserRef.current;
+      if (!viewer?.uid) return;
+
+      const isPlayerOne = localPlayerSlotRef.current === 0;
+      if (!auth.currentUser) {
         return;
       }
 
-      matchUploadPendingRef.current = true;
-      try {
-        const parsed = parseMatchData(rawData);
-        if (!parsed) return;
+      const opponentUid = opponentUidRef.current || "unknown-opponent";
+      const shouldUseDevMatch =
+        !activeMatchIdRef.current || isMockUserId(opponentUidRef.current || "");
+      const matchId =
+        (shouldUseDevMatch ? DEV_MATCH_ID : activeMatchIdRef.current) ||
+        matchUuid ||
+        `local-${viewer.uid}-${Date.now()}`;
 
-        const pickValue = (entry: string | number | Array<string | number>) =>
-          Array.isArray(entry) ? entry[entry.length - 1] : entry;
-
-        const matchUuidEntry = parsed["match-uuid"];
-        const matchUuid = matchUuidEntry
-          ? String(pickValue(matchUuidEntry))
-          : undefined;
-        if (matchUuid && lastMatchUuidRef.current === matchUuid) {
-          return;
-        }
-        if (matchUuid) {
-          lastMatchUuidRef.current = matchUuid;
-        }
-
-        const viewer = globalUserRef.current;
-        if (!viewer?.uid) return;
-
-        const isPlayerOne = localPlayerSlotRef.current === 0;
-        if (!auth.currentUser) {
-          return;
-        }
-
-        const opponentUid = opponentUidRef.current || "unknown-opponent";
-        const shouldUseDevMatch =
-          !activeMatchIdRef.current ||
-          isMockUserId(opponentUidRef.current || "");
-        const matchId =
-          (shouldUseDevMatch ? DEV_MATCH_ID : activeMatchIdRef.current) ||
-          matchUuid ||
-          `local-${viewer.uid}-${Date.now()}`;
-
-        const condensed = buildCondensedMatchPayload(parsed);
-        const limitedRaw = JSON.stringify(condensed);
-        await api.uploadMatchData(auth, {
-          matchId,
-          player1: isPlayerOne ? viewer.uid : opponentUid,
-          player2: isPlayerOne ? opponentUid : viewer.uid,
-          matchData: { raw: limitedRaw },
-        });
-      } catch (error) {
-        console.error("Failed to upload match data", error);
-      } finally {
-        matchUploadPendingRef.current = false;
-      }
-    },
-    []
-  );
+      const condensed = buildCondensedMatchPayload(parsed);
+      const limitedRaw = JSON.stringify(condensed);
+      await api.uploadMatchData(auth, {
+        matchId,
+        player1: isPlayerOne ? viewer.uid : opponentUid,
+        player2: isPlayerOne ? opponentUid : viewer.uid,
+        matchData: { raw: limitedRaw },
+      });
+    } catch (error) {
+      console.error("Failed to upload match data", error);
+    } finally {
+      matchUploadPendingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isTauriEnv()) {
@@ -1518,11 +1514,38 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 currentUserSnapshot
               );
               setLobbyUsers(injections.users);
-              if (
-                injections.viewer &&
-                injections.viewer !== currentUserSnapshot
-              ) {
-                useUserStore.getState().setGlobalUser(injections.viewer);
+              const store = useUserStore.getState();
+              const prevViewer = store.globalUser;
+              const socketViewer =
+                injections.viewer ||
+                normalizedUsers.find(
+                  (entry) => entry.uid && entry.uid === currentUserSnapshot?.uid
+                );
+              if (socketViewer) {
+                const mergedViewer =
+                  prevViewer && prevViewer.uid === socketViewer.uid
+                    ? { ...prevViewer, ...socketViewer }
+                    : socketViewer;
+                const streakChanged =
+                  (prevViewer?.winstreak ?? 0) !==
+                  (mergedViewer.winstreak ?? 0);
+                const roleChanged = prevViewer?.role !== mergedViewer.role;
+                const eloChanged =
+                  (prevViewer?.accountElo ?? null) !==
+                  (mergedViewer.accountElo ?? null);
+                const titleChanged =
+                  (prevViewer?.userTitle?.title || "") !==
+                  (mergedViewer.userTitle?.title || "");
+                const viewerChanged =
+                  !prevViewer ||
+                  prevViewer.uid !== mergedViewer.uid ||
+                  streakChanged ||
+                  roleChanged ||
+                  eloChanged ||
+                  titleChanged;
+                if (viewerChanged) {
+                  store.setGlobalUser(mergedViewer);
+                }
               }
             }
             break;

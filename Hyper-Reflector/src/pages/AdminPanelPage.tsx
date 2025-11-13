@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { auth } from "../utils/firebase";
 import api from "../external-api/requests";
-import TitleBadge from "../components/UserCard.tsx/TitleBadge";
+import TitleBadge from "../components/TitleBadge";
 import { toaster } from "../components/chakra/ui/toaster";
 import { useUserStore } from "../state/store";
 import type { TUser, TUserTitle } from "../types/user";
@@ -323,7 +323,8 @@ export default function AdminPanelPage() {
                 value={[poolType]}
                 onValueChange={(event: SelectValueChangeDetails<PoolOption>) =>
                   setPoolType(
-                    (event.value[0] as "conditional" | "global") ?? "conditional"
+                    (event.value[0] as "conditional" | "global") ??
+                      "conditional"
                   )
                 }
                 maxW="160px"
