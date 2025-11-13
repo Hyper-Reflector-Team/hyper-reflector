@@ -197,6 +197,10 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                 : typeof candidate.winStreak === 'number'
                     ? candidate.winStreak
                     : 0,
+        longestWinStreak:
+            typeof candidate.longestWinStreak === 'number'
+                ? candidate.longestWinStreak
+                : undefined,
     }
 
     if (lastKnownPings) {

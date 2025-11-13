@@ -19,7 +19,7 @@ import { auth } from '../utils/firebase'
 import api from '../external-api/requests'
 import { useUserStore } from '../state/store'
 import TitleBadge from '../components/UserCard.tsx/TitleBadge'
-import WinStreakBadge from '../components/UserCard.tsx/WinStreakBadge'
+import WinStreakIndicator from '../components/WinStreakIndicator'
 import type { TUser } from '../types/user'
 
 type LeaderboardEntry = {
@@ -217,7 +217,11 @@ export default function ProfilePage() {
                                 <Heading size="md">{user.userName || 'Unknown player'}</Heading>
                                 <Flex gap="2" align="center" flexWrap="wrap">
                                     <TitleBadge title={user.userTitle} />
-                                    <WinStreakBadge value={winStreakValue ?? 0} compact />
+                                    <WinStreakIndicator
+                                        value={winStreakValue ?? 0}
+                                        size="sm"
+                                        showLabel={false}
+                                    />
                                 </Flex>
                                 {subtitle.length ? (
                                     <Text fontSize="sm" color="gray.400">

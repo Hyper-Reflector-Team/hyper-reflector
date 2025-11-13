@@ -25,7 +25,7 @@ import { auth } from '../utils/firebase'
 import api from '../external-api/requests'
 import { useUserStore } from '../state/store'
 import TitleBadge from '../components/UserCard.tsx/TitleBadge'
-import WinStreakBadge from '../components/UserCard.tsx/WinStreakBadge'
+import WinStreakIndicator from '../components/WinStreakIndicator'
 import SelectableFlairButton from '../components/SelectableFlairButton'
 import type { TUser, TUserTitle } from '../types/user'
 import { toaster } from '../components/chakra/ui/toaster'
@@ -179,7 +179,11 @@ export default function PlayerProfilePage() {
                     : typeof (user as any).winStreak === 'number'
                       ? (user as any).winStreak
                       : 0
-            return { ...user, winstreak: streak }
+            const longest =
+                typeof (user as any).longestWinStreak === 'number'
+                    ? (user as any).longestWinStreak
+                    : undefined
+            return { ...user, winstreak: streak, longestWinStreak: longest }
         },
         []
     )
@@ -477,7 +481,7 @@ export default function PlayerProfilePage() {
                                                 src={profile.userProfilePic || undefined}
                                             />
                                         </Avatar.Root>
-                                        <WinStreakBadge value={currentWinStreak} />
+                                        <WinStreakIndicator value={currentWinStreak} />
                                     </Stack>
                                     <Stack gap={2} flex="1">
                                         <Flex

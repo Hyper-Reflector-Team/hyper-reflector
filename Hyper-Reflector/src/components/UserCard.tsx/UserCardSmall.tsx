@@ -5,7 +5,7 @@ import { Tooltip } from '../chakra/ui/tooltip'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
 import { TUser } from '../../types/user'
 import TitleBadge from './TitleBadge'
-import WinStreakBadge from './WinStreakBadge'
+import WinStreakIndicator from '../WinStreakIndicator'
 import { useUserStore, useSettingsStore } from '../../state/store'
 import { resolvePingBetweenUsers } from '../../utils/ping'
 
@@ -107,7 +107,7 @@ export default function UserCardSmall({
                     </Text>
                     <Flex align="center" gap="1">
                         <TitleBadge title={user.userTitle} />
-                        <WinStreakBadge value={user.winstreak} compact />
+                        <WinStreakIndicator value={user.winStreak ?? user.winstreak} size="sm" />
                     </Flex>
                     <Text fontSize="xs" color="gray.500">
                         ELO {user.accountElo ?? '--'}

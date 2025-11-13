@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Tooltip } from '../chakra/ui/tooltip'
 import { useUserStore } from '../../state/store'
 import '/node_modules/flag-icons/css/flag-icons.min.css'
-import WinStreakBadge from './WinStreakBadge'
+import WinStreakIndicator from '../WinStreakIndicator'
 
 export default function UserCard() {
     const globalLoggedIn = useUserStore((s) => s.globalLoggedIn)
@@ -43,7 +43,7 @@ export default function UserCard() {
                         <Text fontWeight="semibold" fontSize="sm">
                             {globalUser?.userName || 'Player'}
                         </Text>
-                        <WinStreakBadge value={globalUser?.winstreak} compact />
+                        <WinStreakIndicator value={globalUser?.winStreak ?? globalUser?.winstreak} size="sm" />
                     </Stack>
                     <Tooltip
                         content={`${globalUser?.countryCode || 'Unknown'}`}

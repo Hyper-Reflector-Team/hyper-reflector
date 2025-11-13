@@ -24,4 +24,5 @@ export type TUser = {
     role?: string
     assignedFlairs?: TUserTitle[]
     winstreak: number
+    longestWinStreak?: number
 }

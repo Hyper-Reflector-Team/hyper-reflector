@@ -13,7 +13,7 @@ let loggedPaths = false
 // TODO replace this code with a way to get the paths for our txt files.
 const DEV_OVERRIDE_BASE =
     import.meta.env.DEV
-        ? 'C:/Users/dusti/Desktop/hyper-reflector/Hyper-Reflector/src-tauri/files'
+        ? 'C:/Users/dusti/Desktop/HRprojects/hyper-reflector/Hyper-Reflector/src-tauri/files'
         : null
 
 const normalizePath = (path: string) => path.replace(/\\/g, '/')
