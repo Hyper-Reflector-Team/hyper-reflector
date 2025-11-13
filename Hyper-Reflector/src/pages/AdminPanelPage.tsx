@@ -33,6 +33,10 @@ const DEFAULT_BORDER = "#37373f";
 const DEFAULT_TEXT = "#f2f2f7";
 
 type PoolOption = { label: string; value: "conditional" | "global" };
+const POOL_OPTIONS: PoolOption[] = [
+  { label: "Conditional flair pool", value: "conditional" },
+  { label: "Global flair pool", value: "global" },
+];
 
 export default function AdminPanelPage() {
   const navigate = useNavigate();
@@ -61,10 +65,7 @@ export default function AdminPanelPage() {
   const poolCollection = useMemo(
     () =>
       createListCollection<PoolOption>({
-        items: [
-          { label: "Conditional flair pool", value: "conditional" },
-          { label: "Global flair pool", value: "global" },
-        ],
+        items: POOL_OPTIONS,
       }),
     []
   );
@@ -516,11 +517,10 @@ export default function AdminPanelPage() {
                     key={`conditional-${flair.title}-${index}`}
                     flair={flair}
                     isActive={
-                      Boolean(selectedConditionalFlair) &&
-                      selectedConditionalFlair.title === flair.title &&
-                      selectedConditionalFlair.bgColor === flair.bgColor &&
-                      selectedConditionalFlair.color === flair.color &&
-                      selectedConditionalFlair.border === flair.border
+                      selectedConditionalFlair?.title === flair.title &&
+                      selectedConditionalFlair?.bgColor === flair.bgColor &&
+                      selectedConditionalFlair?.color === flair.color &&
+                      selectedConditionalFlair?.border === flair.border
                     }
                     onClick={() => setSelectedConditionalFlair(flair)}
                   />

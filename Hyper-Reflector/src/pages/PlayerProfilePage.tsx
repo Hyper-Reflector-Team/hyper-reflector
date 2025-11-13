@@ -8,15 +8,17 @@ import {
     CardRoot,
     Flex,
     Heading,
+    IconButton,
     Input,
     SimpleGrid,
     Spinner,
     Stack,
     Text,
+    useDisclosure,
     useToken,
 } from '@chakra-ui/react'
 import { useNavigate, useParams } from '@tanstack/react-router'
-import { ArrowLeft, Check, RefreshCcw, Save } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, RefreshCcw, Save } from 'lucide-react'
 import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartTooltip } from 'recharts'
 import { auth } from '../utils/firebase'
@@ -166,6 +168,8 @@ export default function PlayerProfilePage() {
     const [pendingTitle, setPendingTitle] = useState<string>('')
     const [saving, setSaving] = useState(false)
     const [isTitleDrawerOpen, setTitleDrawerOpen] = useState(false)
+    const charDisclosure = useDisclosure({ defaultOpen: true })
+    const matchesDisclosure = useDisclosure({ defaultOpen: true })
 
     const normalizeUserForProfile = useCallback(
         (user: TUser | (TUser & { winStreak?: number })) => {
@@ -409,8 +413,7 @@ export default function PlayerProfilePage() {
     }
 
     return (
-        <>
-            <Stack gap={8} padding={{ base: 4, md: 8 }}>
+        <Stack gap={8} padding={{ base: 4, md: 8 }}>
                 <Flex
                     justify="space-between"
                     align={{ base: 'stretch', md: 'center' }}
@@ -573,29 +576,44 @@ export default function PlayerProfilePage() {
 
                 <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
                     <CardHeader>
-                        <Heading size="md">Character usage</Heading>
-                        <Text fontSize="sm" color="gray.400">
-                            Breakdown of characters played in recorded matches.
-                        </Text>
+                        <Flex justify="space-between" align="center">
+                            <Stack>
+                                <Heading size="md">Character usage</Heading>
+                                <Text fontSize="sm" color="gray.400">
+                                    Breakdown of characters played in recorded matches.
+                                </Text>
+                            </Stack>
+                            <IconButton
+                                aria-label="Toggle character usage"
+                                variant="ghost"
+                                color="gray.400"
+                                size="sm"
+                                onClick={charDisclosure.onToggle}
+                            >
+                                {charDisclosure.open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </IconButton>
+                        </Flex>
                     </CardHeader>
-                    <CardBody>
-                        {characterEntries.length === 0 ? (
-                            <Text fontSize="sm" color="gray.500">
-                                No character data available yet.
-                            </Text>
-                        ) : (
-                            <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={4}>
-                                {characterEntries.map(([name, stats]) => (
-                                    <CharacterSuperArtDonut
-                                        key={name}
-                                        name={name}
-                                        stats={stats}
-                                        colors={superArtColors}
-                                    />
-                                ))}
-                            </SimpleGrid>
-                        )}
-                    </CardBody>
+                    {charDisclosure.open && (
+                        <CardBody>
+                            {characterEntries.length === 0 ? (
+                                <Text fontSize="sm" color="gray.500">
+                                    No character data available yet.
+                                </Text>
+                            ) : (
+                                <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={4}>
+                                    {characterEntries.map(([name, stats]) => (
+                                        <CharacterSuperArtDonut
+                                            key={name}
+                                            name={name}
+                                            stats={stats}
+                                            colors={superArtColors}
+                                        />
+                                    ))}
+                                </SimpleGrid>
+                            )}
+                        </CardBody>
+                    )}
                 </CardRoot>
 
                 <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
@@ -608,7 +626,7 @@ export default function PlayerProfilePage() {
                                     matches.
                                 </Text>
                             </Stack>
-                            <Flex gap={2}>
+                            <Flex gap={2} align="center">
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -625,118 +643,128 @@ export default function PlayerProfilePage() {
                                 >
                                     Older
                                 </Button>
+                                <IconButton
+                                    aria-label="Toggle recent matches"
+                                    variant="ghost"
+                                    size="sm"
+                                    color="gray.400"
+                                    onClick={matchesDisclosure.onToggle}
+                                >
+                                    {matchesDisclosure.open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </IconButton>
                             </Flex>
                         </Flex>
                     </CardHeader>
-                    <CardBody>
-                        {matchesLoading ? (
-                            <Flex justify="center" padding="8">
-                                <Spinner />
-                            </Flex>
-                        ) : matches.length === 0 ? (
-                            <Text fontSize="sm" color="gray.500">
-                                No matches recorded yet.
-                            </Text>
-                        ) : (
-                            <Stack gap={3}>
-                                {matches.map((match, index) => {
-                                    const date = match.timestamp
-                                        ? new Date(match.timestamp).toLocaleString()
-                                        : 'Unknown date'
-                                    return (
-                                        <Box
-                                            key={match.id ?? `${match.sessionId}-${index}`}
-                                            borderWidth="1px"
-                                            borderColor="gray.800"
-                                            borderRadius="lg"
-                                            padding="4"
-                                        >
-                                            <Flex justify="space-between" align="center" mb="2">
-                                                <Heading size="sm">
-                                                    Session {match.sessionId || 'unknown'}
-                                                </Heading>
-                                                <Text fontSize="xs" color="gray.500">
-                                                    {date}
-                                                </Text>
-                                            </Flex>
-                                            <Flex justify="space-between" align="center">
-                                                <Stack gap={1}>
-                                                    <Text fontWeight="semibold">
-                                                        {match.player1Name || 'Player 1'}
-                                                    </Text>
+                    {matchesDisclosure.open && (
+                        <CardBody>
+                            {matchesLoading ? (
+                                <Flex justify="center" padding="8">
+                                    <Spinner />
+                                </Flex>
+                            ) : matches.length === 0 ? (
+                                <Text fontSize="sm" color="gray.500">
+                                    No matches recorded yet.
+                                </Text>
+                            ) : (
+                                <Stack gap={3}>
+                                    {matches.map((match, index) => {
+                                        const date = match.timestamp
+                                            ? new Date(match.timestamp).toLocaleString()
+                                            : 'Unknown date'
+                                        return (
+                                            <Box
+                                                key={match.id ?? `${match.sessionId}-${index}`}
+                                                borderWidth="1px"
+                                                borderColor="gray.800"
+                                                borderRadius="lg"
+                                                padding="4"
+                                            >
+                                                <Flex justify="space-between" align="center" mb="2">
+                                                    <Heading size="sm">
+                                                        Session {match.sessionId || 'unknown'}
+                                                    </Heading>
                                                     <Text fontSize="xs" color="gray.500">
-                                                        Wins: {match.p1Wins ?? 0}
+                                                        {date}
                                                     </Text>
-                                                </Stack>
-                                                <Text fontSize="sm" color="gray.400">
-                                                    vs
-                                                </Text>
-                                                <Stack gap={1} textAlign="right">
-                                                    <Text fontWeight="semibold">
-                                                        {match.player2Name || 'Player 2'}
+                                                </Flex>
+                                                <Flex justify="space-between" align="center">
+                                                    <Stack gap={1}>
+                                                        <Text fontWeight="semibold">
+                                                            {match.player1Name || 'Player 1'}
+                                                        </Text>
+                                                        <Text fontSize="xs" color="gray.500">
+                                                            Wins: {match.p1Wins ?? 0}
+                                                        </Text>
+                                                    </Stack>
+                                                    <Text fontSize="sm" color="gray.400">
+                                                        vs
                                                     </Text>
-                                                    <Text fontSize="xs" color="gray.500">
-                                                        Wins: {match.p2Wins ?? 0}
-                                                    </Text>
-                                                </Stack>
-                                            </Flex>
-                                        </Box>
-                                    )
-                                })}
-                            </Stack>
-                        )}
+                                                    <Stack gap={1} textAlign="right">
+                                                        <Text fontWeight="semibold">
+                                                            {match.player2Name || 'Player 2'}
+                                                        </Text>
+                                                        <Text fontSize="xs" color="gray.500">
+                                                            Wins: {match.p2Wins ?? 0}
+                                                        </Text>
+                                                    </Stack>
+                                                </Flex>
+                                            </Box>
+                                        )
+                                    })}
+                                </Stack>
+                            )}
                     </CardBody>
+                )}
                 </CardRoot>
-            </Stack>
 
-            <DrawerRoot
-                open={isTitleDrawerOpen}
-                onOpenChange={(detail) => setTitleDrawerOpen(detail.open)}
-            >
-                <DrawerContent maxW="md">
-                    <DrawerCloseTrigger />
-                    <DrawerHeader>
-                        <Stack gap={1}>
-                            <Heading size="md">Choose your title flair</Heading>
-                            <Text fontSize="sm" color="gray.400">
-                                Select a flair to preview it. Remember to save your profile to apply
-                                changes.
-                            </Text>
-                        </Stack>
-                    </DrawerHeader>
-                    <DrawerBody>
-                        {titleOptions.length ? (
-                            <Stack gap={3}>
-                                {titleOptions.map((option) => {
-                                    const isSelected = pendingTitle === option.value
-                                    return (
-                                        <SelectableFlairButton
-                                            key={option.value}
-                                            flair={option.data}
-                                            label={option.data?.title}
-                                            isActive={isSelected}
-                                            onClick={() => setPendingTitle(option.value)}
-                                        />
-                                    )
-                                })}
+                <DrawerRoot
+                    open={isTitleDrawerOpen}
+                    onOpenChange={(detail) => setTitleDrawerOpen(detail.open)}
+                >
+                    <DrawerContent maxW="md">
+                        <DrawerCloseTrigger />
+                        <DrawerHeader>
+                            <Stack gap={1}>
+                                <Heading size="md">Choose your title flair</Heading>
+                                <Text fontSize="sm" color="gray.400">
+                                    Select a flair to preview it. Remember to save your profile to apply
+                                    changes.
+                                </Text>
                             </Stack>
-                        ) : (
-                            <Text fontSize="sm" color="gray.500">
-                                No titles available yet.
-                            </Text>
-                        )}
-                    </DrawerBody>
-                    <DrawerFooter justifyContent="flex-end" gap="3">
-                        <Button variant="ghost" onClick={() => setTitleDrawerOpen(false)}>
-                            Close
-                        </Button>
-                        <Button colorPalette="orange" onClick={() => setTitleDrawerOpen(false)}>
-                            Use selected flair
-                        </Button>
-                    </DrawerFooter>
-                </DrawerContent>
-            </DrawerRoot>
-        </>
+                        </DrawerHeader>
+                        <DrawerBody>
+                            {titleOptions.length ? (
+                                <Stack gap={3}>
+                                    {titleOptions.map((option) => {
+                                        const isSelected = pendingTitle === option.value
+                                        return (
+                                            <SelectableFlairButton
+                                                key={option.value}
+                                                flair={option.data}
+                                                label={option.data?.title}
+                                                isActive={isSelected}
+                                                onClick={() => setPendingTitle(option.value)}
+                                            />
+                                        )
+                                    })}
+                                </Stack>
+                            ) : (
+                                <Text fontSize="sm" color="gray.500">
+                                    No titles available yet.
+                                </Text>
+                            )}
+                        </DrawerBody>
+                        <DrawerFooter justifyContent="flex-end" gap="3">
+                            <Button variant="ghost" onClick={() => setTitleDrawerOpen(false)}>
+                                Close
+                            </Button>
+                            <Button colorPalette="orange" onClick={() => setTitleDrawerOpen(false)}>
+                                Use selected flair
+                            </Button>
+                        </DrawerFooter>
+                    </DrawerContent>
+                </DrawerRoot>
+        </Stack>
     )
 }
 
