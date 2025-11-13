@@ -14,6 +14,7 @@ type UserCardSmallProps = {
   isSelf?: boolean;
   onChallenge?: (user: TUser) => void;
   onViewProfile?: (user: TUser) => void;
+  onRpsChallenge?: (user: TUser) => void;
 };
 
 export default function UserCardSmall({
@@ -21,6 +22,7 @@ export default function UserCardSmall({
   isSelf,
   onChallenge,
   onViewProfile,
+  onRpsChallenge,
 }: UserCardSmallProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const isInteractive = Boolean(!isSelf && user);
@@ -57,6 +59,13 @@ export default function UserCardSmall({
     setMenuOpen(false);
   };
 
+  const handleRpsChallenge = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!isInteractive || !onRpsChallenge) return;
+    onRpsChallenge(user);
+    setMenuOpen(false);
+  };
+
   const handleViewProfile = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (!onViewProfile) return;
@@ -80,6 +89,21 @@ export default function UserCardSmall({
     const value = Math.round(pingInfo.ping);
     return `${value} ms`;
   }, [pingInfo.ping]);
+
+  const viewerPreference = useMemo(() => {
+    if (!viewer?.sidePreferences || !user?.uid) return null;
+    const entry = viewer.sidePreferences[user.uid];
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) return null;
+    return entry;
+  }, [viewer?.sidePreferences, user?.uid]);
+
+  const preferenceLabel = useMemo(() => {
+    if (!viewerPreference) return null;
+    const remainingMs = viewerPreference.expiresAt - Date.now();
+    const remainingMinutes = Math.max(0, Math.ceil(remainingMs / 60000));
+    return `${viewerPreference.side === "player1" ? "P1" : "P2"} • ${remainingMinutes}m`;
+  }, [viewerPreference]);
 
   return (
     <Stack
@@ -127,6 +151,11 @@ export default function UserCardSmall({
               Ping unknown
             </Text>
           )}
+          {preferenceLabel ? (
+            <Text fontSize="xs" color="orange.300">
+              Side lock: {preferenceLabel}
+            </Text>
+          ) : null}
         </Stack>
         <Tooltip
           content={`${user.countryCode || "Unknown"}`}
@@ -152,6 +181,16 @@ export default function UserCardSmall({
             <Button size="sm" colorPalette="orange" onClick={handleChallenge}>
               Challenge player
             </Button>
+            {onRpsChallenge ? (
+              <Button
+                size="sm"
+                colorPalette="purple"
+                variant="outline"
+                onClick={handleRpsChallenge}
+              >
+                Side Select Duel
+              </Button>
+            ) : null}
             {onViewProfile ? (
               <Button size="sm" variant="subtle" onClick={handleViewProfile}>
                 View profile

@@ -575,6 +575,35 @@ async function searchUsers(auth, query: string, cursor?: string | null, limit = 
     }
 }
 
+async function setSidePreference(
+    auth,
+    params: { opponentUid: string; side: 'player1' | 'player2' }
+) {
+    if (!checkCurrentAuthState(auth) || !params?.opponentUid) return null
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(`http://${SERVER}:${keys.API_PORT}/mini-game/side-selection`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                idToken: idToken || 'not real',
+                opponentUid: params.opponentUid,
+                side: params.side,
+            }),
+        })
+        if (!response.ok) {
+            return null
+        }
+        return await response.json()
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return null
+    }
+}
+
 async function getLeaderboard(
     auth,
     options: { sortBy?: 'elo' | 'wins'; cursor?: number | null; limit?: number } = {}
@@ -626,6 +655,7 @@ export default {
     getPlayerStats,
     searchUsers,
     getLeaderboard,
+    setSidePreference,
     //matches
     uploadMatchData,
     getUserMatches,

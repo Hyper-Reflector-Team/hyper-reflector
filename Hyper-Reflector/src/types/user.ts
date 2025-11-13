@@ -31,4 +31,14 @@ export type TUser = {
     assignedFlairs?: TUserTitle[]
     winStreak?: number
     longestWinStreak?: number
+    rpsElo?: number
+    sidePreferences?: Record<
+        string,
+        {
+            side: 'player1' | 'player2'
+            ownerUid: string
+            opponentUid: string
+            expiresAt: number
+        }
+    >
 }

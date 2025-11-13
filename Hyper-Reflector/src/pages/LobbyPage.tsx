@@ -689,6 +689,13 @@ export default function LobbyPage() {
                     })
                   )
                 }
+                onRpsChallenge={(target) =>
+                  window.dispatchEvent(
+                    new CustomEvent("lobby:rps-duel", {
+                      detail: { targetUid: target.uid },
+                    })
+                  )
+                }
                 onViewProfile={(target) =>
                   navigate({
                     to: "/profile/$userId",

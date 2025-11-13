@@ -21,6 +21,8 @@ export const MOCK_CHALLENGE_USER: TUser = {
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Partner' },
     role: 'user',
     winStreak: 0,
+    rpsElo: 1200,
+    sidePreferences: {},
     lastKnownPings: [{ id: 'mock-opponent-2', ping: 92 }],
 }
 
@@ -38,6 +40,8 @@ export const MOCK_CHALLENGE_USER_TWO: TUser = {
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Rival' },
     role: 'user',
     winStreak: 0,
+    rpsElo: 1200,
+    sidePreferences: {},
     stability: true,
     lastKnownPings: [{ id: 'mock-opponent', ping: 92 }],
 }
@@ -62,6 +66,31 @@ export const buildMockForLobby = (lobbyId: string, index = 0): TUser | null => {
     if (!normalized.length || normalized !== 'debug') return null
 
     return index % 2 === 0 ? MOCK_CHALLENGE_USER : MOCK_CHALLENGE_USER_TWO
+}
+
+const RESOLVED_RPS_ELO = 1200
+
+const sanitizeSidePreferences = (input: unknown) => {
+    if (!input || typeof input !== 'object') return {}
+    const now = Date.now()
+    return Object.entries(input as Record<string, any>).reduce<Record<string, {
+        side: 'player1' | 'player2'
+        ownerUid: string
+        opponentUid: string
+        expiresAt: number
+    }>>((acc, [key, value]) => {
+        if (!value || typeof value !== 'object') return acc
+        const side = value.side === 'player2' ? 'player2' : value.side === 'player1' ? 'player1' : null
+        const expiresAt = typeof value.expiresAt === 'number' ? value.expiresAt : 0
+        if (!side || expiresAt <= now) return acc
+        const ownerUid =
+            typeof value.ownerUid === 'string' && value.ownerUid.length ? value.ownerUid : ''
+        const opponentUid =
+            typeof value.opponentUid === 'string' && value.opponentUid.length ? value.opponentUid : key
+        if (!ownerUid || !opponentUid) return acc
+        acc[key] = { side, ownerUid, opponentUid, expiresAt }
+        return acc
+    }, {})
 }
 
 export const normalizeSocketUser = (candidate: any): TUser | null => {
@@ -196,6 +225,8 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
             typeof candidate.longestWinStreak === 'number'
                 ? candidate.longestWinStreak
                 : undefined,
+        rpsElo: typeof candidate.rpsElo === 'number' ? candidate.rpsElo : RESOLVED_RPS_ELO,
+        sidePreferences: sanitizeSidePreferences(candidate.sidePreferences),
     }
 
     if (lastKnownPings) {

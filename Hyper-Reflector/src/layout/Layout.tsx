@@ -91,6 +91,13 @@ import {
   closeConnectionWithUser,
 } from "../webRTC/WebPeer";
 import { isMockUserId, startMockMatch, startProxyMatch } from "../match";
+import MiniGameArena from "../mini-games/MiniGameArena";
+import type {
+  MiniGameChoice,
+  MiniGameResultPayload,
+  MiniGameUiState,
+} from "../mini-games/types";
+import { evaluateRps } from "../mini-games/rps";
 import {
   SOCKET_STATE_EVENT,
   type SocketStateUpdateDetail,
@@ -121,6 +128,15 @@ function resolveMockDisplayName(uid?: string | null) {
     return MOCK_CHALLENGE_USER_TWO.userName;
   return "Mock Opponent";
 }
+
+const formatMiniGameChoice = (choice?: MiniGameChoice | null) => {
+  if (!choice) return "—";
+  return choice.charAt(0).toUpperCase() + choice.slice(1);
+};
+
+const MINI_GAME_CHOICES: MiniGameChoice[] = ["rock", "paper", "scissors"];
+const randomMiniGameChoice = (): MiniGameChoice =>
+  MINI_GAME_CHOICES[Math.floor(Math.random() * MINI_GAME_CHOICES.length)];
 
 const MAX_METER_EVENTS = 200;
 const MAX_RAW_PAYLOAD_LENGTH = 450_000;
@@ -308,8 +324,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   const matchUploadPendingRef = useRef(false);
   const activeMatchIdRef = useRef<string | null>(null);
   const localPlayerSlotRef = useRef<0 | 1>(0);
+  const pendingPreferredSlotRef = useRef<0 | 1 | null>(null);
   const lastMatchUuidRef = useRef<string | null>(null);
   const [isInMatch, setIsInMatch] = useState(false);
+  const [miniGameState, setMiniGameState] = useState<MiniGameUiState | null>(
+    null
+  );
+  const miniGameStateRef = useRef<MiniGameUiState | null>(null);
+  const [miniGameSideLoading, setMiniGameSideLoading] = useState(false);
+  const mockMiniGameTimers = useRef<Map<string, number>>(new Map());
   const isInMatchRef = useRef(false);
   const winSoundPathRef = useRef<string | null>(null);
   const declineChallengeWithSocket = useCallback(
@@ -340,6 +363,90 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   }, [lobbyUsers]);
 
   useEffect(() => {
+    miniGameStateRef.current = miniGameState;
+  }, [miniGameState]);
+
+  useEffect(() => {
+    return () => {
+      mockMiniGameTimers.current.forEach((id) => window.clearTimeout(id));
+      mockMiniGameTimers.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!globalLoggedIn) {
+      setMiniGameState(null);
+    }
+  }, [globalLoggedIn]);
+
+  const applySidePreferenceLocally = useCallback(
+    (
+      entry:
+        | {
+            side: "player1" | "player2";
+            ownerUid: string;
+            opponentUid: string;
+            expiresAt: number;
+          }
+        | null,
+      opponentUid: string
+    ) => {
+      const store = useUserStore.getState();
+      const viewer = store.globalUser;
+      if (!viewer) return;
+      const nextPreferences = { ...(viewer.sidePreferences || {}) };
+      if (!entry) {
+        delete nextPreferences[opponentUid];
+      } else {
+        nextPreferences[opponentUid] = entry;
+      }
+      store.setGlobalUser({ ...viewer, sidePreferences: nextPreferences });
+    },
+    []
+  );
+
+  const resolveActiveSidePreference = useCallback(
+    (viewer: TUser | undefined, opponentUid: string) => {
+      if (!viewer?.sidePreferences) return undefined;
+      const entry = viewer.sidePreferences[opponentUid];
+      if (!entry) return undefined;
+      if (entry.expiresAt <= Date.now()) {
+        applySidePreferenceLocally(null, opponentUid);
+        return undefined;
+      }
+      return entry;
+    },
+    [applySidePreferenceLocally]
+  );
+
+  const resolvePreferredSlot = useCallback(
+    (viewer: TUser | undefined, opponentUid: string): 0 | 1 | null => {
+      const entry = resolveActiveSidePreference(viewer, opponentUid);
+      if (!entry) return null;
+      return entry.side === "player2" ? 1 : 0;
+    },
+    [resolveActiveSidePreference]
+  );
+
+  const resolveUserName = useCallback((uid: string | undefined) => {
+    if (!uid) return "Unknown player";
+    const store = useUserStore.getState();
+    if (store.globalUser?.uid === uid) {
+      return store.globalUser.userName || "You";
+    }
+    const entry = store.lobbyUsers.find((user) => user.uid === uid);
+    return entry?.userName || "Unknown player";
+  }, []);
+
+  const clearMockMiniGameTimer = useCallback((sessionId: string) => {
+    const timer = mockMiniGameTimers.current.get(sessionId);
+    if (timer) {
+      window.clearTimeout(timer);
+      mockMiniGameTimers.current.delete(sessionId);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!isTauriEnv()) return;
     let cancelled = false;
     (async () => {
@@ -365,6 +472,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     lastMatchUuidRef.current = null;
     activeMatchIdRef.current = null;
     localPlayerSlotRef.current = 0;
+    pendingPreferredSlotRef.current = null;
   }, []);
 
   const markMatchStarted = useCallback(
@@ -735,6 +843,136 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       window.removeEventListener(SOCKET_STATE_EVENT, handler as EventListener);
   }, [sendSocketStateUpdate]);
 
+  const sendMiniGameMessage = useCallback((payload: Record<string, unknown>) => {
+    const socket = signalSocketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch (error) {
+      console.error("Failed to send mini-game message", error);
+    }
+  }, []);
+
+  const finalizeMockMiniGame = useCallback(
+    (sessionId: string, viewerChoice: MiniGameChoice | null) => {
+      clearMockMiniGameTimer(sessionId);
+      let chatMessage: TMessage | null = null;
+      setMiniGameState((prev) => {
+        if (!prev || prev.sessionId !== sessionId) return prev;
+        if (prev.mode !== "mock") return prev;
+        const viewerUid = globalUserRef.current?.uid || prev.challengerId;
+        const viewerIsChallenger = viewerUid === prev.challengerId;
+        const challengerChoice = viewerIsChallenger
+          ? viewerChoice
+          : randomMiniGameChoice();
+        const opponentChoice = viewerIsChallenger
+          ? randomMiniGameChoice()
+          : viewerChoice;
+        let outcome: "win" | "draw" | "forfeit" | "declined" = "draw";
+        let winnerUid: string | undefined;
+        let loserUid: string | undefined;
+        if (challengerChoice && !opponentChoice) {
+          outcome = "forfeit";
+          winnerUid = prev.challengerId;
+          loserUid = prev.opponentId;
+        } else if (!challengerChoice && opponentChoice) {
+          outcome = "forfeit";
+          winnerUid = prev.opponentId;
+          loserUid = prev.challengerId;
+        } else if (!challengerChoice && !opponentChoice) {
+          outcome = "draw";
+        } else {
+          const evaluation = evaluateRps(challengerChoice, opponentChoice);
+          if (evaluation === "draw") {
+            outcome = "draw";
+          } else if (evaluation === "a") {
+            outcome = "win";
+            winnerUid = prev.challengerId;
+            loserUid = prev.opponentId;
+          } else if (evaluation === "b") {
+            outcome = "win";
+            winnerUid = prev.opponentId;
+            loserUid = prev.challengerId;
+          }
+        }
+        const result: MiniGameResultPayload = {
+          sessionId: prev.sessionId,
+          challengerId: prev.challengerId,
+          opponentId: prev.opponentId,
+          gameType: prev.gameType,
+          choices: {
+            [prev.challengerId]: challengerChoice || null,
+            [prev.opponentId]: opponentChoice || null,
+          },
+          winnerUid,
+          loserUid,
+          outcome,
+        };
+        const viewerChoiceForState = viewerIsChallenger
+          ? challengerChoice
+          : opponentChoice;
+        chatMessage = {
+          id: `mock-mini-game-${prev.sessionId}`,
+          role: "system",
+          text: `RPS duel between ${resolveUserName(
+            prev.challengerId
+          )} (${formatMiniGameChoice(
+            challengerChoice
+          )}) and ${resolveUserName(
+            prev.opponentId
+          )} (${formatMiniGameChoice(opponentChoice)}) ${
+            outcome === "draw"
+              ? "ended in a draw."
+              : winnerUid
+              ? `was won by ${resolveUserName(winnerUid)}.`
+              : "has concluded."
+          }`,
+          timeStamp: Date.now(),
+        };
+        return {
+          ...prev,
+          status: "resolved",
+          viewerChoice: viewerChoiceForState || undefined,
+          result,
+        };
+      });
+      if (chatMessage) {
+        useMessageStore.getState().addChatMessage(chatMessage);
+      }
+    },
+    [clearMockMiniGameTimer, resolveUserName]
+  );
+
+  const startMockMiniGame = useCallback(
+    (opponentUid: string) => {
+      const viewer = globalUserRef.current;
+      if (!viewer?.uid) return;
+      const sessionId = `mock-rps-${Date.now()}`;
+      const expiresAt = Date.now() + 10_000;
+      setMiniGameState({
+        sessionId,
+        challengerId: viewer.uid,
+        opponentId: opponentUid,
+        gameType: "rps",
+        expiresAt,
+        isInitiator: true,
+        status: "pending",
+        mode: "mock",
+      });
+      const timerId = window.setTimeout(() => {
+        finalizeMockMiniGame(sessionId, null);
+      }, expiresAt - Date.now());
+      mockMiniGameTimers.current.set(sessionId, timerId);
+      toaster.info({
+        title: "Mock duel started",
+        description: `Dueling ${resolveUserName(opponentUid)}.`,
+      });
+    },
+    [finalizeMockMiniGame, resolveUserName]
+  );
+
   useEffect(() => {
     if (!globalLoggedIn) {
       setCurrentLobbyId(DEFAULT_LOBBY_ID);
@@ -755,6 +993,50 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   const handleLobbyManagerOpen = useCallback(() => {
     openLobbyManager();
   }, [openLobbyManager]);
+
+  const handleMiniGameChallenge = useCallback(
+    (targetUid: string) => {
+      const viewer = globalUserRef.current;
+      if (!viewer?.uid) {
+        toaster.error({
+          title: "Unable to start duel",
+          description: "Please log in before initiating a duel.",
+        });
+        return;
+      }
+      if (viewer.uid === targetUid) {
+        return;
+      }
+      if (isMockUserId(targetUid)) {
+        startMockMiniGame(targetUid);
+        return;
+      }
+      const socket = signalSocketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        toaster.error({
+          title: "Unable to start duel",
+          description: "Signal server is not connected.",
+        });
+        return;
+      }
+      sendMiniGameMessage({
+        type: "mini-game-challenge",
+        challengerId: viewer.uid,
+        opponentId: targetUid,
+        gameType: "rps",
+      });
+      const targetUser = useUserStore
+        .getState()
+        .lobbyUsers.find((entry) => entry.uid === targetUid);
+      toaster.success({
+        title: "Duel invitation sent",
+        description: targetUser
+          ? `Waiting for ${targetUser.userName}`
+          : "Waiting for opponent",
+      });
+    },
+    [sendMiniGameMessage, startMockMiniGame]
+  );
 
   const handleMatchStats = useCallback(async (rawData: string) => {
     if (!rawData?.trim()) {
@@ -1000,6 +1282,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         const peer = await initWebRTC(globalUser.uid, targetUid, socket);
         peerConnectionRef.current = peer;
         opponentUidRef.current = targetUid;
+        pendingPreferredSlotRef.current = null;
+        const preferredSlot = resolvePreferredSlot(globalUser, targetUid);
+        pendingPreferredSlotRef.current = preferredSlot;
         sentMatchRequestRef.current.delete(targetUid);
         await startCall(peer, socket, targetUid, globalUser.uid, true);
         toaster.success({
@@ -1008,6 +1293,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         });
       } catch (error) {
         console.error("Failed to initiate challenge:", error);
+        pendingPreferredSlotRef.current = null;
         toaster.error({
           title: "Challenge failed",
           description: "Unable to initiate WebRTC call.",
@@ -1020,6 +1306,128 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       markMatchEnded,
       markMatchStarted,
     ]
+  );
+
+  const submitMiniGameChoice = useCallback(
+    (choice: MiniGameChoice) => {
+      const viewer = globalUserRef.current;
+      const session = miniGameStateRef.current;
+      if (!viewer?.uid || !session || session.status !== "pending") {
+        return;
+      }
+      if (session.mode === "mock") {
+        setMiniGameState((prev) =>
+          prev && prev.sessionId === session.sessionId
+            ? { ...prev, viewerChoice: choice, status: "submitted" }
+            : prev
+        );
+        window.setTimeout(() => finalizeMockMiniGame(session.sessionId, choice), 600);
+        return;
+      }
+      setMiniGameState((prev) =>
+        prev && prev.sessionId === session.sessionId
+          ? { ...prev, viewerChoice: choice, status: "submitted" }
+          : prev
+      );
+      sendMiniGameMessage({
+        type: "mini-game-choice",
+        sessionId: session.sessionId,
+        playerId: viewer.uid,
+        choice,
+      });
+    },
+    [finalizeMockMiniGame, sendMiniGameMessage]
+  );
+
+  const declineMiniGame = useCallback(() => {
+    const viewer = globalUserRef.current;
+    const session = miniGameStateRef.current;
+    if (!viewer?.uid || !session) return;
+    if (session.mode === "mock") {
+      clearMockMiniGameTimer(session.sessionId);
+      setMiniGameState(null);
+      return;
+    }
+    sendMiniGameMessage({
+      type: "mini-game-decline",
+      sessionId: session.sessionId,
+      playerId: viewer.uid,
+      reason: "decline",
+    });
+    setMiniGameState(null);
+  }, [clearMockMiniGameTimer, sendMiniGameMessage]);
+
+  const closeMiniGame = useCallback(() => {
+    setMiniGameState((prev) => {
+      if (!prev) return prev;
+      if (prev.status === "resolved" || prev.status === "declined") {
+        if (prev.mode === "mock") {
+          clearMockMiniGameTimer(prev.sessionId);
+        }
+        return null;
+      }
+      return prev;
+    });
+  }, [clearMockMiniGameTimer]);
+
+  const activeMiniGameOpponentName = useMemo(() => {
+    if (!miniGameState) return undefined;
+    const viewerUid = globalUser?.uid;
+    if (!viewerUid) return undefined;
+    const opponentUid =
+      viewerUid === miniGameState.challengerId
+        ? miniGameState.opponentId
+        : miniGameState.challengerId;
+    return resolveUserName(opponentUid);
+  }, [globalUser?.uid, miniGameState, resolveUserName]);
+
+  const handleMiniGameSideSelection = useCallback(
+    async (side: "player1" | "player2") => {
+      const viewer = globalUserRef.current;
+      const session = miniGameStateRef.current;
+      if (!viewer?.uid || !session || !auth.currentUser) {
+        return;
+      }
+      const opponentUid =
+        viewer.uid === session.challengerId
+          ? session.opponentId
+          : session.challengerId;
+      setMiniGameSideLoading(true);
+      try {
+        const payload = await api.setSidePreference(auth, {
+          opponentUid,
+          side,
+        });
+        if (payload?.ownerEntry) {
+          applySidePreferenceLocally(payload.ownerEntry, opponentUid);
+          toaster.success({
+            title: "Side selection saved",
+            description: `You will start as ${
+              side === "player1" ? "Player 1" : "Player 2"
+            } for the next hour.`,
+          });
+          setMiniGameState((prev) =>
+            prev && prev.sessionId === session.sessionId
+              ? { ...prev, sidePreferenceSubmitted: true }
+              : prev
+          );
+        } else {
+          toaster.error({
+            title: "Unable to save side selection",
+            description: "Please try again.",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to set side preference", error);
+        toaster.error({
+          title: "Unable to save side selection",
+          description: "Please try again.",
+        });
+      } finally {
+        setMiniGameSideLoading(false);
+      }
+    },
+    [applySidePreferenceLocally]
   );
 
   const handleCreateLobby = useCallback(
@@ -1412,6 +1820,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   }, [startChallenge]);
 
   useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ targetUid: string }>).detail;
+      if (!detail?.targetUid) return;
+      handleMiniGameChallenge(detail.targetUid);
+    };
+    window.addEventListener("lobby:rps-duel", handler as EventListener);
+    return () =>
+      window.removeEventListener("lobby:rps-duel", handler as EventListener);
+  }, [handleMiniGameChallenge]);
+
+  useEffect(() => {
     const maybeApi = (window as any)?.api;
     const handleEndMatch = () => markMatchEnded();
 
@@ -1770,6 +2189,101 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               }
             }
             break;
+          case "mini-game-challenge": {
+            const viewerId = globalUserRef.current?.uid;
+            if (
+              !viewerId ||
+              !payload?.sessionId ||
+              payload.gameType !== "rps" ||
+              (payload.challengerId !== viewerId &&
+                payload.opponentId !== viewerId)
+            ) {
+              break;
+            }
+            const existing = miniGameStateRef.current;
+            if (
+              existing &&
+              existing.sessionId !== payload.sessionId &&
+              existing.status !== "resolved"
+            ) {
+              sendMiniGameMessage({
+                type: "mini-game-decline",
+                sessionId: payload.sessionId,
+                playerId: viewerId,
+                reason: "busy",
+              });
+              break;
+            }
+            if (payload.opponentId === viewerId) {
+              toaster.info({
+                title: "RPS Duel",
+                description: `${resolveUserName(
+                  payload.challengerId
+                )} challenged you to a duel.`,
+              });
+            }
+            setMiniGameState({
+              sessionId: payload.sessionId,
+              challengerId: payload.challengerId,
+              opponentId: payload.opponentId,
+              gameType: payload.gameType,
+              expiresAt: payload.expiresAt,
+              isInitiator: payload.challengerId === viewerId,
+              status: "pending",
+              mode: "live",
+            });
+            break;
+          }
+          case "mini-game-result": {
+            const viewerId = globalUserRef.current?.uid;
+            if (
+              !viewerId ||
+              !payload?.sessionId ||
+              (payload.challengerId !== viewerId &&
+                payload.opponentId !== viewerId)
+            ) {
+              break;
+            }
+            const resultPayload = payload as MiniGameResultPayload;
+            setMiniGameState((prev) =>
+              prev && prev.sessionId === resultPayload.sessionId
+                ? { ...prev, status: "resolved", result: resultPayload }
+                : prev
+            );
+            if (resultPayload.ratings && resultPayload.ratings[viewerId]) {
+              const store = useUserStore.getState();
+              const currentViewer = store.globalUser;
+              if (currentViewer?.uid === viewerId) {
+                store.setGlobalUser({
+                  ...currentViewer,
+                  rpsElo: resultPayload.ratings[viewerId],
+                });
+              }
+            }
+            const challengerName = resolveUserName(resultPayload.challengerId);
+            const opponentName = resolveUserName(resultPayload.opponentId);
+            const challengerChoice = formatMiniGameChoice(
+              resultPayload.choices[resultPayload.challengerId]
+            );
+            const opponentChoice = formatMiniGameChoice(
+              resultPayload.choices[resultPayload.opponentId]
+            );
+            const outcomeText =
+              resultPayload.outcome === "draw"
+                ? "ended in a draw"
+                : resultPayload.outcome === "declined"
+                ? "was declined"
+                : resultPayload.winnerUid === resultPayload.challengerId
+                ? `was won by ${challengerName}`
+                : `was won by ${opponentName}`;
+            useMessageStore.getState().addChatMessage({
+              id: `mini-game-${resultPayload.sessionId}`,
+              role: "system",
+              text: `RPS duel between ${challengerName} (${challengerChoice}) and ${opponentName} (${opponentChoice}) ${outcomeText}.`,
+              timeStamp: Date.now(),
+            });
+            break;
+          }
           case "peer-latency-offer":
           case "peer-latency-answer":
           case "peer-latency-candidate":
@@ -1880,6 +2394,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               !isMockUserId(payload.from) &&
               !sentMatchRequestRef.current.has(payload.from)
             ) {
+              const preferredSlot =
+                typeof pendingPreferredSlotRef.current === "number"
+                  ? pendingPreferredSlotRef.current
+                  : undefined;
+              pendingPreferredSlotRef.current = null;
               sendSocketMessage({
                 type: "request-match",
                 challengerId: requesterUid,
@@ -1887,6 +2406,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 requestedBy: requesterUid,
                 lobbyId: activeLobbyId,
                 gameName: inferredGameName,
+                preferredSlot,
               });
               sentMatchRequestRef.current.add(payload.from);
             }
@@ -2033,6 +2553,8 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     setLobbyList,
     setLobbyUsers,
     setSignalStatus,
+    resolveUserName,
+    sendMiniGameMessage,
   ]);
 
   return (
@@ -2238,6 +2760,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         lobbyNameMaxLength={LOBBY_NAME_MAX_LENGTH}
         onJoinLobby={handleJoinLobby}
         onCreateLobby={handleCreateLobby}
+      />
+
+      <MiniGameArena
+        viewerId={globalUser?.uid}
+        state={miniGameState}
+        opponentName={activeMiniGameOpponentName}
+        onSubmitChoice={submitMiniGameChoice}
+        onDecline={declineMiniGame}
+        onClose={closeMiniGame}
+        onChooseSide={handleMiniGameSideSelection}
+        sideSelectionPending={miniGameSideLoading}
       />
 
       <Drawer.Root
