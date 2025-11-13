@@ -168,8 +168,8 @@ export default function PlayerProfilePage() {
     const [pendingTitle, setPendingTitle] = useState<string>('')
     const [saving, setSaving] = useState(false)
     const [isTitleDrawerOpen, setTitleDrawerOpen] = useState(false)
-    const charDisclosure = useDisclosure({ defaultOpen: true })
-    const matchesDisclosure = useDisclosure({ defaultOpen: true })
+    const charDisclosure = useDisclosure({ defaultOpen: false })
+    const matchesDisclosure = useDisclosure({ defaultOpen: false })
 
     const normalizeUserForProfile = useCallback(
         (user: TUser | (TUser & { winStreak?: number })) => {
@@ -577,12 +577,7 @@ export default function PlayerProfilePage() {
                 <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
                     <CardHeader>
                         <Flex justify="space-between" align="center">
-                            <Stack>
-                                <Heading size="md">Character usage</Heading>
-                                <Text fontSize="sm" color="gray.400">
-                                    Breakdown of characters played in recorded matches.
-                                </Text>
-                            </Stack>
+                            <Heading size="md">Character usage</Heading>
                             <IconButton
                                 aria-label="Toggle character usage"
                                 variant="ghost"
@@ -619,13 +614,7 @@ export default function PlayerProfilePage() {
                 <CardRoot bg="gray.900" borderWidth="1px" borderColor="gray.700">
                     <CardHeader>
                         <Flex justify="space-between" align="center">
-                            <Stack gap={1}>
-                                <Heading size="md">Recent matches</Heading>
-                                <Text fontSize="sm" color="gray.400">
-                                    Viewing {matches.length} of {matchCursor.total ?? 0} recorded
-                                    matches.
-                                </Text>
-                            </Stack>
+                            <Heading size="md">Recent matches</Heading>
                             <Flex gap={2} align="center">
                                 <Button
                                     variant="outline"
