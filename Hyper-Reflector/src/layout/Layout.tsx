@@ -105,6 +105,7 @@ import {
 } from "../utils/matchFiles";
 import { parseMatchData } from "../utils/matchParser";
 import { isTauriEnv, resolveFilesPath } from "../utils/pathSettings";
+import { peerLatencyManager } from "../webrtc/peerLatencyManager";
 
 const DEV_MATCH_ID = "dev-matches-and-bugs";
 
@@ -326,11 +327,17 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
   useEffect(() => {
     globalUserRef.current = globalUser || undefined;
+    peerLatencyManager.setViewer(globalUser);
   }, [globalUser]);
 
   useEffect(() => {
     isInMatchRef.current = isInMatch;
+    peerLatencyManager.setInMatch(isInMatch);
   }, [isInMatch]);
+
+  useEffect(() => {
+    peerLatencyManager.setPeers(lobbyUsers);
+  }, [lobbyUsers]);
 
   useEffect(() => {
     if (!isTauriEnv()) return;
@@ -1444,6 +1451,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     const socketUrl = `ws://${keys.COTURN_IP}:${keys.SIGNAL_PORT ?? "3003"}`;
     const socket = new WebSocket(socketUrl);
     signalSocketRef.current = socket;
+    peerLatencyManager.attachSocket(socket);
     let didError = false;
 
     socket.onopen = () => {
@@ -1529,27 +1537,31 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     entry.uid && entry.uid === currentUserSnapshot?.uid
                 );
               if (socketViewer) {
-                const mergedViewer =
-                  prevViewer && prevViewer.uid === socketViewer.uid
-                    ? { ...prevViewer, ...socketViewer }
-                    : socketViewer;
-                const nextStreak =
-                  (socketViewer.winStreak ?? socketViewer.winstreak ??
-                    mergedViewer.winstreak ??
-                    prevViewer?.winstreak ??
-                    prevViewer?.winStreak ?? 0) || 0;
-                const normalizedViewer = {
-                  ...mergedViewer,
-                  winstreak: nextStreak,
-                  winStreak: nextStreak,
-                };
-                const prevStreak =
-                  prevViewer?.winstreak ?? prevViewer?.winStreak ?? 0;
-                const streakChanged = prevStreak !== nextStreak;
-                const roleChanged = prevViewer?.role !== mergedViewer.role;
-                const eloChanged =
-                  (prevViewer?.accountElo ?? null) !==
-                  (mergedViewer.accountElo ?? null);
+              const mergedViewer =
+                prevViewer && prevViewer.uid === socketViewer.uid
+                  ? { ...prevViewer, ...socketViewer }
+                  : socketViewer;
+              const nextStreak =
+                typeof socketViewer.winStreak === "number"
+                  ? socketViewer.winStreak
+                  : typeof mergedViewer.winStreak === "number"
+                  ? mergedViewer.winStreak
+                  : typeof prevViewer?.winStreak === "number"
+                  ? prevViewer.winStreak
+                  : 0;
+              const normalizedViewer = {
+                ...mergedViewer,
+                winStreak: nextStreak,
+              };
+              const prevStreak =
+                typeof prevViewer?.winStreak === "number"
+                  ? prevViewer.winStreak
+                  : 0;
+              const streakChanged = prevStreak !== nextStreak;
+              const roleChanged = prevViewer?.role !== mergedViewer.role;
+              const eloChanged =
+                (prevViewer?.accountElo ?? null) !==
+                (mergedViewer.accountElo ?? null);
                 const titleChanged =
                   (prevViewer?.userTitle?.title || "") !==
                   (mergedViewer.userTitle?.title || "");
@@ -1758,6 +1770,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               }
             }
             break;
+          case "peer-latency-offer":
+          case "peer-latency-answer":
+          case "peer-latency-candidate":
+          case "peer-latency-decline": {
+            peerLatencyManager.handleSignal(payload);
+            break;
+          }
           case "webrtc-ping-offer": {
             if (!currentUserSnapshot?.uid || !payload.from || !payload.offer) {
               break;
@@ -2002,6 +2021,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     return () => {
       socket.close();
       signalSocketRef.current = null;
+      peerLatencyManager.attachSocket(null);
     };
   }, [
     clearChatMessages,

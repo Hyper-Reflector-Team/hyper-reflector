@@ -43,10 +43,10 @@ export default function UserCard() {
             <Text fontWeight="semibold" fontSize="sm">
               {globalUser?.userName || "Player"}
             </Text>
-            <WinStreakIndicator
-              value={globalUser?.winStreak ?? globalUser?.winstreak}
-              size="sm"
-            />
+        <WinStreakIndicator
+            value={globalUser?.winStreak ?? 0}
+            size="sm"
+          />
           </Stack>
           <Tooltip
             content={`${globalUser?.countryCode || "Unknown"}`}

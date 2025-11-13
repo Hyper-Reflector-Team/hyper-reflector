@@ -20,7 +20,7 @@ export const MOCK_CHALLENGE_USER: TUser = {
     userProfilePic: '',
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Partner' },
     role: 'user',
-    winstreak: 0,
+    winStreak: 0,
     lastKnownPings: [{ id: 'mock-opponent-2', ping: 92 }],
 }
 
@@ -37,7 +37,7 @@ export const MOCK_CHALLENGE_USER_TWO: TUser = {
     userProfilePic: '',
     userTitle: { ...FALLBACK_USER_TITLE, title: 'Training Rival' },
     role: 'user',
-    winstreak: 0,
+    winStreak: 0,
     stability: true,
     lastKnownPings: [{ id: 'mock-opponent', ping: 92 }],
 }
@@ -191,12 +191,7 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
             typeof candidate.role === 'string' && candidate.role.trim().length
                 ? candidate.role.trim()
                 : 'user',
-        winstreak:
-            typeof candidate.winStreak === 'number'
-                ? candidate.winStreak
-                : typeof candidate.winstreak === 'number'
-                    ? candidate.winstreak
-                    : 0,
+        winStreak: typeof candidate.winStreak === 'number' ? candidate.winStreak : 0,
         longestWinStreak:
             typeof candidate.longestWinStreak === 'number'
                 ? candidate.longestWinStreak

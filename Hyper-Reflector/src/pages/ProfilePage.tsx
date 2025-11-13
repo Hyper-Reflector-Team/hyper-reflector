@@ -196,11 +196,7 @@ export default function ProfilePage() {
       subtitle.push(`ELO ${user.accountElo}`);
     }
     const winStreakValue =
-      typeof user.winstreak === "number"
-        ? user.winstreak
-        : typeof (user as any).winStreak === "number"
-        ? (user as any).winStreak
-        : undefined;
+      typeof user.winStreak === "number" ? user.winStreak : undefined;
     if (typeof winStreakValue === "number") {
       subtitle.push(`Streak ${winStreakValue}`);
     }

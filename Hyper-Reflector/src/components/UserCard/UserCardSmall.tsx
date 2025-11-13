@@ -110,10 +110,7 @@ export default function UserCardSmall({
           </Text>
           <Flex align="center" gap="1">
             <TitleBadge title={user.userTitle} />
-            <WinStreakIndicator
-              value={user.winStreak ?? user.winstreak}
-              size="sm"
-            />
+            <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
           </Flex>
           <Text fontSize="xs" color="gray.500">
             ELO {user.accountElo ?? "--"}

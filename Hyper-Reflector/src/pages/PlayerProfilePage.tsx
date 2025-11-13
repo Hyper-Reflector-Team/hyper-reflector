@@ -196,16 +196,14 @@ export default function PlayerProfilePage() {
   const normalizeUserForProfile = useCallback(
     (user: TUser | (TUser & { winStreak?: number })) => {
       const streak =
-        typeof (user as any).winstreak === "number"
-          ? (user as any).winstreak
-          : typeof (user as any).winStreak === "number"
+        typeof (user as any).winStreak === "number"
           ? (user as any).winStreak
           : 0;
       const longest =
         typeof (user as any).longestWinStreak === "number"
           ? (user as any).longestWinStreak
           : undefined;
-      return { ...user, winstreak: streak, longestWinStreak: longest };
+      return { ...user, winStreak: streak, longestWinStreak: longest };
     },
     []
   );
@@ -252,7 +250,8 @@ export default function PlayerProfilePage() {
     [titles]
   );
 
-  const currentWinStreak = profile?.winstreak ?? 0;
+  const currentWinStreak = profile?.winStreak ?? 0;
+  console.log(profile);
   const currentElo = playerStats?.accountElo ?? profile?.accountElo;
   const displayElo =
     currentElo !== undefined && currentElo !== null
