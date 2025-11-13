@@ -22,5 +22,6 @@ export type TUser = {
     userProfilePic: string
     userTitle: TUserTitle
     role?: string
+    assignedFlairs?: TUserTitle[]
     winstreak: number
 }

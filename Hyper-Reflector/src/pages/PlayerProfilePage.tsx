@@ -24,6 +24,7 @@ import api from '../external-api/requests'
 import { useUserStore } from '../state/store'
 import TitleBadge from '../components/UserCard.tsx/TitleBadge'
 import WinStreakBadge from '../components/UserCard.tsx/WinStreakBadge'
+import SelectableFlairButton from '../components/SelectableFlairButton'
 import type { TUser, TUserTitle } from '../types/user'
 import { toaster } from '../components/chakra/ui/toaster'
 import {
@@ -196,6 +197,17 @@ export default function PlayerProfilePage() {
         )
     }, [playerStats])
 
+    const mergeTitlePools = useCallback((base: TUserTitle[], extras?: TUserTitle[]) => {
+        if (!extras || !extras.length) return base
+        const seen = new Set(base.map((title) => (title.title || '').trim()))
+        const filtered = extras.filter((entry) => {
+            const key = (entry.title || '').trim()
+            return key.length && !seen.has(key)
+        })
+        if (!filtered.length) return base
+        return [...base, ...filtered]
+    }, [])
+
     const titleOptions = useMemo(
         () =>
             titles.map((title, index) => ({
@@ -219,6 +231,7 @@ export default function PlayerProfilePage() {
             return
         }
         setProfileLoading(true)
+        let normalizedUserProfile: TUser | null = null
         const loadProfile = async () => {
             try {
                 const [userData, statsData, titlesData] = await Promise.all([
@@ -230,14 +243,22 @@ export default function PlayerProfilePage() {
                     const normalizedUser = normalizeUserForProfile(userData as TUser)
                     setProfile(normalizedUser)
                     setNameDraft(normalizedUser.userName || '')
+                    normalizedUserProfile = normalizedUser
                 }
                 if (statsData?.playerStatSet) {
                     setPlayerStats(statsData.playerStatSet as PlayerStats)
                 } else if (statsData) {
                     setPlayerStats(statsData as PlayerStats)
                 }
-                if (titlesData?.titleData?.titles && Array.isArray(titlesData.titleData.titles)) {
-                    setTitles(titlesData.titleData.titles as TUserTitle[])
+                const serverTitles =
+                    titlesData?.titleData?.titles && Array.isArray(titlesData.titleData.titles)
+                        ? (titlesData.titleData.titles as TUserTitle[])
+                        : []
+                const assignedTitles = Array.isArray(normalizedUserProfile?.assignedFlairs)
+                    ? normalizedUserProfile.assignedFlairs
+                    : []
+                if (serverTitles.length || assignedTitles.length) {
+                    setTitles(mergeTitlePools(serverTitles, assignedTitles))
                 } else {
                     setTitles([])
                 }
@@ -252,7 +273,7 @@ export default function PlayerProfilePage() {
             }
         }
         void loadProfile()
-    }, [profileUid, canEdit, normalizeUserForProfile])
+    }, [profileUid, canEdit, normalizeUserForProfile, mergeTitlePools])
 
     const fetchMatches = useCallback(
         async (direction: 'initial' | 'next' | 'prev') => {
@@ -689,20 +710,13 @@ export default function PlayerProfilePage() {
                                 {titleOptions.map((option) => {
                                     const isSelected = pendingTitle === option.value
                                     return (
-                                        <Button
+                                        <SelectableFlairButton
                                             key={option.value}
-                                            variant={isSelected ? 'solid' : 'outline'}
-                                            justifyContent="space-between"
+                                            flair={option.data}
+                                            label={option.data?.title}
+                                            isActive={isSelected}
                                             onClick={() => setPendingTitle(option.value)}
-                                        >
-                                            <Flex align="center" gap="3">
-                                                <TitleBadge title={option.data} />
-                                                <Text fontSize="sm" color="gray.300">
-                                                    {option.data?.title}
-                                                </Text>
-                                            </Flex>
-                                            {isSelected ? <Check size={16} /> : null}
-                                        </Button>
+                                        />
                                     )
                                 })}
                             </Stack>

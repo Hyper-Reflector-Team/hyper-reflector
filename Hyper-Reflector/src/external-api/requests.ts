@@ -427,6 +427,36 @@ async function getAllTitles(auth, userId) {
     }
 }
 
+async function getConditionalFlairs(auth) {
+    if (!checkCurrentAuthState(auth)) return null
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/get-conditional-flairs`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                }),
+            }
+        )
+
+        if (!response.ok) {
+            console.log('getConditionalFlairs failed', response)
+            return null
+        }
+
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+    }
+}
+
 async function createTitleFlair(auth, flair: TUserTitle) {
     if (!checkCurrentAuthState(auth)) return false
     const idToken = await auth.currentUser.getIdToken().then((res) => res)
@@ -448,7 +478,8 @@ async function createTitleFlair(auth, flair: TUserTitle) {
             console.log('createTitleFlair failed', response)
             return false
         }
-        return await response.json()
+        const data = await response.json()
+        return data
     } catch (error) {
         console.log(error)
         console.error(error.message)
@@ -456,12 +487,42 @@ async function createTitleFlair(auth, flair: TUserTitle) {
     }
 }
 
-async function assignTitleFlair(auth, targetUid: string, flair: TUserTitle) {
+async function createConditionalFlair(auth, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth)) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/create-conditional-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('createConditionalFlair failed', response)
+            return false
+        }
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
+async function grantConditionalFlair(auth, targetUid: string, flair: TUserTitle) {
     if (!checkCurrentAuthState(auth) || !targetUid) return false
     const idToken = await auth.currentUser.getIdToken().then((res) => res)
     try {
         const response = await fetch(
-            `http://${SERVER}:${keys.API_PORT}/admin/assign-title-flair`,
+            `http://${SERVER}:${keys.API_PORT}/admin/grant-conditional-flair`,
             {
                 method: 'POST',
                 headers: {
@@ -475,7 +536,7 @@ async function assignTitleFlair(auth, targetUid: string, flair: TUserTitle) {
             }
         )
         if (!response.ok) {
-            console.log('assignTitleFlair failed', response)
+            console.log('grantConditionalFlair failed', response)
             return false
         }
         return await response.json()
@@ -559,7 +620,9 @@ export default {
     getUserData,
     getAllTitles,
     createTitleFlair,
-    assignTitleFlair,
+    getConditionalFlairs,
+    createConditionalFlair,
+    grantConditionalFlair,
     getPlayerStats,
     searchUsers,
     getLeaderboard,

@@ -5,10 +5,12 @@ import {
   Flex,
   Heading,
   Input,
+  SelectValueChangeDetails,
   SimpleGrid,
   Spinner,
   Stack,
   Text,
+  createListCollection,
 } from "@chakra-ui/react";
 import { useNavigate } from "@tanstack/react-router";
 import { auth } from "../utils/firebase";
@@ -17,10 +19,20 @@ import TitleBadge from "../components/UserCard.tsx/TitleBadge";
 import { toaster } from "../components/chakra/ui/toaster";
 import { useUserStore } from "../state/store";
 import type { TUser, TUserTitle } from "../types/user";
+import {
+  SelectContent,
+  SelectItem,
+  SelectRoot,
+  SelectTrigger,
+  SelectValueText,
+} from "../components/chakra/ui/select";
+import SelectableFlairButton from "../components/SelectableFlairButton";
 
 const DEFAULT_BG = "#1f1f24";
 const DEFAULT_BORDER = "#37373f";
 const DEFAULT_TEXT = "#f2f2f7";
+
+type PoolOption = { label: string; value: "conditional" | "global" };
 
 export default function AdminPanelPage() {
   const navigate = useNavigate();
@@ -30,16 +42,32 @@ export default function AdminPanelPage() {
   const [bgColor, setBgColor] = useState(DEFAULT_BG);
   const [borderColor, setBorderColor] = useState(DEFAULT_BORDER);
   const [textColor, setTextColor] = useState(DEFAULT_TEXT);
-  const [availableFlairs, setAvailableFlairs] = useState<TUserTitle[]>([]);
+  const [conditionalFlairs, setConditionalFlairs] = useState<TUserTitle[]>([]);
+  const [globalFlairs, setGlobalFlairs] = useState<TUserTitle[]>([]);
   const [flairsLoading, setFlairsLoading] = useState(true);
+  const [flairRefresh, setFlairRefresh] = useState(0);
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Partial<TUser>[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<Partial<TUser> | null>(null);
-  const [selectedFlair, setSelectedFlair] = useState<TUserTitle | null>(null);
+  const [poolType, setPoolType] = useState<"global" | "conditional">(
+    "conditional"
+  );
   const [assigning, setAssigning] = useState(false);
+  const [selectedConditionalFlair, setSelectedConditionalFlair] =
+    useState<TUserTitle | null>(null);
+  const poolCollection = useMemo(
+    () =>
+      createListCollection<PoolOption>({
+        items: [
+          { label: "Conditional flair pool", value: "conditional" },
+          { label: "Global flair pool", value: "global" },
+        ],
+      }),
+    []
+  );
 
   const isAdmin = globalUser?.role === "admin";
   const previewTitle = useMemo<TUserTitle>(
@@ -54,7 +82,8 @@ export default function AdminPanelPage() {
 
   useEffect(() => {
     if (!auth.currentUser || !globalUser) {
-      setAvailableFlairs([]);
+      setConditionalFlairs([]);
+      setGlobalFlairs([]);
       setFlairsLoading(false);
       return;
     }
@@ -62,19 +91,34 @@ export default function AdminPanelPage() {
     const load = async () => {
       setFlairsLoading(true);
       try {
-        const data = await api.getAllTitles(auth, globalUser.uid);
+        const [globalData, conditionalData] = await Promise.all([
+          api.getAllTitles(auth, globalUser.uid),
+          api.getConditionalFlairs(auth),
+        ]);
         if (cancelled) return;
-        if (
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as any).titleData?.titles)
-        ) {
-          setAvailableFlairs((data as any).titleData.titles as TUserTitle[]);
-        } else {
-          setAvailableFlairs([]);
+        const globalList =
+          globalData &&
+          typeof globalData === "object" &&
+          Array.isArray((globalData as any).titleData?.titles)
+            ? ((globalData as any).titleData.titles as TUserTitle[])
+            : [];
+        const conditionalList =
+          conditionalData &&
+          typeof conditionalData === "object" &&
+          Array.isArray((conditionalData as any).flairs)
+            ? ((conditionalData as any).flairs as TUserTitle[])
+            : [];
+        setGlobalFlairs(globalList);
+        setConditionalFlairs(conditionalList);
+        if (!selectedConditionalFlair && conditionalList.length) {
+          setSelectedConditionalFlair(conditionalList[0]);
         }
       } catch (error) {
-        console.error("Failed to load title flairs", error);
+        console.error("Failed to load flairs", error);
+        if (!cancelled) {
+          setConditionalFlairs([]);
+          setGlobalFlairs([]);
+        }
       } finally {
         if (!cancelled) {
           setFlairsLoading(false);
@@ -85,13 +129,7 @@ export default function AdminPanelPage() {
     return () => {
       cancelled = true;
     };
-  }, [globalUser?.uid]);
-
-  useEffect(() => {
-    if (!selectedFlair && availableFlairs.length) {
-      setSelectedFlair(availableFlairs[0]);
-    }
-  }, [availableFlairs, selectedFlair]);
+  }, [globalUser?.uid, flairRefresh]);
 
   const handleSearch = useCallback(async () => {
     if (!auth.currentUser) {
@@ -138,15 +176,25 @@ export default function AdminPanelPage() {
       color: textColor,
     };
     try {
-      const response = await api.createTitleFlair(auth, payload);
+      const response =
+        poolType === "conditional"
+          ? await api.createConditionalFlair(auth, payload)
+          : await api.createTitleFlair(auth, payload);
       const createdFlair =
         response &&
         typeof response === "object" &&
-        typeof (response as TUserTitle).title === "string"
-          ? (response as TUserTitle)
+        response.flair &&
+        typeof response.flair === "object"
+          ? (response.flair as TUserTitle)
           : payload;
-      setAvailableFlairs((prev) => [createdFlair, ...prev]);
-      setSelectedFlair(createdFlair);
+      if (poolType === "conditional") {
+        setConditionalFlairs((prev) => [createdFlair, ...prev]);
+        setSelectedConditionalFlair(createdFlair);
+      } else {
+        setGlobalFlairs((prev) => [createdFlair, ...prev]);
+      }
+      setSelectedConditionalFlair(createdFlair);
+      setFlairRefresh((prev) => prev + 1);
       toaster.create({
         title: "Flair created",
         description: `${createdFlair.title} is available for assignment.`,
@@ -164,18 +212,20 @@ export default function AdminPanelPage() {
   }, [titleDraft, bgColor, borderColor, textColor]);
 
   const handleAssignFlair = useCallback(async () => {
-    if (!auth.currentUser || !selectedUser?.uid || !selectedFlair) return;
+    if (!auth.currentUser || !selectedUser?.uid) return;
+    const flairToGrant = selectedConditionalFlair;
+    if (!flairToGrant) return;
     setAssigning(true);
     try {
-      const response = await api.assignTitleFlair(
+      const response = await api.grantConditionalFlair(
         auth,
         selectedUser.uid,
-        selectedFlair
+        flairToGrant
       );
       if (response) {
         toaster.create({
           title: "Flair assigned",
-          description: `${selectedFlair.title} is now tied to ${
+          description: `${flairToGrant.title} is now tied to ${
             selectedUser.userName ?? selectedUser.uid
           }.`,
         });
@@ -191,7 +241,7 @@ export default function AdminPanelPage() {
     } finally {
       setAssigning(false);
     }
-  }, [selectedUser, selectedFlair]);
+  }, [selectedUser, selectedConditionalFlair]);
 
   if (!globalLoggedIn || !auth.currentUser) {
     return (
@@ -265,43 +315,76 @@ export default function AdminPanelPage() {
             </Box>
             <Stack direction="column" gap={2}>
               <Text fontSize="sm" color="gray.400">
+                Pool
+              </Text>
+              <SelectRoot<PoolOption>
+                collection={poolCollection}
+                value={[poolType]}
+                onValueChange={(event: SelectValueChangeDetails<PoolOption>) =>
+                  setPoolType(
+                    (event.value[0] as "conditional" | "global") ?? "conditional"
+                  )
+                }
+                maxW="160px"
+                color="gray.400"
+              >
+                <SelectTrigger>
+                  <SelectValueText placeholder="Choose a pool" />
+                </SelectTrigger>
+                <SelectContent>
+                  {poolCollection.items.map((option) => (
+                    <SelectItem item={option} key={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </SelectRoot>
+            </Stack>
+            <Stack direction="column" gap={2}>
+              <Text fontSize="sm" color="gray.400">
                 Background
               </Text>
-              <Input
-                type="color"
-                value={bgColor}
-                onChange={(event) => setBgColor(event.target.value)}
-                maxW="120px"
-              />
+              <Flex align="center" gap={2}>
+                <Input
+                  type="color"
+                  value={bgColor}
+                  onChange={(event) => setBgColor(event.target.value)}
+                  minW="24px"
+                />
+              </Flex>
             </Stack>
             <Stack direction="column" gap={2}>
               <Text fontSize="sm" color="gray.400">
                 Text
               </Text>
-              <Input
-                type="color"
-                value={textColor}
-                onChange={(event) => setTextColor(event.target.value)}
-                maxW="120px"
-              />
+              <Flex align="center" gap={2}>
+                <Input
+                  type="color"
+                  value={textColor}
+                  onChange={(event) => setTextColor(event.target.value)}
+                  minW="24px"
+                />
+              </Flex>
             </Stack>
             <Stack direction="column" gap={2}>
               <Text fontSize="sm" color="gray.400">
                 Border
               </Text>
-              <Input
-                type="color"
-                value={borderColor}
-                onChange={(event) => setBorderColor(event.target.value)}
-                maxW="120px"
-              />
+              <Flex align="center" gap={2}>
+                <Input
+                  type="color"
+                  value={borderColor}
+                  onChange={(event) => setBorderColor(event.target.value)}
+                  minW="24px"
+                />
+              </Flex>
             </Stack>
-                        <Button
-                            colorPalette="orange"
-                            onClick={handleCreateFlair}
-                            loading={creating}
-                            minW="160px"
-                        >
+            <Button
+              colorPalette="orange"
+              onClick={handleCreateFlair}
+              loading={creating}
+              minW="160px"
+            >
               Create flair
             </Button>
           </Stack>
@@ -322,9 +405,7 @@ export default function AdminPanelPage() {
           </Stack>
         </Stack>
       </Box>
-
-                    <Box height="1px" bg="gray.800" width="full" />
-
+      <Box height="1px" bg="gray.800" width="full" />
       <Box
         bg="gray.900"
         borderWidth="1px"
@@ -345,11 +426,11 @@ export default function AdminPanelPage() {
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Name or UID"
                 />
-                                <Button
-                                    colorPalette="orange"
-                                    onClick={handleSearch}
-                                    loading={searchLoading}
-                                >
+                <Button
+                  colorPalette="orange"
+                  onClick={handleSearch}
+                  loading={searchLoading}
+                >
                   Search
                 </Button>
               </Flex>
@@ -419,54 +500,44 @@ export default function AdminPanelPage() {
               </Stack>
             )}
           </Stack>
-                    <Box height="1px" bg="gray.800" width="full" />
+          <Box height="1px" bg="gray.800" width="full" />
           <Stack gap={3}>
             <Text fontSize="sm" color="gray.400">
-              Available flairs
+              Conditional flair pool
             </Text>
             {flairsLoading ? (
               <Flex justify="center" py="4">
                 <Spinner />
               </Flex>
-            ) : availableFlairs.length ? (
+            ) : conditionalFlairs.length ? (
               <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap="3">
-                {availableFlairs.map((flair, index) => {
-                  const isActive =
-                    selectedFlair?.title === flair.title &&
-                    selectedFlair?.bgColor === flair.bgColor &&
-                    selectedFlair?.color === flair.color &&
-                    selectedFlair?.border === flair.border;
-                  return (
-                    <Box
-                      key={`${flair.title}-${index}`}
-                      borderWidth="1px"
-                      borderColor={isActive ? "orange.400" : "gray.700"}
-                      borderRadius="lg"
-                      p="3"
-                      cursor="pointer"
-                      onClick={() => setSelectedFlair(flair)}
-                      transition="border-color 0.2s"
-                    >
-                      <TitleBadge title={flair} />
-                      <Text fontSize="xs" color="gray.500" mt="2">
-                        {flair.title}
-                      </Text>
-                    </Box>
-                  );
-                })}
+                {conditionalFlairs.map((flair, index) => (
+                  <SelectableFlairButton
+                    key={`conditional-${flair.title}-${index}`}
+                    flair={flair}
+                    isActive={
+                      Boolean(selectedConditionalFlair) &&
+                      selectedConditionalFlair.title === flair.title &&
+                      selectedConditionalFlair.bgColor === flair.bgColor &&
+                      selectedConditionalFlair.color === flair.color &&
+                      selectedConditionalFlair.border === flair.border
+                    }
+                    onClick={() => setSelectedConditionalFlair(flair)}
+                  />
+                ))}
               </SimpleGrid>
             ) : (
               <Text fontSize="sm" color="gray.500">
-                No available flairs yet. Create one to begin assigning.
+                No conditional flairs yet. Create one to grant exclusive titles.
               </Text>
             )}
           </Stack>
-                    <Button
-                        colorPalette="orange"
-                        disabled={!selectedUser || !selectedFlair}
-                        onClick={handleAssignFlair}
-                        loading={assigning}
-                    >
+          <Button
+            colorPalette="orange"
+            disabled={!selectedUser || !selectedConditionalFlair}
+            onClick={handleAssignFlair}
+            loading={assigning}
+          >
             Assign flair
           </Button>
         </Stack>
