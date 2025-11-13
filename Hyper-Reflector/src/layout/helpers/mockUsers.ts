@@ -192,10 +192,10 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                 ? candidate.role.trim()
                 : 'user',
         winstreak:
-            typeof candidate.winstreak === 'number'
-                ? candidate.winstreak
-                : typeof candidate.winStreak === 'number'
-                    ? candidate.winStreak
+            typeof candidate.winStreak === 'number'
+                ? candidate.winStreak
+                : typeof candidate.winstreak === 'number'
+                    ? candidate.winstreak
                     : 0,
         longestWinStreak:
             typeof candidate.longestWinStreak === 'number'

@@ -1516,19 +1516,36 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               setLobbyUsers(injections.users);
               const store = useUserStore.getState();
               const prevViewer = store.globalUser;
+              const injectedViewer =
+                injections.viewer &&
+                (!currentUserSnapshot ||
+                  injections.viewer.uid !== currentUserSnapshot.uid)
+                  ? injections.viewer
+                  : null;
               const socketViewer =
-                injections.viewer ||
+                injectedViewer ||
                 normalizedUsers.find(
-                  (entry) => entry.uid && entry.uid === currentUserSnapshot?.uid
+                  (entry) =>
+                    entry.uid && entry.uid === currentUserSnapshot?.uid
                 );
               if (socketViewer) {
                 const mergedViewer =
                   prevViewer && prevViewer.uid === socketViewer.uid
                     ? { ...prevViewer, ...socketViewer }
                     : socketViewer;
-                const streakChanged =
-                  (prevViewer?.winstreak ?? 0) !==
-                  (mergedViewer.winstreak ?? 0);
+                const nextStreak =
+                  (socketViewer.winStreak ?? socketViewer.winstreak ??
+                    mergedViewer.winstreak ??
+                    prevViewer?.winstreak ??
+                    prevViewer?.winStreak ?? 0) || 0;
+                const normalizedViewer = {
+                  ...mergedViewer,
+                  winstreak: nextStreak,
+                  winStreak: nextStreak,
+                };
+                const prevStreak =
+                  prevViewer?.winstreak ?? prevViewer?.winStreak ?? 0;
+                const streakChanged = prevStreak !== nextStreak;
                 const roleChanged = prevViewer?.role !== mergedViewer.role;
                 const eloChanged =
                   (prevViewer?.accountElo ?? null) !==
@@ -1544,7 +1561,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                   eloChanged ||
                   titleChanged;
                 if (viewerChanged) {
-                  store.setGlobalUser(mergedViewer);
+                  store.setGlobalUser(normalizedViewer);
                 }
               }
             }

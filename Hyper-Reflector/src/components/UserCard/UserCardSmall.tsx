@@ -83,7 +83,7 @@ export default function UserCardSmall({
 
   return (
     <Stack
-      spacing="1"
+      gap="1"
       borderWidth="1px"
       borderColor="gray.700"
       borderRadius="md"
@@ -104,7 +104,7 @@ export default function UserCardSmall({
           <Avatar.Fallback name={user.userName} />
           <Avatar.Image src={user.userProfilePic} />
         </Avatar.Root>
-        <Stack spacing="0">
+        <Stack gap="0">
           <Text fontWeight="semibold" fontSize="sm">
             {user.userName}
           </Text>
@@ -146,7 +146,7 @@ export default function UserCardSmall({
       </Flex>
       {menuOpen && isInteractive ? (
         <Box paddingX="3" paddingBottom="3">
-          <Stack spacing="2">
+          <Stack gap="2">
             {user.knownAliases.length ? (
               <Text fontSize="xs" color="gray.400">
                 Also known as: {user.knownAliases.join(", ")}
