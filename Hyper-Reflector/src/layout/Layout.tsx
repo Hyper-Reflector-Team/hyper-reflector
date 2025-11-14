@@ -121,6 +121,9 @@ const lobbyNameMatcher = new RegExpMatcher({
   ...englishRecommendedTransformers,
 });
 
+const DEFAULT_RPS_ELO = 1200;
+const MOCK_RPS_ELO_DELTA = 15;
+
 function resolveMockDisplayName(uid?: string | null) {
   if (!uid) return "Mock Opponent";
   if (uid === MOCK_CHALLENGE_USER.uid) return MOCK_CHALLENGE_USER.userName;
@@ -931,6 +934,53 @@ export default function Layout({ children }: { children: ReactElement[] }) {
           }`,
           timeStamp: Date.now(),
         };
+        const store = useUserStore.getState();
+        const viewerSnapshot = store.globalUser;
+        const opponentUid =
+          viewerUid === prev.challengerId
+            ? prev.opponentId
+            : prev.challengerId;
+        const opponentSnapshot = store.lobbyUsers.find(
+          (entry) => entry.uid === opponentUid
+        );
+        const baseViewerElo = viewerSnapshot?.rpsElo ?? DEFAULT_RPS_ELO;
+        const baseOpponentElo = opponentSnapshot?.rpsElo ?? DEFAULT_RPS_ELO;
+        let viewerDelta = 0;
+        let opponentDelta = 0;
+        if (outcome === "win" && winnerUid && loserUid) {
+          if (winnerUid === viewerUid) {
+            viewerDelta = MOCK_RPS_ELO_DELTA;
+            opponentDelta = -MOCK_RPS_ELO_DELTA;
+          } else if (loserUid === viewerUid) {
+            viewerDelta = -MOCK_RPS_ELO_DELTA;
+            opponentDelta = MOCK_RPS_ELO_DELTA;
+          }
+        }
+        const ratings: Record<string, number> = {};
+        const ratingChanges: Record<string, number> = {};
+        ratings[viewerUid] = baseViewerElo + viewerDelta;
+        ratingChanges[viewerUid] = viewerDelta;
+        if (opponentUid) {
+          ratings[opponentUid] = baseOpponentElo + opponentDelta;
+          ratingChanges[opponentUid] = opponentDelta;
+        }
+        result.ratings = ratings;
+        result.ratingChanges = ratingChanges;
+        if (viewerSnapshot) {
+          store.setGlobalUser({
+            ...viewerSnapshot,
+            rpsElo: ratings[viewerUid],
+          });
+        }
+        if (opponentUid && opponentSnapshot) {
+          store.setLobbyUsers(
+            store.lobbyUsers.map((entry) =>
+              entry.uid === opponentUid
+                ? { ...entry, rpsElo: ratings[opponentUid] }
+                : entry
+            )
+          );
+        }
         return {
           ...prev,
           status: "resolved",
@@ -1385,13 +1435,45 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     async (side: "player1" | "player2") => {
       const viewer = globalUserRef.current;
       const session = miniGameStateRef.current;
-      if (!viewer?.uid || !session || !auth.currentUser) {
+      if (!viewer?.uid || !session) {
         return;
       }
       const opponentUid =
         viewer.uid === session.challengerId
           ? session.opponentId
           : session.challengerId;
+      if (!opponentUid) return;
+
+      if (session.mode === "mock") {
+        const entry = {
+          side,
+          ownerUid: viewer.uid,
+          opponentUid,
+          expiresAt: Date.now() + 60 * 60 * 1000,
+        };
+        applySidePreferenceLocally(entry, opponentUid);
+        setMiniGameState((prev) =>
+          prev && prev.sessionId === session.sessionId
+            ? { ...prev, sidePreferenceSubmitted: true }
+            : prev
+        );
+        toaster.success({
+          title: "Side selection noted",
+          description: `You will start as ${
+            side === "player1" ? "Player 1" : "Player 2"
+          } when challenging ${resolveUserName(opponentUid)} (mock).`,
+        });
+        return;
+      }
+
+      if (!auth.currentUser) {
+        toaster.error({
+          title: "Unable to save side preference",
+          description: "You must be logged in to persist this choice.",
+        });
+        return;
+      }
+
       setMiniGameSideLoading(true);
       try {
         const payload = await api.setSidePreference(auth, {

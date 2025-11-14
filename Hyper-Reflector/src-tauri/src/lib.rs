@@ -33,13 +33,13 @@ fn greet(name: &str) -> String {
 fn take_sink(app: &tauri::AppHandle) -> Option<Arc<rodio::Sink>> {
     let audio = app.state::<AudioState>();
     let mut guard = audio.sink.lock().unwrap();
-    guard.take() // guard drops here
+    guard.take()
 }
 
 fn set_sink(app: &tauri::AppHandle, new_sink: Option<Arc<rodio::Sink>>) {
     let audio = app.state::<AudioState>();
     let mut guard = audio.sink.lock().unwrap();
-    *guard = new_sink; // guard drops here
+    *guard = new_sink;
 }
 
 fn resolve_path_common(app: &AppHandle, raw: &str, empty_msg: &str) -> Result<PathBuf, String> {
@@ -340,7 +340,6 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
         old.stop();
     }
 
-    // Worker thread to keep OutputStream alive while playing
     std::thread::spawn(move || {
         let stream = match rodio::OutputStreamBuilder::open_default_stream() {
             Ok(s) => s,
@@ -349,10 +348,8 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
 
         let sink = Arc::new(rodio::Sink::connect_new(&stream.mixer()));
 
-        // publish handle (drop guard inside helper)
         set_sink(&app, Some(sink.clone()));
 
-        // open & decode
         let file = match std::fs::File::open(&resolved) {
             Ok(f) => f,
             Err(e) => {
@@ -373,11 +370,9 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
         sink.append(source);
         sink.sleep_until_end();
 
-        // clear the handle if it's still this sink
         let current = take_sink(&app);
         if let Some(cur) = current {
             if !Arc::ptr_eq(&cur, &sink) {
-                // someone else started a new sound; put it back
                 set_sink(&app, Some(cur));
             }
         }

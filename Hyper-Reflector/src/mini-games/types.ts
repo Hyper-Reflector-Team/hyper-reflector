@@ -20,6 +20,7 @@ export type MiniGameResultPayload = {
     loserUid?: string
     outcome: 'win' | 'draw' | 'forfeit' | 'declined'
     ratings?: Record<string, number>
+    ratingChanges?: Record<string, number>
     actorId?: string
 }
 

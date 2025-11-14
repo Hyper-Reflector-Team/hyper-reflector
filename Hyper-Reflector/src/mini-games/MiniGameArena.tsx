@@ -15,6 +15,7 @@ type MiniGameArenaProps = {
     viewerId?: string
     state: MiniGameUiState | null
     opponentName?: string
+    opponentName?: string
     onSubmitChoice: (choice: MiniGameChoice) => void
     onDecline: () => void
     onClose: () => void
@@ -52,10 +53,9 @@ export default function MiniGameArena({
     const showSideSelection =
         hasResult &&
         viewerIsWinner &&
-        onChooseSide &&
-        state?.result?.outcome === 'win' &&
-        state.mode === 'live' &&
-        !state.sidePreferenceSubmitted
+        result?.outcome === 'win' &&
+        !state.sidePreferenceSubmitted &&
+        (state.mode === 'mock' || Boolean(onChooseSide))
 
     const title = useMemo(() => {
         if (!state) return ''
@@ -75,6 +75,19 @@ export default function MiniGameArena({
 
     const waitingForOpponent = state.status === 'submitted' && !hasResult
     const controlsDisabled = state.status !== 'pending' || waitingForOpponent
+    const opponentUid =
+        viewerId && state
+            ? viewerId === state.challengerId
+                ? state.opponentId
+                : state.challengerId
+            : state?.opponentId
+    const viewerRating = viewerId && result?.ratings ? result.ratings[viewerId] : undefined
+    const viewerRatingChange =
+        viewerId && result?.ratingChanges ? result.ratingChanges[viewerId] : undefined
+    const opponentRating =
+        opponentUid && result?.ratings ? result.ratings[opponentUid] : undefined
+    const opponentRatingChange =
+        opponentUid && result?.ratingChanges ? result.ratingChanges[opponentUid] : undefined
 
     const renderResultSummary = () => {
         if (!result) return null
@@ -94,12 +107,24 @@ export default function MiniGameArena({
                         {humanizeChoice(state.challengerId === viewerId ? opponentChoice : challengerChoice)}
                     </Text>
                 </Flex>
-                {result.ratings && viewerId && result.ratings[viewerId] ? (
-                    <Flex justify="space-between" mt="2">
-                        <Text fontWeight="semibold">Your RPS ELO:</Text>
-                        <Text>{result.ratings[viewerId]}</Text>
-                    </Flex>
-                ) : null}
+                {result.ratings && (
+                    <Stack gap="1" mt="2">
+                        {viewerId ? (
+                            <RatingChangeLine
+                                label="Your ELO"
+                                rating={viewerRating}
+                                delta={viewerRatingChange}
+                            />
+                        ) : null}
+                        {opponentUid ? (
+                            <RatingChangeLine
+                                label={`${opponentName || 'Opponent'} ELO`}
+                                rating={opponentRating}
+                                delta={opponentRatingChange}
+                            />
+                        ) : null}
+                    </Stack>
+                )}
             </Stack>
         )
     }
@@ -247,6 +272,30 @@ function OptionCard({
 function humanizeChoice(choice?: MiniGameChoice | null) {
     if (!choice) return '\u2014'
     return choice.charAt(0).toUpperCase() + choice.slice(1)
+}
+
+function RatingChangeLine({
+    label,
+    rating,
+    delta,
+}: {
+    label: string
+    rating?: number
+    delta?: number
+}) {
+    if (typeof rating !== 'number' || typeof delta !== 'number') {
+        return null
+    }
+    const color = delta > 0 ? 'green.300' : delta < 0 ? 'red.300' : 'gray.300'
+    const deltaLabel = delta > 0 ? `+${delta}` : delta.toString()
+    return (
+        <Flex justify="space-between" fontSize="sm">
+            <Text color="gray.300">{label}</Text>
+            <Text color={color}>
+                {deltaLabel} ({rating})
+            </Text>
+        </Flex>
+    )
 }
 
 
