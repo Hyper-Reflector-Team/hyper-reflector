@@ -147,7 +147,7 @@ export default function UserCardSmall({
               <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
             </Stack>
           </Box>
-          <Box>
+          <Box display="flex" gap="2">
             <Tooltip
               content={`${user.countryCode || "Unknown"}`}
               openDelay={200}
@@ -163,12 +163,22 @@ export default function UserCardSmall({
             <Box display="flex" gap="1" alignItems="center">
               <Box minW="40px">
                 {pingLabel ? (
-                  <Text
-                    fontSize="xs"
-                    color={pingInfo.isUnstable ? "orange.300" : "gray.400"}
+                  <Tooltip
+                    content={
+                      pingInfo.isUnstable
+                        ? `Unstable ping ${pingLabel}`
+                        : pingLabel
+                    }
+                    openDelay={200}
+                    closeDelay={100}
                   >
-                    {pingLabel}
-                  </Text>
+                    <Text
+                      fontSize="xs"
+                      color={pingInfo.isUnstable ? "orange.300" : "gray.400"}
+                    >
+                      {pingLabel}
+                    </Text>
+                  </Tooltip>
                 ) : (
                   <Text fontSize="xs" color="gray.600">
                     Ping unknown
