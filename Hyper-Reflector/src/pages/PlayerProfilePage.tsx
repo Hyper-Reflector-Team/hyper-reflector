@@ -529,12 +529,20 @@ export default function PlayerProfilePage() {
                     </Text>
                   </Flex>
                   <TitleBadge title={profile.userTitle} />
-                  <Text fontSize="sm" color="gray.400">
+                  {/* <Text fontSize="sm" color="gray.400">
                     UID: {profile.uid}
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
+                  </Text> */}
+                  {/* <Text fontSize="sm" color="gray.400">
                     Country: {profile.countryCode || "Unknown"}
-                  </Text>
+                  </Text> */}
+                  <div>
+                    <span
+                      //  @ts-ignore // this is needed for the country code css library.
+                      class={`fi fi-${
+                        profile.countryCode?.toLowerCase() || "xx"
+                      }`}
+                    />
+                  </div>
                   {Array.isArray(profile.knownAliases) &&
                   profile.knownAliases.length ? (
                     <Text fontSize="sm" color="gray.500">
