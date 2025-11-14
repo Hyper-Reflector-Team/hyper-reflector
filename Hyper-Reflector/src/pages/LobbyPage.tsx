@@ -50,7 +50,7 @@ import { resolvePingBetweenUsers } from "../utils/ping";
 import MatchCard from "../components/UserCard/MatchCard";
 import { DEBUG_MOCK_MATCH_ID } from "../layout/helpers/mockUsers";
 
-const MAX_MESSAGE_LENGTH = 60;
+const MAX_MESSAGE_LENGTH = 120;
 
 type EloFilter = "ALL" | "ROOKIE" | "INTERMEDIATE" | "EXPERT";
 type PingFilter = "ALL" | "FAST" | "MODERATE" | "SLOW" | "UNKNOWN";
@@ -411,7 +411,7 @@ export default function LobbyPage() {
         flexDirection="column"
         maxH="100%"
         minH="100%"
-        flex="8"
+        flex="9"
         position="relative"
       >
         <Stack
@@ -473,7 +473,9 @@ export default function LobbyPage() {
                   <Stack gap="2">
                     <Flex alignItems="center" gap="2">
                       <Swords size={16} />
-                      <Text>{msg.text || "Incoming challenge"}</Text>
+                      <Text maxW="60ch" whiteSpace="pre-wrap">
+                        {msg.text || "Incoming challenge"}
+                      </Text>
                     </Flex>
                     {challengeStatus ? (
                       <Text
@@ -506,7 +508,11 @@ export default function LobbyPage() {
                     )}
                   </Stack>
                 ) : (
-                  <Box dangerouslySetInnerHTML={{ __html: messageHtml }} />
+                  <Box
+                    maxW="60ch"
+                    sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+                    dangerouslySetInnerHTML={{ __html: messageHtml }}
+                  />
                 )}
               </Stack>
             );
@@ -561,11 +567,12 @@ export default function LobbyPage() {
         </Box>
       </Box>
       <Box
+        scrollbarWidth="thin"
         display="flex"
         flexDirection="column"
         maxH="100%"
         minH="100%"
-        flex="3"
+        flex="4"
         overflow="hidden"
       >
         <CollapsibleRoot
@@ -660,9 +667,10 @@ export default function LobbyPage() {
                 >
                   <SelectTrigger clearable={pingFilter !== "ALL"}>
                     <SelectValueText
-                      placeholder={t("Lobby.ping.all", {
-                        defaultValue: "All pings",
-                      })}
+                      placeholder={"All pings"}
+                      // placeholder={t("Lobby.ping.all", {
+                      //   defaultValue: "All pings",
+                      // })}
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -679,7 +687,13 @@ export default function LobbyPage() {
         </CollapsibleRoot>
 
         <Box borderTopWidth="1px" borderColor="gray.700" />
-        <Stack flex="1" overflowY="auto" padding="4" gap="2">
+        <Stack
+          flex="1"
+          overflowY="auto"
+          padding="4"
+          gap="2"
+          scrollbarWidth="thin"
+        >
           <Text fontSize="sm" color="gray.500">
             {t("Lobby.showingUsers", {
               count: filteredUsers.length,
@@ -721,7 +735,12 @@ export default function LobbyPage() {
           )}
         </Stack>
         {currentMatches.length ? (
-          <Box padding="3" maxHeight="120px" overflowY="scroll">
+          <Box
+            padding="3"
+            maxHeight="120px"
+            overflowY="scroll"
+            scrollbarWidth="thin"
+          >
             <Box borderTopWidth="1px" borderColor="gray.700" pt="2" />
             <Stack gap="2">
               <Text fontSize="sm" color="gray.400">

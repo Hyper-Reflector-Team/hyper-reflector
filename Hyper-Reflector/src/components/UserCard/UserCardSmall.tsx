@@ -111,51 +111,56 @@ export default function UserCardSmall({
     <Stack
       borderWidth="1px"
       borderColor="gray.800"
-      borderRadius="md"
+      borderRadius="l2"
       bg="bg.canvas"
       _hover={isInteractive ? { borderColor: "gray.500" } : undefined}
     >
       <Flex
         alignItems="center"
-        gap="2"
-        padding="2"
+        gap="1"
+        padding="1"
         cursor={isInteractive ? "pointer" : "default"}
         role={isInteractive ? "button" : undefined}
         tabIndex={isInteractive ? 0 : -1}
         onClick={toggleMenu}
         onKeyDown={handleKeyToggle}
+        justifyContent="space-between"
       >
         <Box display="flex" gap="2" alignItems="center">
           <Box>
-            <Avatar.Root variant="outline" size="xs">
+            <Avatar.Root variant="outline" size="sm">
               <Avatar.Fallback name={user.userName} />
               <Avatar.Image src={user.userProfilePic} />
             </Avatar.Root>
-            {/* <WinStreakIndicator value={user.winStreak ?? 0} size="sm" /> */}
           </Box>
-          <Stack gap="1">
+          <Stack gap="1" justifyContent="center" minW="100px">
             <Text fontWeight="semibold" fontSize="xs">
               {user.userName}
             </Text>
             <TitleBadge title={user.userTitle} />
           </Stack>
-          <Stack gap="1" alignItems="flex-end">
-            <Text fontSize="xs" color="gray.500">
-              ELO {user.accountElo ?? "--"}
-            </Text>
-            <Box display="flex" gap="1" justifyContent="flex-end">
-              <Tooltip
-                content={`${user.countryCode || "Unknown"}`}
-                openDelay={200}
-                closeDelay={100}
-              >
-                <div>
-                  <span
-                    //  @ts-ignore // this is needed for the country code css library.
-                    class={`fi fi-${user.countryCode?.toLowerCase() || "xx"}`}
-                  />
-                </div>
-              </Tooltip>
+          <Box gap="1" display="flex">
+            <Stack>
+              <Text fontSize="xs" color="gray.500">
+                ELO {user.accountElo ?? "--"}
+              </Text>
+              <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
+            </Stack>
+          </Box>
+          <Box>
+            <Tooltip
+              content={`${user.countryCode || "Unknown"}`}
+              openDelay={200}
+              closeDelay={100}
+            >
+              <div>
+                <span
+                  //  @ts-ignore // this is needed for the country code css library.
+                  class={`fi fi-${user.countryCode?.toLowerCase() || "xx"}`}
+                />
+              </div>
+            </Tooltip>
+            <Box display="flex" gap="1" alignItems="center">
               <Box minW="40px">
                 {pingLabel ? (
                   <Text
@@ -171,24 +176,24 @@ export default function UserCardSmall({
                 )}
               </Box>
             </Box>
-          </Stack>
+          </Box>
         </Box>
-        {/* <Stack gap="0">
-          {preferenceLabel ? (
-            <Text fontSize="xs" color="orange.300">
-              Side lock: {preferenceLabel}
-            </Text>
-          ) : null}
-        </Stack> */}
       </Flex>
       {menuOpen && isInteractive ? (
         <Box paddingX="3" paddingBottom="3">
+          <Stack gap="0">
+            {preferenceLabel ? (
+              <Text fontSize="xs" color="orange.300">
+                Side lock: {preferenceLabel}
+              </Text>
+            ) : null}
+          </Stack>
           <Stack gap="2">
-            {user.knownAliases.length ? (
+            {/* {user.knownAliases.length ? (
               <Text fontSize="xs" color="gray.400">
                 Also known as: {user.knownAliases.join(", ")}
               </Text>
-            ) : null}
+            ) : null} */}
             <Button size="sm" colorPalette="orange" onClick={handleChallenge}>
               Challenge player
             </Button>
