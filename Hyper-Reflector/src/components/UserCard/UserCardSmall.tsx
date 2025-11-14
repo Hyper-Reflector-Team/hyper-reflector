@@ -109,9 +109,8 @@ export default function UserCardSmall({
 
   return (
     <Stack
-      gap="1"
       borderWidth="1px"
-      borderColor="gray.700"
+      borderColor="gray.800"
       borderRadius="md"
       bg="bg.canvas"
       _hover={isInteractive ? { borderColor: "gray.500" } : undefined}
@@ -126,59 +125,61 @@ export default function UserCardSmall({
         onClick={toggleMenu}
         onKeyDown={handleKeyToggle}
       >
-        <Flex>
-          <Avatar.Root variant="outline" size="xs">
-            <Avatar.Fallback name={user.userName} />
-            <Avatar.Image src={user.userProfilePic} />
-          </Avatar.Root>
-          <Stack>
-            <Flex>
-              <Text fontWeight="semibold" fontSize="sm">
-                {user.userName}
-                <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
-              </Text>
-            </Flex>
-            <Flex>
-              <TitleBadge title={user.userTitle} />
-            </Flex>
+        <Box display="flex" gap="2" alignItems="center">
+          <Box>
+            <Avatar.Root variant="outline" size="xs">
+              <Avatar.Fallback name={user.userName} />
+              <Avatar.Image src={user.userProfilePic} />
+            </Avatar.Root>
+            {/* <WinStreakIndicator value={user.winStreak ?? 0} size="sm" /> */}
+          </Box>
+          <Stack gap="1">
+            <Text fontWeight="semibold" fontSize="xs">
+              {user.userName}
+            </Text>
+            <TitleBadge title={user.userTitle} />
           </Stack>
-        </Flex>
-
-        <Flex gap="0">
-          <Flex align="center" gap="1"></Flex>
-          <Text fontSize="xs" color="gray.500">
-            ELO {user.accountElo ?? "--"}
-          </Text>
-          {pingLabel ? (
-            <Text
-              fontSize="xs"
-              color={pingInfo.isUnstable ? "orange.300" : "gray.400"}
-            >
-              Ping {pingLabel}
+          <Stack gap="1" alignItems="flex-end">
+            <Text fontSize="xs" color="gray.500">
+              ELO {user.accountElo ?? "--"}
             </Text>
-          ) : (
-            <Text fontSize="xs" color="gray.600">
-              Ping unknown
-            </Text>
-          )}
+            <Box display="flex" gap="1" justifyContent="flex-end">
+              <Tooltip
+                content={`${user.countryCode || "Unknown"}`}
+                openDelay={200}
+                closeDelay={100}
+              >
+                <div>
+                  <span
+                    //  @ts-ignore // this is needed for the country code css library.
+                    class={`fi fi-${user.countryCode?.toLowerCase() || "xx"}`}
+                  />
+                </div>
+              </Tooltip>
+              <Box minW="40px">
+                {pingLabel ? (
+                  <Text
+                    fontSize="xs"
+                    color={pingInfo.isUnstable ? "orange.300" : "gray.400"}
+                  >
+                    {pingLabel}
+                  </Text>
+                ) : (
+                  <Text fontSize="xs" color="gray.600">
+                    Ping unknown
+                  </Text>
+                )}
+              </Box>
+            </Box>
+          </Stack>
+        </Box>
+        {/* <Stack gap="0">
           {preferenceLabel ? (
             <Text fontSize="xs" color="orange.300">
               Side lock: {preferenceLabel}
             </Text>
           ) : null}
-        </Flex>
-        <Tooltip
-          content={`${user.countryCode || "Unknown"}`}
-          openDelay={200}
-          closeDelay={100}
-        >
-          <div>
-            <span
-              //  @ts-ignore // this is needed for the country code css library.
-              class={`fi fi-${user.countryCode?.toLowerCase() || "xx"}`}
-            />
-          </div>
-        </Tooltip>
+        </Stack> */}
       </Flex>
       {menuOpen && isInteractive ? (
         <Box paddingX="3" paddingBottom="3">

@@ -1,9 +1,7 @@
 import { Avatar, Box, Flex, Stack, Text } from "@chakra-ui/react";
 import { useNavigate } from "@tanstack/react-router";
-import { Tooltip } from "../chakra/ui/tooltip";
 import { useUserStore } from "../../state/store";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
-import WinStreakIndicator from "../WinStreakIndicator";
 
 export default function UserCard() {
   const globalLoggedIn = useUserStore((s) => s.globalLoggedIn);
@@ -43,22 +41,7 @@ export default function UserCard() {
             <Text fontWeight="semibold" fontSize="sm">
               {globalUser?.userName || "Player"}
             </Text>
-            <WinStreakIndicator value={globalUser?.winStreak ?? 0} size="sm" />
           </Stack>
-          <Tooltip
-            content={`${globalUser?.countryCode || "Unknown"}`}
-            openDelay={200}
-            closeDelay={100}
-          >
-            <div>
-              <span
-                //  @ts-ignore // this is needed for the country code css library.
-                class={`fi fi-${
-                  globalUser?.countryCode?.toLowerCase() || "xx"
-                }`}
-              />
-            </div>
-          </Tooltip>
         </Flex>
       )}
     </Box>

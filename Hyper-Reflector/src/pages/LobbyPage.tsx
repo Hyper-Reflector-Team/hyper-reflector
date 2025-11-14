@@ -725,7 +725,7 @@ export default function LobbyPage() {
             <Box borderTopWidth="1px" borderColor="gray.700" pt="2" />
             <Stack gap="2">
               <Text fontSize="sm" color="gray.400">
-                Ongoing matches ({currentMatches.length})
+                Current matches ({currentMatches.length})
               </Text>
               {currentMatches.map((match) => (
                 <MatchCard key={match.id} match={match} />
