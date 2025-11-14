@@ -102,7 +102,9 @@ export default function UserCardSmall({
     if (!viewerPreference) return null;
     const remainingMs = viewerPreference.expiresAt - Date.now();
     const remainingMinutes = Math.max(0, Math.ceil(remainingMs / 60000));
-    return `${viewerPreference.side === "player1" ? "P1" : "P2"} • ${remainingMinutes}m`;
+    return `${
+      viewerPreference.side === "player1" ? "P1" : "P2"
+    } -> ${remainingMinutes}m`;
   }, [viewerPreference]);
 
   return (
@@ -124,18 +126,26 @@ export default function UserCardSmall({
         onClick={toggleMenu}
         onKeyDown={handleKeyToggle}
       >
-        <Avatar.Root variant="outline" size="xs">
-          <Avatar.Fallback name={user.userName} />
-          <Avatar.Image src={user.userProfilePic} />
-        </Avatar.Root>
-        <Stack gap="0">
-          <Text fontWeight="semibold" fontSize="sm">
-            {user.userName}
-          </Text>
-          <Flex align="center" gap="1">
-            <TitleBadge title={user.userTitle} />
-            <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
-          </Flex>
+        <Flex>
+          <Avatar.Root variant="outline" size="xs">
+            <Avatar.Fallback name={user.userName} />
+            <Avatar.Image src={user.userProfilePic} />
+          </Avatar.Root>
+          <Stack>
+            <Flex>
+              <Text fontWeight="semibold" fontSize="sm">
+                {user.userName}
+                <WinStreakIndicator value={user.winStreak ?? 0} size="sm" />
+              </Text>
+            </Flex>
+            <Flex>
+              <TitleBadge title={user.userTitle} />
+            </Flex>
+          </Stack>
+        </Flex>
+
+        <Flex gap="0">
+          <Flex align="center" gap="1"></Flex>
           <Text fontSize="xs" color="gray.500">
             ELO {user.accountElo ?? "--"}
           </Text>
@@ -156,7 +166,7 @@ export default function UserCardSmall({
               Side lock: {preferenceLabel}
             </Text>
           ) : null}
-        </Stack>
+        </Flex>
         <Tooltip
           content={`${user.countryCode || "Unknown"}`}
           openDelay={200}

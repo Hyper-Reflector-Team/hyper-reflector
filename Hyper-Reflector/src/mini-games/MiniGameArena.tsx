@@ -11,10 +11,12 @@ import {
     DialogRoot,
 } from '../components/chakra/ui/dialog'
 
+const INVITE_WINDOW_SECONDS = 30
+const CHOICE_WINDOW_SECONDS = 10
+
 type MiniGameArenaProps = {
     viewerId?: string
     state: MiniGameUiState | null
-    opponentName?: string
     opponentName?: string
     onSubmitChoice: (choice: MiniGameChoice) => void
     onDecline: () => void
@@ -48,6 +50,7 @@ export default function MiniGameArena({
 
     const result = state?.result ?? null
     const hasResult = Boolean(result)
+    const awaitingActivation = Boolean(state && state.phase === 'invite' && !hasResult)
     const viewerIsWinner = result?.winnerUid === viewerId
     const viewerIsLoser = result?.loserUid === viewerId
     const showSideSelection =
@@ -66,6 +69,9 @@ export default function MiniGameArena({
             if (viewerIsLoser) return 'Defeat'
             return 'Duel Result'
         }
+        if (state.phase === 'invite') {
+            return state.isInitiator ? 'Waiting for opponent' : 'Incoming Duel'
+        }
         return 'Rock Paper Scissors Duel'
     }, [state, hasResult, viewerIsWinner, viewerIsLoser])
 
@@ -74,13 +80,26 @@ export default function MiniGameArena({
     }
 
     const waitingForOpponent = state.status === 'submitted' && !hasResult
-    const controlsDisabled = state.status !== 'pending' || waitingForOpponent
+    const controlsDisabled =
+        state.status !== 'pending' || waitingForOpponent || awaitingActivation
     const opponentUid =
         viewerId && state
             ? viewerId === state.challengerId
                 ? state.opponentId
                 : state.challengerId
             : state?.opponentId
+    const phaseDurationSeconds =
+        state.phase === 'invite' ? INVITE_WINDOW_SECONDS : CHOICE_WINDOW_SECONDS
+    const safeCountdown = Math.min(phaseDurationSeconds, countdown)
+    const progressPercent = hasResult
+        ? 100
+        : Math.min(
+              100,
+              Math.max(
+                  0,
+                  ((phaseDurationSeconds - safeCountdown) / Math.max(1, phaseDurationSeconds)) * 100
+              )
+          )
     const viewerRating = viewerId && result?.ratings ? result.ratings[viewerId] : undefined
     const viewerRatingChange =
         viewerId && result?.ratingChanges ? result.ratingChanges[viewerId] : undefined
@@ -147,16 +166,17 @@ export default function MiniGameArena({
                                     h="100%"
                                     borderRadius="full"
                                     transition="width 0.2s linear"
-                                    width={`${Math.min(
-                                        100,
-                                        Math.max(0, ((10 - countdown) / 10) * 100)
-                                    )}%`}
+                                    width={`${progressPercent}%`}
                                 />
                             </Box>
                             <Text textAlign="center" fontSize="sm" color="gray.300">
-                                {waitingForOpponent
-                                    ? 'Waiting for your opponent...'
-                                    : `Make your choice within ${countdown}s`}
+                                {awaitingActivation
+                                    ? state.isInitiator
+                                        ? `Waiting for ${opponentName || 'your opponent'} to accept (${countdown}s)`
+                                        : 'Respond to the duel request in chat.'
+                                    : waitingForOpponent
+                                      ? 'Waiting for your opponent...'
+                                      : `Make your choice within ${countdown}s`}
                             </Text>
                             <Flex justify="space-between" gap="3">
                                 {RPS_OPTIONS.map((option) => (
@@ -196,7 +216,11 @@ export default function MiniGameArena({
                             >
                                 <Flex align="center" gap="2">
                                     <XCircle size={16} />
-                                    {state.isInitiator ? 'Cancel duel' : 'Decline'}
+                                    {state.isInitiator
+                                        ? state.phase === 'invite'
+                                            ? 'Cancel invitation'
+                                            : 'Cancel duel'
+                                        : 'Decline'}
                                 </Flex>
                             </Button>
                         </Flex>

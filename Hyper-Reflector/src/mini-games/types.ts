@@ -37,6 +37,7 @@ export type MiniGameUiState = {
     opponentId: string
     gameType: MiniGameType
     expiresAt: number
+    phase: 'invite' | 'active'
     isInitiator: boolean
     status: 'pending' | 'submitted' | 'resolved' | 'declined'
     viewerChoice?: MiniGameChoice

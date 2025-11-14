@@ -112,7 +112,7 @@ import {
 } from "../utils/matchFiles";
 import { parseMatchData } from "../utils/matchParser";
 import { isTauriEnv, resolveFilesPath } from "../utils/pathSettings";
-import { peerLatencyManager } from "../webrtc/peerLatencyManager";
+import { peerLatencyManager } from "../webRTC/peerLatencyManager";
 
 const DEV_MATCH_ID = "dev-matches-and-bugs";
 
@@ -266,6 +266,14 @@ type ChallengeResponseDetail = {
   messageId: string;
   accepted: boolean;
   responderName?: string;
+  kind?: "match" | "rps";
+};
+
+type MiniGameInviteMeta = {
+  sessionId: string;
+  challengerId: string;
+  opponentId: string;
+  expiresAt: number;
 };
 
 export default function Layout({ children }: { children: ReactElement[] }) {
@@ -324,6 +332,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   const pendingIceCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(
     new Map()
   );
+  const pendingMiniGameInvitesRef = useRef<Map<string, MiniGameInviteMeta>>(
+    new Map()
+  );
+  const mutedUsersRef = useRef<string[]>(mutedUsers || []);
   const matchUploadPendingRef = useRef(false);
   const activeMatchIdRef = useRef<string | null>(null);
   const localPlayerSlotRef = useRef<0 | 1>(0);
@@ -384,14 +396,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
   const applySidePreferenceLocally = useCallback(
     (
-      entry:
-        | {
-            side: "player1" | "player2";
-            ownerUid: string;
-            opponentUid: string;
-            expiresAt: number;
-          }
-        | null,
+      entry: {
+        side: "player1" | "player2";
+        ownerUid: string;
+        opponentUid: string;
+        expiresAt: number;
+      } | null,
       opponentUid: string
     ) => {
       const store = useUserStore.getState();
@@ -733,6 +743,71 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     ]
   );
 
+  const sendMiniGameMessage = useCallback((payload: Record<string, unknown>) => {
+    const socket = signalSocketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch (error) {
+      console.error("Failed to send mini-game message", error);
+    }
+  }, []);
+
+  const handleMiniGameInviteResponse = useCallback(
+    (messageId: string, accepted: boolean, responderName?: string) => {
+      const viewer = globalUserRef.current;
+      if (!viewer?.uid) {
+        toaster.error({
+          title: "Unable to respond",
+          description: "Please log in before responding to duels.",
+        });
+        return;
+      }
+      const invite = pendingMiniGameInvitesRef.current.get(messageId);
+      if (!invite) {
+        toaster.error({
+          title: "Invite expired",
+          description: "This duel request is no longer available.",
+        });
+        return;
+      }
+      const responder =
+        responderName && responderName.trim().length
+          ? responderName.trim()
+          : viewer.userName || "You";
+      const status = accepted ? "accepted" : "declined";
+      const { updateMessage } = useMessageStore.getState();
+      updateMessage(messageId, {
+        challengeStatus: status,
+        challengeResponder: responder,
+        challengeChallengerId: invite.challengerId,
+        challengeOpponentId: invite.opponentId,
+      });
+      pendingMiniGameInvitesRef.current.delete(messageId);
+      if (accepted) {
+        sendMiniGameMessage({
+          type: "mini-game-accept",
+          sessionId: invite.sessionId,
+          playerId: viewer.uid,
+        });
+        toaster.success({
+          title: "Duel accepted",
+          description: "Opening the side select duel...",
+        });
+      } else {
+        sendMiniGameMessage({
+          type: "mini-game-decline",
+          sessionId: invite.sessionId,
+          playerId: viewer.uid,
+          reason: "decline",
+        });
+      }
+    },
+    [sendMiniGameMessage]
+  );
+
   const mentionHandles = useMemo(() => {
     const handles = new Set<string>();
     const username = globalUser?.userName?.trim();
@@ -846,17 +921,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       window.removeEventListener(SOCKET_STATE_EVENT, handler as EventListener);
   }, [sendSocketStateUpdate]);
 
-  const sendMiniGameMessage = useCallback((payload: Record<string, unknown>) => {
-    const socket = signalSocketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    try {
-      socket.send(JSON.stringify(payload));
-    } catch (error) {
-      console.error("Failed to send mini-game message", error);
-    }
-  }, []);
+  useEffect(() => {
+    mutedUsersRef.current = mutedUsers || [];
+  }, [mutedUsers]);
+
+  useEffect(() => {
+    if (!mutedUsers) return;
+    sendSocketStateUpdate({ key: "mutedUsers", value: mutedUsers });
+  }, [mutedUsers, sendSocketStateUpdate]);
 
   const finalizeMockMiniGame = useCallback(
     (sessionId: string, viewerChoice: MiniGameChoice | null) => {
@@ -921,9 +993,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
           role: "system",
           text: `RPS duel between ${resolveUserName(
             prev.challengerId
-          )} (${formatMiniGameChoice(
-            challengerChoice
-          )}) and ${resolveUserName(
+          )} (${formatMiniGameChoice(challengerChoice)}) and ${resolveUserName(
             prev.opponentId
           )} (${formatMiniGameChoice(opponentChoice)}) ${
             outcome === "draw"
@@ -937,9 +1007,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         const store = useUserStore.getState();
         const viewerSnapshot = store.globalUser;
         const opponentUid =
-          viewerUid === prev.challengerId
-            ? prev.opponentId
-            : prev.challengerId;
+          viewerUid === prev.challengerId ? prev.opponentId : prev.challengerId;
         const opponentSnapshot = store.lobbyUsers.find(
           (entry) => entry.uid === opponentUid
         );
@@ -1007,6 +1075,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         opponentId: opponentUid,
         gameType: "rps",
         expiresAt,
+        phase: "active",
         isInitiator: true,
         status: "pending",
         mode: "mock",
@@ -1030,6 +1099,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       setLobbyUsers([]);
       clearChatMessages();
       closeLobbyManager();
+      pendingMiniGameInvitesRef.current.clear();
     }
   }, [
     clearChatMessages,
@@ -1098,13 +1168,24 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       const parsed = parseMatchData(rawData);
       if (!parsed) return;
 
-      const pickValue = (entry: string | number | Array<string | number>) =>
-        Array.isArray(entry) ? entry[entry.length - 1] : entry;
+      const pickValue = (
+        entry: unknown
+      ): string | number | undefined => {
+        if (Array.isArray(entry)) {
+          const last = entry[entry.length - 1];
+          return typeof last === "string" || typeof last === "number"
+            ? last
+            : undefined;
+        }
+        return typeof entry === "string" || typeof entry === "number"
+          ? entry
+          : undefined;
+      };
 
       const matchUuidEntry = parsed["match-uuid"];
-      const matchUuid = matchUuidEntry
-        ? String(pickValue(matchUuidEntry))
-        : undefined;
+      const rawMatchUuid = pickValue(matchUuidEntry);
+      const matchUuid =
+        rawMatchUuid !== undefined ? String(rawMatchUuid) : undefined;
       if (matchUuid && lastMatchUuidRef.current === matchUuid) {
         return;
       }
@@ -1371,7 +1452,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             ? { ...prev, viewerChoice: choice, status: "submitted" }
             : prev
         );
-        window.setTimeout(() => finalizeMockMiniGame(session.sessionId, choice), 600);
+        window.setTimeout(
+          () => finalizeMockMiniGame(session.sessionId, choice),
+          600
+        );
         return;
       }
       setMiniGameState((prev) =>
@@ -1482,6 +1566,13 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         });
         if (payload?.ownerEntry) {
           applySidePreferenceLocally(payload.ownerEntry, opponentUid);
+          if (payload.opponentEntry) {
+            sendMiniGameMessage({
+              type: "mini-game-side-lock",
+              ownerEntry: payload.ownerEntry,
+              opponentEntry: payload.opponentEntry,
+            });
+          }
           toaster.success({
             title: "Side selection saved",
             description: `You will start as ${
@@ -1509,7 +1600,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         setMiniGameSideLoading(false);
       }
     },
-    [applySidePreferenceLocally]
+    [
+      applySidePreferenceLocally,
+      clearMockMiniGameTimer,
+      resolveUserName,
+      sendMiniGameMessage,
+    ]
   );
 
   const handleCreateLobby = useCallback(
@@ -1867,6 +1963,15 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       const detail = (event as CustomEvent<ChallengeResponseDetail>).detail;
       if (!detail?.messageId) return;
 
+      if (detail.kind === "rps") {
+        handleMiniGameInviteResponse(
+          detail.messageId,
+          detail.accepted,
+          detail.responderName
+        );
+        return;
+      }
+
       handleChallengeResponse(
         detail.messageId,
         detail.accepted,
@@ -1883,7 +1988,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         "lobby:challenge-response",
         handler as EventListener
       );
-  }, [handleChallengeResponse]);
+  }, [handleChallengeResponse, handleMiniGameInviteResponse]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -2034,35 +2139,35 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               const socketViewer =
                 injectedViewer ||
                 normalizedUsers.find(
-                  (entry) =>
+                  (entry: TUser) =>
                     entry.uid && entry.uid === currentUserSnapshot?.uid
                 );
               if (socketViewer) {
-              const mergedViewer =
-                prevViewer && prevViewer.uid === socketViewer.uid
-                  ? { ...prevViewer, ...socketViewer }
-                  : socketViewer;
-              const nextStreak =
-                typeof socketViewer.winStreak === "number"
-                  ? socketViewer.winStreak
-                  : typeof mergedViewer.winStreak === "number"
-                  ? mergedViewer.winStreak
-                  : typeof prevViewer?.winStreak === "number"
-                  ? prevViewer.winStreak
-                  : 0;
-              const normalizedViewer = {
-                ...mergedViewer,
-                winStreak: nextStreak,
-              };
-              const prevStreak =
-                typeof prevViewer?.winStreak === "number"
-                  ? prevViewer.winStreak
-                  : 0;
-              const streakChanged = prevStreak !== nextStreak;
-              const roleChanged = prevViewer?.role !== mergedViewer.role;
-              const eloChanged =
-                (prevViewer?.accountElo ?? null) !==
-                (mergedViewer.accountElo ?? null);
+                const mergedViewer =
+                  prevViewer && prevViewer.uid === socketViewer.uid
+                    ? { ...prevViewer, ...socketViewer }
+                    : socketViewer;
+                const nextStreak =
+                  typeof socketViewer.winStreak === "number"
+                    ? socketViewer.winStreak
+                    : typeof mergedViewer.winStreak === "number"
+                    ? mergedViewer.winStreak
+                    : typeof prevViewer?.winStreak === "number"
+                    ? prevViewer.winStreak
+                    : 0;
+                const normalizedViewer = {
+                  ...mergedViewer,
+                  winStreak: nextStreak,
+                };
+                const prevStreak =
+                  typeof prevViewer?.winStreak === "number"
+                    ? prevViewer.winStreak
+                    : 0;
+                const streakChanged = prevStreak !== nextStreak;
+                const roleChanged = prevViewer?.role !== mergedViewer.role;
+                const eloChanged =
+                  (prevViewer?.accountElo ?? null) !==
+                  (mergedViewer.accountElo ?? null);
                 const titleChanged =
                   (prevViewer?.userTitle?.title || "") !==
                   (mergedViewer.userTitle?.title || "");
@@ -2282,11 +2387,14 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             ) {
               break;
             }
+            const phase = payload.phase === "invite" ? "invite" : "active";
             const existing = miniGameStateRef.current;
             if (
               existing &&
               existing.sessionId !== payload.sessionId &&
-              existing.status !== "resolved"
+              existing.mode === "live" &&
+              existing.status !== "resolved" &&
+              existing.status !== "declined"
             ) {
               sendMiniGameMessage({
                 type: "mini-game-decline",
@@ -2296,23 +2404,115 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               });
               break;
             }
-            if (payload.opponentId === viewerId) {
-              toaster.info({
-                title: "RPS Duel",
-                description: `${resolveUserName(
-                  payload.challengerId
-                )} challenged you to a duel.`,
-              });
+            if (phase === "invite") {
+              if (payload.opponentId === viewerId) {
+                const mutedList = mutedUsersRef.current || [];
+                if (mutedList.includes(payload.challengerId)) {
+                  sendMiniGameMessage({
+                    type: "mini-game-decline",
+                    sessionId: payload.sessionId,
+                    playerId: viewerId,
+                    reason: "muted",
+                  });
+                  break;
+                }
+                pendingMiniGameInvitesRef.current.set(payload.sessionId, {
+                  sessionId: payload.sessionId,
+                  challengerId: payload.challengerId,
+                  opponentId: payload.opponentId,
+                  expiresAt: payload.expiresAt,
+                });
+                const challengerName = resolveUserName(payload.challengerId);
+                const { chatMessages, addChatMessage, updateMessage } =
+                  useMessageStore.getState();
+                const existingMessage = chatMessages.find(
+                  (message) => message.id === payload.sessionId
+                );
+                const baseMessage: TMessage = {
+                  id: payload.sessionId,
+                  role: "challenge",
+                  text: `${challengerName} challenged you to a side select duel.`,
+                  timeStamp: Date.now(),
+                  userName: challengerName,
+                  senderUid: payload.challengerId,
+                  challengeChallengerId: payload.challengerId,
+                  challengeOpponentId: viewerId,
+                  challengeKind: "rps",
+                };
+                if (existingMessage) {
+                  updateMessage(payload.sessionId, {
+                    ...baseMessage,
+                    challengeStatus: undefined,
+                    challengeResponder: undefined,
+                  });
+                } else {
+                  addChatMessage(baseMessage);
+                }
+                toaster.info({
+                  title: "Side select duel request",
+                  description: `Accept or decline ${challengerName}'s duel from chat.`,
+                });
+              } else {
+                setMiniGameState({
+                  sessionId: payload.sessionId,
+                  challengerId: payload.challengerId,
+                  opponentId: payload.opponentId,
+                  gameType: payload.gameType,
+                  expiresAt: payload.expiresAt,
+                  phase: "invite",
+                  isInitiator: true,
+                  status: "pending",
+                  mode: "live",
+                });
+              }
+              break;
             }
+
+            pendingMiniGameInvitesRef.current.delete(payload.sessionId);
             setMiniGameState({
               sessionId: payload.sessionId,
               challengerId: payload.challengerId,
               opponentId: payload.opponentId,
               gameType: payload.gameType,
               expiresAt: payload.expiresAt,
+              phase: "active",
               isInitiator: payload.challengerId === viewerId,
               status: "pending",
               mode: "live",
+            });
+            break;
+          }
+          case "mini-game-challenge-denied": {
+            const viewerId = globalUserRef.current?.uid;
+            if (!viewerId || payload?.challengerId !== viewerId) {
+              break;
+            }
+            let description = "Unable to send duel request.";
+            switch (payload.reason) {
+              case "muted":
+                description = "That player has muted you.";
+                break;
+              case "pending":
+                description =
+                  "You already have a duel pending with this player.";
+                break;
+              case "cooldown":
+                if (typeof payload.retryInMs === "number") {
+                  const seconds = Math.max(
+                    1,
+                    Math.ceil(payload.retryInMs / 1000)
+                  );
+                  description = `Please wait ${seconds}s before challenging again.`;
+                } else {
+                  description = "Please wait a bit before challenging again.";
+                }
+                break;
+              default:
+                break;
+            }
+            toaster.error({
+              title: "Duel not sent",
+              description,
             });
             break;
           }
@@ -2332,6 +2532,21 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 ? { ...prev, status: "resolved", result: resultPayload }
                 : prev
             );
+            const pendingInvite = pendingMiniGameInvitesRef.current.get(
+              resultPayload.sessionId
+            );
+            if (pendingInvite) {
+              pendingMiniGameInvitesRef.current.delete(resultPayload.sessionId);
+              if (resultPayload.outcome === "declined") {
+                useMessageStore
+                  .getState()
+                  .updateMessage(resultPayload.sessionId, {
+                    challengeStatus: "declined",
+                    challengeResponder:
+                      resolveUserName(resultPayload.actorId) || "System",
+                  });
+              }
+            }
             if (resultPayload.ratings && resultPayload.ratings[viewerId]) {
               const store = useUserStore.getState();
               const currentViewer = store.globalUser;
@@ -2364,6 +2579,27 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               text: `RPS duel between ${challengerName} (${challengerChoice}) and ${opponentName} (${opponentChoice}) ${outcomeText}.`,
               timeStamp: Date.now(),
             });
+            break;
+          }
+          case "mini-game-side-lock": {
+            const viewerId = globalUserRef.current?.uid;
+            if (!viewerId || !payload?.ownerEntry) {
+              break;
+            }
+            if (payload.ownerEntry.ownerUid === viewerId) {
+              applySidePreferenceLocally(
+                payload.ownerEntry,
+                payload.ownerEntry.opponentUid
+              );
+            } else if (
+              payload.ownerEntry.opponentUid === viewerId &&
+              payload.opponentEntry
+            ) {
+              applySidePreferenceLocally(
+                payload.opponentEntry,
+                payload.opponentEntry.opponentUid
+              );
+            }
             break;
           }
           case "peer-latency-offer":
@@ -2961,34 +3197,43 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                               {`Challenge ${challengeStatus} by ${responderLabel}.`}
                             </Text>
                           ) : (
-                            <HStack pt="1">
-                              <Button
-                                size="sm"
-                                colorPalette={accentColor}
-                                onClick={() =>
+                            (() => {
+                              const respondToNotification = (
+                                accepted: boolean
+                              ) => {
+                                if (msg.challengeKind === "rps") {
+                                  handleMiniGameInviteResponse(
+                                    msg.id,
+                                    accepted,
+                                    globalUser?.userName
+                                  );
+                                } else {
                                   handleChallengeResponse(
                                     msg.id,
-                                    true,
+                                    accepted,
                                     globalUser?.userName
-                                  )
+                                  );
                                 }
-                              >
-                                {CHALLENGE_ACCEPT_LABEL}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  handleChallengeResponse(
-                                    msg.id,
-                                    false,
-                                    globalUser?.userName
-                                  )
-                                }
-                              >
-                                {CHALLENGE_DECLINE_LABEL}
-                              </Button>
-                            </HStack>
+                              };
+                              return (
+                                <HStack pt="1">
+                                  <Button
+                                    size="sm"
+                                    colorPalette={accentColor}
+                                    onClick={() => respondToNotification(true)}
+                                  >
+                                    {CHALLENGE_ACCEPT_LABEL}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => respondToNotification(false)}
+                                  >
+                                    {CHALLENGE_DECLINE_LABEL}
+                                  </Button>
+                                </HStack>
+                              );
+                            })()
                           )
                         ) : null}
                       </Stack>

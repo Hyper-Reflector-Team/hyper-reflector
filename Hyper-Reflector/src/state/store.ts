@@ -70,6 +70,7 @@ export type TMessage = {
     challengeResponder?: string
     challengeChallengerId?: string
     challengeOpponentId?: string
+    challengeKind?: 'match' | 'rps'
 }
 
 type MessageState = {

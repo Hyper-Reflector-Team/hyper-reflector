@@ -39,14 +39,11 @@ export default function UserCard() {
             <Avatar.Fallback name={globalUser?.userName} />
             <Avatar.Image src={globalUser?.userProfilePic} />
           </Avatar.Root>
-          <Stack spacing="1">
+          <Stack gap="1">
             <Text fontWeight="semibold" fontSize="sm">
               {globalUser?.userName || "Player"}
             </Text>
-        <WinStreakIndicator
-            value={globalUser?.winStreak ?? 0}
-            size="sm"
-          />
+            <WinStreakIndicator value={globalUser?.winStreak ?? 0} size="sm" />
           </Stack>
           <Tooltip
             content={`${globalUser?.countryCode || "Unknown"}`}

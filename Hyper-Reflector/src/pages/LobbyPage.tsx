@@ -430,6 +430,7 @@ export default function LobbyPage() {
                     messageId: msg.id,
                     accepted,
                     responderName: globalUser?.userName,
+                    kind: msg.challengeKind ?? "match",
                   },
                 })
               );
