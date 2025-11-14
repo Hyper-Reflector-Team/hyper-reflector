@@ -47,6 +47,8 @@ import type { TUser } from "../types/user";
 import { toaster } from "../components/chakra/ui/toaster";
 import { highlightMentions } from "../utils/chatFormatting";
 import { resolvePingBetweenUsers } from "../utils/ping";
+import MatchCard from "../components/UserCard/MatchCard";
+import { DEBUG_MOCK_MATCH_ID } from "../layout/helpers/mockUsers";
 
 const MAX_MESSAGE_LENGTH = 60;
 
@@ -87,6 +89,7 @@ export default function LobbyPage() {
   const { t } = useTranslation();
   const globalUser = useUserStore((s) => s.globalUser);
   const lobbyUsers = useUserStore((s) => s.lobbyUsers);
+  const currentMatches = useUserStore((s) => s.currentMatches);
   const chatMessages = useMessageStore((s) => s.chatMessages);
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -301,6 +304,15 @@ export default function LobbyPage() {
     const query = searchQuery.trim().toLowerCase();
 
     return lobbyRoster
+      .filter((user) => {
+        if (
+          user.currentMatchId &&
+          user.currentMatchId !== DEBUG_MOCK_MATCH_ID
+        ) {
+          return false;
+        }
+        return true;
+      })
       .filter((user) => {
         const matchesSearch =
           !query || user.userName.toLowerCase().includes(query);
@@ -665,6 +677,7 @@ export default function LobbyPage() {
             </Stack>
           </CollapsibleContent>
         </CollapsibleRoot>
+
         <Box borderTopWidth="1px" borderColor="gray.700" />
         <Stack flex="1" overflowY="auto" padding="4" gap="2">
           <Text fontSize="sm" color="gray.500">
@@ -707,6 +720,19 @@ export default function LobbyPage() {
             ))
           )}
         </Stack>
+        {currentMatches.length ? (
+          <Box padding="3" maxHeight="120px" overflowY="scroll">
+            <Box borderTopWidth="1px" borderColor="gray.700" pt="2" />
+            <Stack gap="2">
+              <Text fontSize="sm" color="gray.400">
+                Ongoing matches ({currentMatches.length})
+              </Text>
+              {currentMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </Stack>
+          </Box>
+        ) : null}
       </Box>
     </Box>
   );

@@ -251,7 +251,6 @@ export default function PlayerProfilePage() {
   );
 
   const currentWinStreak = profile?.winStreak ?? 0;
-  console.log(profile);
   const currentElo = playerStats?.accountElo ?? profile?.accountElo;
   const displayElo =
     currentElo !== undefined && currentElo !== null

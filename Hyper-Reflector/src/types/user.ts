@@ -32,6 +32,7 @@ export type TUser = {
     winStreak?: number
     longestWinStreak?: number
     rpsElo?: number
+    currentMatchId?: string
     sidePreferences?: Record<
         string,
         {

@@ -48,10 +48,9 @@ export async function readMatchCommandFile(): Promise<string | null> {
     if (!paths) return null
     try {
         if (import.meta.env.DEV) {
-            console.log('[match-files] reading command', paths.command)
+            //console.log('[match-files] reading command', paths.command)
         }
         const contents = await invoke<string>('read_files_text', { relativePath: paths.command })
-        console.log('contents', JSON.stringify(contents))
         return contents ?? null
     } catch (error) {
         console.error('Failed to read match command file', error)

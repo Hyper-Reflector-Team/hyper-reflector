@@ -7,6 +7,8 @@ export const FALLBACK_USER_TITLE: TUser['userTitle'] = {
     title: 'Contender',
 }
 
+export const DEBUG_MOCK_MATCH_ID = 'mock-debug-match';
+
 export const MOCK_CHALLENGE_USER: TUser = {
     uid: 'mock-opponent',
     userName: 'Mock Opponent',
@@ -227,6 +229,10 @@ export const normalizeSocketUser = (candidate: any): TUser | null => {
                 : undefined,
         rpsElo: typeof candidate.rpsElo === 'number' ? candidate.rpsElo : RESOLVED_RPS_ELO,
         sidePreferences: sanitizeSidePreferences(candidate.sidePreferences),
+        currentMatchId:
+            typeof candidate.currentMatchId === 'string' && candidate.currentMatchId.length
+                ? candidate.currentMatchId
+                : undefined,
     }
 
     if (lastKnownPings) {
@@ -265,6 +271,7 @@ export const appendMockUsers = (
         const mockClone: TUser = {
             ...mock,
             ping: pingValue,
+            currentMatchId: DEBUG_MOCK_MATCH_ID,
             lastKnownPings: viewer?.uid
                 ? [
                       ...(Array.isArray(mock.lastKnownPings) ? mock.lastKnownPings : []),

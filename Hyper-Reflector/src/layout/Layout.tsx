@@ -30,6 +30,7 @@ import {
   useUserStore,
 } from "../state/store";
 import type { LobbySummary, TMessage } from "../state/store";
+import type { MatchSummary } from "../types/match";
 import type { TUser } from "../types/user";
 import { useTranslation } from "react-i18next";
 import bgImage from "../assets/bgImage.svg";
@@ -63,6 +64,8 @@ import {
 import {
   appendMockUsers,
   buildMockForLobby,
+  DEBUG_MOCK_MATCH_ID,
+  FALLBACK_USER_TITLE,
   MOCK_ACTION_INTERVAL_MS,
   MOCK_CHALLENGE_LINES,
   MOCK_CHALLENGE_USER,
@@ -140,6 +143,177 @@ const formatMiniGameChoice = (choice?: MiniGameChoice | null) => {
 const MINI_GAME_CHOICES: MiniGameChoice[] = ["rock", "paper", "scissors"];
 const randomMiniGameChoice = (): MiniGameChoice =>
   MINI_GAME_CHOICES[Math.floor(Math.random() * MINI_GAME_CHOICES.length)];
+
+const createDebugPlayer = (
+  uid: string,
+  userName: string,
+  countryCode: string,
+  accountElo: number,
+  title: string
+): TUser => ({
+  uid,
+  userName,
+  accountElo,
+  countryCode,
+  gravEmail: "",
+  knownAliases: [],
+  pingLat: undefined,
+  pingLon: undefined,
+  userEmail: `${uid}@mock.local`,
+  userProfilePic: "",
+  userTitle: { ...FALLBACK_USER_TITLE, title },
+  role: "user",
+  winStreak: 0,
+  rpsElo: 1200,
+  sidePreferences: {},
+});
+
+const DEBUG_MATCH_PLAYER_PROFILES: TUser[] = [
+  MOCK_CHALLENGE_USER,
+  MOCK_CHALLENGE_USER_TWO,
+  createDebugPlayer("mock-apollo", "Apollo Bot", "BR", 1780, "Solar Ace"),
+  createDebugPlayer("mock-luna", "Luna Bot", "CA", 1650, "Moonlit Duelist"),
+  createDebugPlayer("mock-rico", "Rico Bot", "MX", 1820, "Border King"),
+  createDebugPlayer("mock-sora", "Sora Bot", "JP", 1900, "Wind Walker"),
+  createDebugPlayer("mock-iris", "Iris Bot", "FR", 1725, "Arcane Bloom"),
+];
+
+const DEBUG_MATCH_BLUEPRINTS: Array<{
+  id: string;
+  gameName: string;
+  players: Array<{ uid: string; playerSlot: 0 | 1 }>;
+}> = [
+  {
+    id: `${DEBUG_MOCK_MATCH_ID}-alpha`,
+    gameName: "Training Match",
+    players: [
+      { uid: "mock-opponent", playerSlot: 0 },
+      { uid: "mock-opponent-2", playerSlot: 1 },
+    ],
+  },
+  {
+    id: `${DEBUG_MOCK_MATCH_ID}-beta`,
+    gameName: "First to 5",
+    players: [
+      { uid: "mock-apollo", playerSlot: 0 },
+      { uid: "mock-luna", playerSlot: 1 },
+    ],
+  },
+  {
+    id: `${DEBUG_MOCK_MATCH_ID}-gamma`,
+    gameName: "Gauntlet Prep",
+    players: [
+      { uid: "mock-rico", playerSlot: 0 },
+      { uid: "mock-sora", playerSlot: 1 },
+    ],
+  },
+  {
+    id: `${DEBUG_MOCK_MATCH_ID}-delta`,
+    gameName: "Arcade Classics",
+    players: [
+      { uid: "mock-iris", playerSlot: 0 },
+      { uid: "mock-apollo", playerSlot: 1 },
+    ],
+  },
+  {
+    id: `${DEBUG_MOCK_MATCH_ID}-epsilon`,
+    gameName: "Lunch Break Sets",
+    players: [
+      { uid: "mock-luna", playerSlot: 0 },
+      { uid: "mock-rico", playerSlot: 1 },
+    ],
+  },
+];
+
+const normalizeMatchSummary = (raw: any): MatchSummary | null => {
+  if (!raw || typeof raw !== "object") return null;
+  const id = typeof raw.id === "string" ? raw.id : undefined;
+  if (!id) return null;
+  const lobbyId =
+    typeof raw.lobbyId === "string" && raw.lobbyId.length
+      ? raw.lobbyId
+      : DEFAULT_LOBBY_ID;
+  const startedAt =
+    typeof raw.startedAt === "number" ? raw.startedAt : Date.now();
+  const gameName =
+    typeof raw.gameName === "string" || raw.gameName === null
+      ? raw.gameName
+      : undefined;
+  const players = Array.isArray(raw.players)
+    ? raw.players
+        .map((player: any) => {
+          if (!player || typeof player !== "object") return null;
+          const uid = typeof player.uid === "string" ? player.uid : undefined;
+          if (!uid) return null;
+          const slot =
+            player.playerSlot === 1 || player.playerSlot === "1" ? 1 : 0;
+          return {
+            uid,
+            playerSlot: slot as 0 | 1,
+            userName:
+              typeof player.userName === "string" ? player.userName : undefined,
+            userProfilePic:
+              typeof player.userProfilePic === "string"
+                ? player.userProfilePic
+                : undefined,
+            countryCode:
+              typeof player.countryCode === "string"
+                ? player.countryCode
+                : undefined,
+            userTitle: player.userTitle,
+            accountElo:
+              typeof player.accountElo === "number"
+                ? player.accountElo
+                : undefined,
+          };
+        })
+        .filter(
+          (
+            entry: MatchSummary["players"][number] | null
+          ): entry is MatchSummary["players"][number] => Boolean(entry)
+        )
+    : [];
+  return {
+    id,
+    lobbyId,
+    startedAt,
+    gameName,
+    players,
+  };
+};
+
+const buildMockMatchPlayer = (
+  source: TUser,
+  playerSlot: 0 | 1
+): MatchSummary["players"][number] => ({
+  uid: source.uid,
+  userName: source.userName,
+  userProfilePic: source.userProfilePic,
+  countryCode: source.countryCode,
+  userTitle: source.userTitle,
+  accountElo: source.accountElo,
+  playerSlot,
+});
+
+const findDebugMatchPlayer = (uid: string): TUser => {
+  const candidate = DEBUG_MATCH_PLAYER_PROFILES.find(
+    (player) => player.uid === uid
+  );
+  return candidate ?? MOCK_CHALLENGE_USER;
+};
+
+const buildDebugMockMatches = (lobbyId: string): MatchSummary[] => {
+  const now = Date.now();
+  return DEBUG_MATCH_BLUEPRINTS.map((blueprint, index) => ({
+    id: blueprint.id,
+    lobbyId,
+    startedAt: now - index * 90_000,
+    gameName: blueprint.gameName,
+    players: blueprint.players.map(({ uid, playerSlot }) =>
+      buildMockMatchPlayer(findDebugMatchPlayer(uid), playerSlot)
+    ),
+  }));
+};
 
 const MAX_METER_EVENTS = 200;
 const MAX_RAW_PAYLOAD_LENGTH = 450_000;
@@ -290,6 +464,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   const lobbyList = useUserStore((s) => s.lobbies);
   const setLobbyList = useUserStore((s) => s.setLobbies);
   const lobbyUsers = useUserStore((s) => s.lobbyUsers);
+  const setCurrentMatches = useUserStore((s) => s.setCurrentMatches);
   const setLobbyUsers = useUserStore((s) => s.setLobbyUsers);
   const theme = useSettingsStore((s) => s.theme);
   const notificationsMuted = useSettingsStore((s) => s.notificationsMuted);
@@ -337,10 +512,12 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   );
   const mutedUsersRef = useRef<string[]>(mutedUsers || []);
   const matchUploadPendingRef = useRef(false);
+  const serverMatchesRef = useRef<MatchSummary[]>([]);
   const activeMatchIdRef = useRef<string | null>(null);
   const localPlayerSlotRef = useRef<0 | 1>(0);
   const pendingPreferredSlotRef = useRef<0 | 1 | null>(null);
   const lastMatchUuidRef = useRef<string | null>(null);
+  const debugMockMatchesRef = useRef<MatchSummary[]>([]);
   const [isInMatch, setIsInMatch] = useState(false);
   const [miniGameState, setMiniGameState] = useState<MiniGameUiState | null>(
     null
@@ -349,6 +526,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   const [miniGameSideLoading, setMiniGameSideLoading] = useState(false);
   const mockMiniGameTimers = useRef<Map<string, number>>(new Map());
   const isInMatchRef = useRef(false);
+  const currentMatchModeRef = useRef<"live" | "mock" | null>(null);
   const winSoundPathRef = useRef<string | null>(null);
   const declineChallengeWithSocket = useCallback(
     (targetId: string, challengerId: string) => {
@@ -451,6 +629,26 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     return entry?.userName || "Unknown player";
   }, []);
 
+  const applyDebugMatchInjection = useCallback(
+    (matches: MatchSummary[]): MatchSummary[] => {
+      const activeLobby = currentLobbyIdRef.current?.trim().toLowerCase();
+      const sanitized = matches.filter(
+        (entry) => !entry.id.startsWith(DEBUG_MOCK_MATCH_ID)
+      );
+      if (activeLobby !== "debug") {
+        debugMockMatchesRef.current = [];
+        return sanitized;
+      }
+      if (!debugMockMatchesRef.current.length) {
+        debugMockMatchesRef.current = buildDebugMockMatches(
+          currentLobbyIdRef.current || "Debug"
+        );
+      }
+      return [...sanitized, ...debugMockMatchesRef.current];
+    },
+    []
+  );
+
   const clearMockMiniGameTimer = useCallback((sessionId: string) => {
     const timer = mockMiniGameTimers.current.get(sessionId);
     if (timer) {
@@ -477,21 +675,76 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     };
   }, []);
 
-  const markMatchEnded = useCallback(() => {
-    if (!isInMatchRef.current) return;
-    isInMatchRef.current = false;
-    setIsInMatch(false);
-    sentMatchRequestRef.current.clear();
-    lastMatchUuidRef.current = null;
-    activeMatchIdRef.current = null;
-    localPlayerSlotRef.current = 0;
-    pendingPreferredSlotRef.current = null;
+  const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
+    const socket = signalSocketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn("Signal socket not ready for payload", payload);
+      return false;
+    }
+
+    try {
+      socket.send(JSON.stringify(payload));
+      return true;
+    } catch (error) {
+      console.error("Failed to send payload to signal server:", error);
+      return false;
+    }
   }, []);
+
+  const notifyMatchStatus = useCallback((status: "start" | "end") => {
+    const viewer = globalUserRef.current;
+    const socket = signalSocketRef.current;
+    const matchId = activeMatchIdRef.current;
+    const opponentId = opponentUidRef.current;
+    if (
+      !viewer?.uid ||
+      !socket ||
+      socket.readyState !== WebSocket.OPEN ||
+      !matchId ||
+      !opponentId
+    ) {
+      return;
+    }
+    const lobbyId = currentLobbyIdRef.current || DEFAULT_LOBBY_ID;
+    try {
+      socket.send(
+        JSON.stringify({
+          type: "match-status",
+          status,
+          matchId,
+          opponentId,
+          lobbyId,
+        })
+      );
+    } catch (error) {
+      console.error("Failed to send match status update:", error);
+    }
+  }, []);
+
+  const markMatchEnded = useCallback(
+    (options?: { notifyServer?: boolean }) => {
+      if (!isInMatchRef.current) return;
+      isInMatchRef.current = false;
+      setIsInMatch(false);
+      sentMatchRequestRef.current.clear();
+      lastMatchUuidRef.current = null;
+      activeMatchIdRef.current = null;
+      localPlayerSlotRef.current = 0;
+      pendingPreferredSlotRef.current = null;
+      const previousMode = currentMatchModeRef.current;
+      currentMatchModeRef.current = null;
+      const shouldNotify = options?.notifyServer ?? true;
+      if (shouldNotify && previousMode === "live") {
+        notifyMatchStatus("end");
+      }
+    },
+    [notifyMatchStatus, setIsInMatch]
+  );
 
   const markMatchStarted = useCallback(
     (
       opponentUid?: string | null,
-      options?: { matchId?: string; playerSlot?: 0 | 1 }
+      options?: { matchId?: string; playerSlot?: 0 | 1; mode?: "live" | "mock" }
     ) => {
       if (opponentUid) {
         opponentUidRef.current = opponentUid;
@@ -502,6 +755,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       if (typeof options?.playerSlot === "number") {
         localPlayerSlotRef.current = options.playerSlot;
       }
+      currentMatchModeRef.current = options?.mode ?? "live";
       isInMatchRef.current = true;
       setIsInMatch(true);
 
@@ -533,24 +787,9 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       cancelPendingChallengesInvolving,
       declineChallengeWithSocket,
       globalUser?.uid,
+      setIsInMatch,
     ]
   );
-
-  const sendSocketMessage = useCallback((payload: Record<string, unknown>) => {
-    const socket = signalSocketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      console.warn("Signal socket not ready for payload", payload);
-      return false;
-    }
-
-    try {
-      socket.send(JSON.stringify(payload));
-      return true;
-    } catch (error) {
-      console.error("Failed to send payload to signal server:", error);
-      return false;
-    }
-  }, []);
 
   const handleChallengeResponse = useCallback(
     (messageId: string, accepted: boolean, responderName?: string) => {
@@ -696,6 +935,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             markMatchStarted(mockUid, {
               matchId: messageId,
               playerSlot: localPlayerSlot,
+              mode: "mock",
             });
             void startMockMatch({
               matchId: messageId,
@@ -743,17 +983,20 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     ]
   );
 
-  const sendMiniGameMessage = useCallback((payload: Record<string, unknown>) => {
-    const socket = signalSocketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    try {
-      socket.send(JSON.stringify(payload));
-    } catch (error) {
-      console.error("Failed to send mini-game message", error);
-    }
-  }, []);
+  const sendMiniGameMessage = useCallback(
+    (payload: Record<string, unknown>) => {
+      const socket = signalSocketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      try {
+        socket.send(JSON.stringify(payload));
+      } catch (error) {
+        console.error("Failed to send mini-game message", error);
+      }
+    },
+    []
+  );
 
   const handleMiniGameInviteResponse = useCallback(
     (messageId: string, accepted: boolean, responderName?: string) => {
@@ -880,6 +1123,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
   useEffect(() => {
     currentLobbyIdRef.current = currentLobbyId || DEFAULT_LOBBY_ID;
   }, [currentLobbyId]);
+
+  useEffect(() => {
+    setCurrentMatches(applyDebugMatchInjection(serverMatchesRef.current));
+  }, [currentLobbyId, applyDebugMatchInjection, setCurrentMatches]);
 
   const sendSocketStateUpdate = useCallback(
     (update: SocketStateUpdateDetail) => {
@@ -1168,9 +1415,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       const parsed = parseMatchData(rawData);
       if (!parsed) return;
 
-      const pickValue = (
-        entry: unknown
-      ): string | number | undefined => {
+      const pickValue = (entry: unknown): string | number | undefined => {
         if (Array.isArray(entry)) {
           const last = entry[entry.length - 1];
           return typeof last === "string" || typeof last === "number"
@@ -1244,7 +1489,6 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       busy = true;
       try {
         const command = await readMatchCommandFile();
-        console.log("commands", JSON.stringify(command));
         if (!command || !command.trim().length) {
           return;
         }
@@ -1368,7 +1612,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         const mockName = resolveMockDisplayName(targetUid);
 
         const mockMatchId = `mock-${Date.now()}`;
-        markMatchStarted(targetUid, { matchId: mockMatchId, playerSlot: 0 });
+        markMatchStarted(targetUid, {
+          matchId: mockMatchId,
+          playerSlot: 0,
+          mode: "mock",
+        });
         try {
           await startMockMatch({
             matchId: mockMatchId,
@@ -2046,6 +2294,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
 
     if (!globalLoggedIn || !userSnapshot) {
       setSignalStatus("disconnected");
+      setCurrentMatches([]);
       if (signalSocketRef.current) {
         signalSocketRef.current.close();
         signalSocketRef.current = null;
@@ -2767,6 +3016,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
               markMatchStarted(opponentUid, {
                 matchId,
                 playerSlot: normalizedSlot,
+                mode: "live",
               });
               await startProxyMatch({
                 matchId,
@@ -2787,6 +3037,27 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             }
             break;
           }
+          case "match-force-close": {
+            if (typeof payload?.opponentId === "string") {
+              void closeConnectionWithUser(payload.opponentId);
+            }
+            markMatchEnded({ notifyServer: false });
+            toaster.info({
+              title: "Match ended",
+              description:
+                typeof payload?.reason === "string"
+                  ? payload.reason
+                  : "Opponent closed the match.",
+            });
+            break;
+          }
+          case "matchEndedClose": {
+            if (typeof payload?.userUID === "string") {
+              void closeConnectionWithUser(payload.userUID);
+            }
+            markMatchEnded({ notifyServer: false });
+            break;
+          }
           case "match-start-error": {
             markMatchEnded();
             if (typeof payload?.reason === "string") {
@@ -2800,6 +3071,16 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             }
             if (typeof payload?.challengerId === "string") {
               sentMatchRequestRef.current.delete(payload.challengerId);
+            }
+            break;
+          }
+          case "match-list": {
+            if (Array.isArray(payload.matches)) {
+              const normalizedMatches = payload.matches
+                .map((entry: any) => normalizeMatchSummary(entry))
+                .filter((entry): entry is MatchSummary => Boolean(entry));
+              serverMatchesRef.current = normalizedMatches;
+              setCurrentMatches(applyDebugMatchInjection(normalizedMatches));
             }
             break;
           }
@@ -2870,9 +3151,11 @@ export default function Layout({ children }: { children: ReactElement[] }) {
     setCurrentLobbyId,
     setLobbyList,
     setLobbyUsers,
+    setCurrentMatches,
     setSignalStatus,
     resolveUserName,
     sendMiniGameMessage,
+    applyDebugMatchInjection,
   ]);
 
   return (
