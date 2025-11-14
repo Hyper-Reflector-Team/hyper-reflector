@@ -3347,7 +3347,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                   {statusLabel}
                 </Text>
               </Box>
-              <Text textStyle="xs">Hyper Reflector version 0.5.1a 2025</Text>
+              <Text textStyle="xs">Hyper Reflector version 0.6.0a 2025</Text>
             </Flex>
           </Box>
         </Stack>
