@@ -1,9 +1,9 @@
 import keys from '../private/keys'
 import { firebaseConfig } from '../private/firebase'
+import type { TUserTitle } from '../types/user'
+import { fetch } from '@tauri-apps/plugin-http';
 
 const SERVER = keys.COTURN_IP
-
-import { fetch } from '@tauri-apps/plugin-http';
 
 // await fetch(`http://${SERVER}:${keys.API_PORT}/logged-in`, {
 //     method: "POST",
@@ -427,6 +427,126 @@ async function getAllTitles(auth, userId) {
     }
 }
 
+async function getConditionalFlairs(auth) {
+    if (!checkCurrentAuthState(auth)) return null
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/get-conditional-flairs`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                }),
+            }
+        )
+
+        if (!response.ok) {
+            console.log('getConditionalFlairs failed', response)
+            return null
+        }
+
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+    }
+}
+
+async function createTitleFlair(auth, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth)) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/create-title-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('createTitleFlair failed', response)
+            return false
+        }
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
+async function createConditionalFlair(auth, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth)) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/create-conditional-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('createConditionalFlair failed', response)
+            return false
+        }
+        const data = await response.json()
+        return data
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
+async function grantConditionalFlair(auth, targetUid: string, flair: TUserTitle) {
+    if (!checkCurrentAuthState(auth) || !targetUid) return false
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(
+            `http://${SERVER}:${keys.API_PORT}/admin/grant-conditional-flair`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    idToken: idToken || 'not real',
+                    targetUid,
+                    flair,
+                }),
+            }
+        )
+        if (!response.ok) {
+            console.log('grantConditionalFlair failed', response)
+            return false
+        }
+        return await response.json()
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return false
+    }
+}
+
 async function searchUsers(auth, query: string, cursor?: string | null, limit = 25) {
     if (!checkCurrentAuthState(auth)) return
     const idToken = await auth.currentUser.getIdToken().then((res) => res)
@@ -452,6 +572,35 @@ async function searchUsers(auth, query: string, cursor?: string | null, limit = 
         console.log(error)
         console.error(error.message)
         return { users: [], nextCursor: null }
+    }
+}
+
+async function setSidePreference(
+    auth,
+    params: { opponentUid: string; side: 'player1' | 'player2' }
+) {
+    if (!checkCurrentAuthState(auth) || !params?.opponentUid) return null
+    const idToken = await auth.currentUser.getIdToken().then((res) => res)
+    try {
+        const response = await fetch(`http://${SERVER}:${keys.API_PORT}/mini-game/side-selection`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                idToken: idToken || 'not real',
+                opponentUid: params.opponentUid,
+                side: params.side,
+            }),
+        })
+        if (!response.ok) {
+            return null
+        }
+        return await response.json()
+    } catch (error) {
+        console.log(error)
+        console.error(error.message)
+        return null
     }
 }
 
@@ -499,9 +648,14 @@ export default {
     getUserByAuth,
     getUserData,
     getAllTitles,
+    createTitleFlair,
+    getConditionalFlairs,
+    createConditionalFlair,
+    grantConditionalFlair,
     getPlayerStats,
     searchUsers,
     getLeaderboard,
+    setSidePreference,
     //matches
     uploadMatchData,
     getUserMatches,

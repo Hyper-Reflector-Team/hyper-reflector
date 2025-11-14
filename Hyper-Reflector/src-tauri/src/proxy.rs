@@ -188,11 +188,10 @@ impl ProxyRuntime {
                 match emu_listener.recv_from(&mut buf).await {
                     Ok((n, _from)) => {
                         let payload = &buf[..n];
-                        let _ = this.send_to_peer(payload).await; // ✅ use `this`
+                        let _ = this.send_to_peer(payload).await;
                     }
                     Err(_e) => {
                         let _ = this.app.emit_to(
-                            // ✅ use `this`
                             EventTarget::any(),
                             "proxy-log",
                             "emu recv error".to_string(),
@@ -245,7 +244,7 @@ impl ProxyRuntime {
             return;
         }
 
-        let this = Arc::clone(self); // ✅ now valid
+        let this = Arc::clone(self);
         let handle = tokio::spawn(async move {
             let mut ticker = interval(Duration::from_secs(1));
             loop {
