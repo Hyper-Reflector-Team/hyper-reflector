@@ -23,6 +23,8 @@ import {
   HStack,
   Button,
   Switch,
+  Float,
+  Circle,
 } from "@chakra-ui/react";
 import {
   DEFAULT_LOBBY_ID,
@@ -2266,40 +2268,47 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       window.removeEventListener("lobby:rps-duel", handler as EventListener);
   }, [handleMiniGameChallenge]);
 
-  const handleForceCloseMatch = useCallback(async () => {
-    if (!isInMatchRef.current) return;
-    if (!isTauriEnv()) {
-      markMatchEnded();
-      return;
-    }
-    try {
-      await Promise.all([
-        invoke("kill_emulator_only").catch(() => {}),
-        invoke("kill_mock_emulators").catch(() => {}),
-      ]);
-      toaster.info({
-        title: "Closing match",
-        description: "Attempting to force close the emulator.",
-      });
-      markMatchEnded();
-    } catch (error) {
-      console.error("Failed to force close emulator", error);
-      toaster.error({
-        title: "Unable to close match",
-        description: "Please try again.",
-      });
-      markMatchEnded();
-    }
-  }, [markMatchEnded]);
+  const handleForceCloseMatch = useCallback(
+    async (options?: { notifyServer?: boolean; silent?: boolean }) => {
+      if (!isInMatchRef.current) return;
+      const shouldNotifyServer = options?.notifyServer ?? true;
+      const silent = options?.silent ?? false;
+
+      if (!isTauriEnv()) {
+        markMatchEnded({ notifyServer: shouldNotifyServer });
+        return;
+      }
+
+      try {
+        await Promise.all([
+          invoke("kill_emulator_only").catch(() => {}),
+          invoke("kill_mock_emulators").catch(() => {}),
+          invoke("stop_proxy").catch(() => {}),
+        ]);
+        if (!silent) {
+          toaster.info({
+            title: "Closing match",
+            description: "Attempting to force close the emulator.",
+          });
+        }
+        markMatchEnded({ notifyServer: shouldNotifyServer });
+      } catch (error) {
+        console.error("Failed to force close emulator", error);
+        if (!silent) {
+          toaster.error({
+            title: "Unable to close match",
+            description: "Please try again.",
+          });
+        }
+        markMatchEnded({ notifyServer: shouldNotifyServer });
+      }
+    },
+    [markMatchEnded]
+  );
 
   const handleEndMatch = useCallback(() => {
-    markMatchEnded();
-    if (isTauriEnv()) {
-      invoke("stop_proxy").catch(() => {
-        /* ignore */
-      });
-    }
-  }, [markMatchEnded]);
+    void handleForceCloseMatch({ notifyServer: true, silent: true });
+  }, [handleForceCloseMatch]);
 
   useEffect(() => {
     const maybeApi = (window as any)?.api;
@@ -3076,7 +3085,10 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             if (typeof payload?.opponentId === "string") {
               void closeConnectionWithUser(payload.opponentId);
             }
-            markMatchEnded({ notifyServer: false });
+            void handleForceCloseMatch({
+              notifyServer: false,
+              silent: true,
+            });
             toaster.info({
               title: "Match ended",
               description:
@@ -3090,7 +3102,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             if (typeof payload?.userUID === "string") {
               void closeConnectionWithUser(payload.userUID);
             }
-            markMatchEnded({ notifyServer: false });
+            void handleForceCloseMatch({ notifyServer: false, silent: true });
             break;
           }
           case "match-start-error": {
@@ -3296,7 +3308,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
             <Flex display="flex" alignItems="center" gap="3">
               <UserCard />
               {globalLoggedIn ? (
-                <Box>
+                <Box position="relative">
                   <IconButton
                     colorPalette={accentColor}
                     width={"40px"}
@@ -3304,29 +3316,41 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                     onClick={openNotifications}
                     aria-label="Open notifications"
                   >
+                    <Float placement="bottom-end">
+                      <Circle size="5" bg="bg.muted" color="white">
+                        <Text fontSize="xs">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </Text>
+                      </Circle>
+                    </Float>
                     {notificationsMuted ? <BellOff /> : <Bell />}
                   </IconButton>
-                  {unreadCount > 0 ? (
-                    <Box
-                      position="absolute"
-                      top="-4px"
-                      right="-4px"
-                      minWidth="18px"
-                      height="18px"
-                      borderRadius="full"
-                      bg={`${accentColor}.500`}
-                      color="white"
-                      fontSize="xs"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      px="1"
-                    >
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </Box>
-                  ) : null}
                 </Box>
-              ) : null}
+              ) : // <Box>
+
+              //   {unreadCount > 0 ? (
+              //     <Float>
+              //       <Box
+              //       // position="absolute"
+              //       // top="-4px"
+              //       // right="-4px"
+              //       // minWidth="18px"
+              //       // height="18px"
+              //       // borderRadius="full"
+              //       // bg={`${accentColor}.500`}
+              //       // color="white"
+              //       // fontSize="xs"
+              //       // display="flex"
+              //       // alignItems="center"
+              //       // justifyContent="center"
+              //       // px="1"
+              //       >
+              //         {unreadCount > 99 ? "99+" : unreadCount}
+              //       </Box>
+              //     </Float>
+              //   ) : null}
+              // </Box>
+              null}
 
               {isInMatch ? (
                 <Button
