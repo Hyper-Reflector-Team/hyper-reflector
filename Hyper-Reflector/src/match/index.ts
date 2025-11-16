@@ -176,10 +176,12 @@ export async function startMockMatch({
             invoke('launch_emulator', {
                 exePath: emulatorPath,
                 args: playerArgs,
+                matchId,
             }),
             invoke('launch_emulator', {
                 exePath: emulatorPath,
                 args: opponentArgs,
+                matchId,
             }),
         ])
         toaster.success({

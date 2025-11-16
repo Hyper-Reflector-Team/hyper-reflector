@@ -661,22 +661,27 @@ export default function PlayerProfilePage() {
           <Flex justify="space-between" align="center">
             <Heading size="md">Recent matches</Heading>
             <Flex gap={2} align="center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchMatches("prev")}
-                disabled={!matchCursor.first || matchesLoading}
-              >
-                Newer
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchMatches("next")}
-                disabled={!matchCursor.last || matchesLoading}
-              >
-                Older
-              </Button>
+              {matchesDisclosure.open ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchMatches("prev")}
+                    disabled={!matchCursor.first || matchesLoading}
+                  >
+                    Newer
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchMatches("next")}
+                    disabled={!matchCursor.last || matchesLoading}
+                  >
+                    Older
+                  </Button>
+                </>
+              ) : null}
+
               <IconButton
                 aria-label="Toggle recent matches"
                 variant="ghost"

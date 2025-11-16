@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { invoke } from "@tauri-apps/api/core";
 //@ts-ignore // keys exists
 import keys from "../private/keys";
 import { useNavigate } from "@tanstack/react-router";
@@ -2265,9 +2266,43 @@ export default function Layout({ children }: { children: ReactElement[] }) {
       window.removeEventListener("lobby:rps-duel", handler as EventListener);
   }, [handleMiniGameChallenge]);
 
+  const handleForceCloseMatch = useCallback(async () => {
+    if (!isInMatchRef.current) return;
+    if (!isTauriEnv()) {
+      markMatchEnded();
+      return;
+    }
+    try {
+      await Promise.all([
+        invoke("kill_emulator_only").catch(() => {}),
+        invoke("kill_mock_emulators").catch(() => {}),
+      ]);
+      toaster.info({
+        title: "Closing match",
+        description: "Attempting to force close the emulator.",
+      });
+      markMatchEnded();
+    } catch (error) {
+      console.error("Failed to force close emulator", error);
+      toaster.error({
+        title: "Unable to close match",
+        description: "Please try again.",
+      });
+      markMatchEnded();
+    }
+  }, [markMatchEnded]);
+
+  const handleEndMatch = useCallback(() => {
+    markMatchEnded();
+    if (isTauriEnv()) {
+      invoke("stop_proxy").catch(() => {
+        /* ignore */
+      });
+    }
+  }, [markMatchEnded]);
+
   useEffect(() => {
     const maybeApi = (window as any)?.api;
-    const handleEndMatch = () => markMatchEnded();
 
     if (maybeApi?.on && typeof maybeApi.on === "function") {
       maybeApi.on("endMatchUI", handleEndMatch);
@@ -2283,7 +2318,7 @@ export default function Layout({ children }: { children: ReactElement[] }) {
         maybeApi.removeListener("endMatch", handleEndMatch);
       }
     };
-  }, [markMatchEnded]);
+  }, [handleEndMatch]);
 
   const changeRoute = (route: string) => {
     navigate({ to: route });
@@ -3258,39 +3293,52 @@ export default function Layout({ children }: { children: ReactElement[] }) {
                 Lobby: {currentLobbyId || DEFAULT_LOBBY_ID}
               </Button>
             ) : null}
-            <Box display="flex">
+            <Flex display="flex" alignItems="center" gap="3">
               <UserCard />
-              <Box position="relative" top="1.5">
-                <IconButton
-                  colorPalette={accentColor}
-                  width={"40px"}
-                  height={"40px"}
-                  onClick={openNotifications}
-                  aria-label="Open notifications"
-                >
-                  {notificationsMuted ? <BellOff /> : <Bell />}
-                </IconButton>
-                {unreadCount > 0 ? (
-                  <Box
-                    position="absolute"
-                    top="-4px"
-                    right="-4px"
-                    minWidth="18px"
-                    height="18px"
-                    borderRadius="full"
-                    bg={`${accentColor}.500`}
-                    color="white"
-                    fontSize="xs"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    px="1"
+              {globalLoggedIn ? (
+                <Box>
+                  <IconButton
+                    colorPalette={accentColor}
+                    width={"40px"}
+                    height={"40px"}
+                    onClick={openNotifications}
+                    aria-label="Open notifications"
                   >
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Box>
-                ) : null}
-              </Box>
-            </Box>
+                    {notificationsMuted ? <BellOff /> : <Bell />}
+                  </IconButton>
+                  {unreadCount > 0 ? (
+                    <Box
+                      position="absolute"
+                      top="-4px"
+                      right="-4px"
+                      minWidth="18px"
+                      height="18px"
+                      borderRadius="full"
+                      bg={`${accentColor}.500`}
+                      color="white"
+                      fontSize="xs"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      px="1"
+                    >
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Box>
+                  ) : null}
+                </Box>
+              ) : null}
+
+              {isInMatch ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  colorPalette="red"
+                  onClick={handleForceCloseMatch}
+                >
+                  Force Close Match
+                </Button>
+              ) : null}
+            </Flex>
           </Flex>
           <Box
             flex="1"

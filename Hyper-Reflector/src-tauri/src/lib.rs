@@ -14,9 +14,24 @@ mod proxy;
 use proxy::{kill_emulator_only, start_proxy, stop_proxy, ProxyManager};
 
 // This saves the child process
-#[derive(Default)]
+struct MockChild {
+    pid: u32,
+    match_id: Option<String>,
+    child: tauri_plugin_shell::process::CommandChild,
+}
+
 struct ProcState {
     child: Option<tauri_plugin_shell::process::CommandChild>,
+    mock_children: Vec<MockChild>,
+}
+
+impl Default for ProcState {
+    fn default() -> Self {
+        Self {
+            child: None,
+            mock_children: Vec::new(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -432,14 +447,63 @@ async fn start_training_mode(
 }
 
 #[tauri::command]
-async fn launch_emulator(app: tauri::AppHandle, exe_path: String, mut args: Vec<String>) -> Result<(), String> {
+async fn launch_emulator(
+    app: tauri::AppHandle,
+    proc: State<'_, Arc<Mutex<ProcState>>>,
+    exe_path: String,
+    mut args: Vec<String>,
+    match_id: Option<String>,
+) -> Result<(), String> {
+    let proc_arc = proc.inner().clone();
     let resolved = resolve_emulator_path(&app, &exe_path)?;
     resolve_lua_args(&app, &mut args)?;
     let command = app
         .shell()
         .command(resolved)
         .args(args);
-    let (_rx, _child) = command.spawn().map_err(|e| e.to_string())?;
+    let (mut rx, child) = command.spawn().map_err(|e| e.to_string())?;
+    let pid = child.pid();
+    {
+        let mut guard = proc_arc.lock().unwrap();
+        guard.mock_children.push(MockChild {
+            pid,
+            match_id: match_id.clone(),
+            child,
+        });
+    }
+    let app_clone = app.clone();
+    let proc_clone = proc_arc.clone();
+    tauri::async_runtime::spawn(async move {
+        use tauri_plugin_shell::process::CommandEvent;
+        while let Some(event) = rx.recv().await {
+            if matches!(event, CommandEvent::Terminated(_)) {
+                {
+                    let mut guard = proc_clone.lock().unwrap();
+                    guard.mock_children.retain(|child| child.pid != pid);
+                }
+                let payload = serde_json::json!({
+                    "reason": "mock-emulator-exited",
+                    "matchId": match_id,
+                });
+                let _ = app_clone.emit_to(EventTarget::any(), "endMatch", payload.clone());
+                let _ = app_clone.emit_to(EventTarget::any(), "endMatchUI", payload);
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn kill_mock_emulators(proc: State<'_, Arc<Mutex<ProcState>>>) -> Result<(), String> {
+    let mut children = Vec::new();
+    {
+        let mut guard = proc.lock().unwrap();
+        children.append(&mut guard.mock_children);
+    }
+    for mut child in children {
+        let _ = child.child.kill();
+    }
     Ok(())
 }
 
@@ -480,6 +544,7 @@ pub fn run() {
             run_custom_process,
             start_proxy,
             stop_proxy,
+            kill_mock_emulators,
             kill_emulator_only,
             prepare_user_resources,
             read_files_text,
