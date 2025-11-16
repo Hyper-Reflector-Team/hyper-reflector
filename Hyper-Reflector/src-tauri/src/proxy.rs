@@ -6,16 +6,17 @@ use crate::{resolve_emulator_path, resolve_lua_args};
 use anyhow::anyhow;
 use std::{
     net::{Ipv4Addr, SocketAddr},
-    sync::Arc,
+    sync::{Arc},
     time::Duration,
 };
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, EventTarget};
 use tokio::{
     net::UdpSocket,
     process::Command as TokioCommand,
     sync::{oneshot, Mutex},
     task::JoinHandle,
-    time::interval,
+    time::{interval, sleep},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,6 +73,7 @@ pub struct ProxyRuntime {
     // Meta
     app: AppHandle,
     args: StartArgs,
+    match_closed: AtomicBool,
 }
 
 impl ProxyRuntime {
@@ -100,6 +102,7 @@ impl ProxyRuntime {
             stop_tx: Mutex::new(None),
             app,
             args,
+            match_closed: AtomicBool::new(false),
         });
 
         Ok(rt)
@@ -188,11 +191,10 @@ impl ProxyRuntime {
                 match emu_listener.recv_from(&mut buf).await {
                     Ok((n, _from)) => {
                         let payload = &buf[..n];
-                        let _ = this.send_to_peer(payload).await; // ✅ use `this`
+                        let _ = this.send_to_peer(payload).await;
                     }
                     Err(_e) => {
                         let _ = this.app.emit_to(
-                            // ✅ use `this`
                             EventTarget::any(),
                             "proxy-log",
                             "emu recv error".to_string(),
@@ -245,7 +247,7 @@ impl ProxyRuntime {
             return;
         }
 
-        let this = Arc::clone(self); // ✅ now valid
+        let this = Arc::clone(self);
         let handle = tokio::spawn(async move {
             let mut ticker = interval(Duration::from_secs(1));
             loop {
@@ -256,7 +258,7 @@ impl ProxyRuntime {
         *guard = Some(handle);
     }
 
-    async fn send_to_peer(&self, payload: &[u8]) -> anyhow::Result<()> {
+    async fn send_to_peer(self: &Arc<Self>, payload: &[u8]) -> anyhow::Result<()> {
         let opp = self.opponent.lock().await.clone();
         if let Some(addr) = opp {
             // start emulator on first real send if not started
@@ -277,7 +279,7 @@ impl ProxyRuntime {
         Ok(())
     }
 
-    async fn start_emulator(&self) -> anyhow::Result<()> {
+    async fn start_emulator(self: &Arc<Self>) -> anyhow::Result<()> {
         // Your JS called startPlayingOnline with params; here we just show a spawn.
         // You can craft the exact CLI args your emulator expects.
         let emu_listen_port = self.emu_listener.local_addr()?.port();
@@ -317,6 +319,7 @@ impl ProxyRuntime {
 
         let child = cmd.spawn()?;
         *self.child.lock().await = Some(child);
+        self.spawn_emulator_watchdog();
         let _ = self.app.emit_to(
             EventTarget::any(),
             "sendAlert",
@@ -355,11 +358,63 @@ impl ProxyRuntime {
         if let Some(h) = self.keepalive_task.lock().await.take() {
             h.abort();
         }
-        // Kill emulator
+        self.kill_emulator_process("proxy-stop").await?;
+        Ok(())
+    }
+
+    fn spawn_emulator_watchdog(self: &Arc<Self>) {
+        let watcher = Arc::clone(self);
+        tokio::spawn(async move {
+            loop {
+                let terminated = {
+                    let mut guard = watcher.child.lock().await;
+                    if let Some(child) = guard.as_mut() {
+                        match child.try_wait() {
+                            Ok(Some(_status)) => {
+                                guard.take();
+                                true
+                            }
+                            Ok(None) => false,
+                            Err(err) => {
+                                let _ = watcher.app.emit_to(
+                                    EventTarget::any(),
+                                    "proxy-log",
+                                    format!("Emulator error: {err}"),
+                                );
+                                guard.take();
+                                true
+                            }
+                        }
+                    } else {
+                        false
+                    }
+                };
+                if terminated {
+                    watcher.notify_match_closed("emulator-exited").await;
+                    break;
+                }
+                sleep(Duration::from_millis(750)).await;
+            }
+        });
+    }
+
+    async fn notify_match_closed(&self, reason: &str) {
+        if self.match_closed.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let payload = json!({
+            "reason": reason,
+            "matchId": self.args.match_id,
+        });
+        let _ = self.app.emit_to(EventTarget::any(), "endMatch", payload.clone());
+        let _ = self.app.emit_to(EventTarget::any(), "endMatchUI", payload);
+    }
+
+    async fn kill_emulator_process(&self, reason: &str) -> anyhow::Result<()> {
         if let Some(mut child) = self.child.lock().await.take() {
-            // try graceful
-            let _ = child.start_kill(); // sends SIGKILL on Unix; on Windows, terminates the process
+            let _ = child.start_kill();
             let _ = child.wait().await;
+            self.notify_match_closed(reason).await;
         }
         Ok(())
     }
@@ -410,11 +465,14 @@ pub async fn stop_proxy(state: tauri::State<'_, ProxyManager>) -> Result<(), Str
 
 #[tauri::command]
 pub async fn kill_emulator_only(state: tauri::State<'_, ProxyManager>) -> Result<(), String> {
-    if let Some(rt) = &*state.inner.lock().await {
-        if let Some(mut child) = rt.child.lock().await.take() {
-            let _ = child.start_kill();
-            let _ = child.wait().await;
-        }
+    let runtime = {
+        let guard = state.inner.lock().await;
+        guard.clone()
+    };
+    if let Some(rt) = runtime {
+        rt.kill_emulator_process("manual-force")
+            .await
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }

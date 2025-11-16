@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { TUser } from '../types/user'
+import type { MatchSummary } from '../types/match'
 
 export const DEFAULT_LOBBY_ID = 'Hyper Reflector'
 
@@ -47,12 +48,14 @@ type UserState = {
     globalUser: TUser | undefined
     globalLoggedIn: boolean
     lobbyUsers: TUser[]
+    currentMatches: MatchSummary[]
     signalStatus: SignalStatus
     currentLobbyId: string
     lobbies: LobbySummary[]
     setGlobalUser: (user: TUser | undefined) => void
     setGlobalLoggedIn: (info: boolean) => void
     setLobbyUsers: (users: TUser[]) => void
+    setCurrentMatches: (matches: MatchSummary[]) => void
     setSignalStatus: (status: SignalStatus) => void
     setCurrentLobbyId: (id: string) => void
     setLobbies: (lobbies: LobbySummary[]) => void
@@ -70,6 +73,7 @@ export type TMessage = {
     challengeResponder?: string
     challengeChallengerId?: string
     challengeOpponentId?: string
+    challengeKind?: 'match' | 'rps'
 }
 
 type MessageState = {
@@ -108,12 +112,14 @@ export const useUserStore = create<UserState>((set) => ({
     globalUser: undefined,
     globalLoggedIn: false,
     lobbyUsers: [],
+    currentMatches: [],
     signalStatus: 'disconnected',
     currentLobbyId: DEFAULT_LOBBY_ID,
     lobbies: [],
     setGlobalUser: (user) => set({ globalUser: user }),
     setGlobalLoggedIn: (info) => set({ globalLoggedIn: info }),
     setLobbyUsers: (users) => set({ lobbyUsers: users }),
+    setCurrentMatches: (matches) => set({ currentMatches: matches }),
     setSignalStatus: (status) => set({ signalStatus: status }),
     setCurrentLobbyId: (id) => set({ currentLobbyId: id || DEFAULT_LOBBY_ID }),
     setLobbies: (lobbies) => set({ lobbies }),

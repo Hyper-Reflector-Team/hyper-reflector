@@ -14,9 +14,24 @@ mod proxy;
 use proxy::{kill_emulator_only, start_proxy, stop_proxy, ProxyManager};
 
 // This saves the child process
-#[derive(Default)]
+struct MockChild {
+    pid: u32,
+    match_id: Option<String>,
+    child: tauri_plugin_shell::process::CommandChild,
+}
+
 struct ProcState {
     child: Option<tauri_plugin_shell::process::CommandChild>,
+    mock_children: Vec<MockChild>,
+}
+
+impl Default for ProcState {
+    fn default() -> Self {
+        Self {
+            child: None,
+            mock_children: Vec::new(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -33,13 +48,13 @@ fn greet(name: &str) -> String {
 fn take_sink(app: &tauri::AppHandle) -> Option<Arc<rodio::Sink>> {
     let audio = app.state::<AudioState>();
     let mut guard = audio.sink.lock().unwrap();
-    guard.take() // guard drops here
+    guard.take()
 }
 
 fn set_sink(app: &tauri::AppHandle, new_sink: Option<Arc<rodio::Sink>>) {
     let audio = app.state::<AudioState>();
     let mut guard = audio.sink.lock().unwrap();
-    *guard = new_sink; // guard drops here
+    *guard = new_sink;
 }
 
 fn resolve_path_common(app: &AppHandle, raw: &str, empty_msg: &str) -> Result<PathBuf, String> {
@@ -340,7 +355,6 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
         old.stop();
     }
 
-    // Worker thread to keep OutputStream alive while playing
     std::thread::spawn(move || {
         let stream = match rodio::OutputStreamBuilder::open_default_stream() {
             Ok(s) => s,
@@ -349,10 +363,8 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
 
         let sink = Arc::new(rodio::Sink::connect_new(&stream.mixer()));
 
-        // publish handle (drop guard inside helper)
         set_sink(&app, Some(sink.clone()));
 
-        // open & decode
         let file = match std::fs::File::open(&resolved) {
             Ok(f) => f,
             Err(e) => {
@@ -373,11 +385,9 @@ fn play_sound(app: tauri::AppHandle, path: String) -> Result<(), String> {
         sink.append(source);
         sink.sleep_until_end();
 
-        // clear the handle if it's still this sink
         let current = take_sink(&app);
         if let Some(cur) = current {
             if !Arc::ptr_eq(&cur, &sink) {
-                // someone else started a new sound; put it back
                 set_sink(&app, Some(cur));
             }
         }
@@ -437,14 +447,63 @@ async fn start_training_mode(
 }
 
 #[tauri::command]
-async fn launch_emulator(app: tauri::AppHandle, exe_path: String, mut args: Vec<String>) -> Result<(), String> {
+async fn launch_emulator(
+    app: tauri::AppHandle,
+    proc: State<'_, Arc<Mutex<ProcState>>>,
+    exe_path: String,
+    mut args: Vec<String>,
+    match_id: Option<String>,
+) -> Result<(), String> {
+    let proc_arc = proc.inner().clone();
     let resolved = resolve_emulator_path(&app, &exe_path)?;
     resolve_lua_args(&app, &mut args)?;
     let command = app
         .shell()
         .command(resolved)
         .args(args);
-    let (_rx, _child) = command.spawn().map_err(|e| e.to_string())?;
+    let (mut rx, child) = command.spawn().map_err(|e| e.to_string())?;
+    let pid = child.pid();
+    {
+        let mut guard = proc_arc.lock().unwrap();
+        guard.mock_children.push(MockChild {
+            pid,
+            match_id: match_id.clone(),
+            child,
+        });
+    }
+    let app_clone = app.clone();
+    let proc_clone = proc_arc.clone();
+    tauri::async_runtime::spawn(async move {
+        use tauri_plugin_shell::process::CommandEvent;
+        while let Some(event) = rx.recv().await {
+            if matches!(event, CommandEvent::Terminated(_)) {
+                {
+                    let mut guard = proc_clone.lock().unwrap();
+                    guard.mock_children.retain(|child| child.pid != pid);
+                }
+                let payload = serde_json::json!({
+                    "reason": "mock-emulator-exited",
+                    "matchId": match_id,
+                });
+                let _ = app_clone.emit_to(EventTarget::any(), "endMatch", payload.clone());
+                let _ = app_clone.emit_to(EventTarget::any(), "endMatchUI", payload);
+                break;
+            }
+        }
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn kill_mock_emulators(proc: State<'_, Arc<Mutex<ProcState>>>) -> Result<(), String> {
+    let mut children = Vec::new();
+    {
+        let mut guard = proc.lock().unwrap();
+        children.append(&mut guard.mock_children);
+    }
+    for mut child in children {
+        let _ = child.child.kill();
+    }
     Ok(())
 }
 
@@ -485,6 +544,7 @@ pub fn run() {
             run_custom_process,
             start_proxy,
             stop_proxy,
+            kill_mock_emulators,
             kill_emulator_only,
             prepare_user_resources,
             read_files_text,
