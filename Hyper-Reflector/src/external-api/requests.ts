@@ -150,7 +150,7 @@ async function createAccount(auth, name, email) {
         const idToken = await auth.currentUser.getIdToken().then((res) => res)
         try {
             console.log('trying on main to create account', name, email)
-            fetch(`http://${SERVER}:${keys.API_PORT}/create-account`, {
+            const response = await fetch(`http://${SERVER}:${keys.API_PORT}/create-account`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -161,9 +161,15 @@ async function createAccount(auth, name, email) {
                     email,
                 }),
             })
+            if (!response.ok) {
+                const errorPayload = await response.text().catch(() => 'create-account-failed')
+                throw new Error(errorPayload || 'create-account-failed')
+            }
+            return response.json().catch(() => null)
         } catch (error) {
             console.log(error)
             console.error(error.message)
+            throw error
         }
     }
 }
